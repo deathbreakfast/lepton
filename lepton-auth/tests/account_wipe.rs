@@ -118,6 +118,9 @@ async fn seed_enabled_totp(valence: &valence::Valence, user: &RecordId) {
     let factor = TotpFactor::new(
         user.clone(),
         FIXTURE_SECRET_B32.into(),
+        None,
+        None,
+        None,
         Some(now),
         Some(now),
         now,

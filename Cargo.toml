@@ -85,6 +85,7 @@ orbital-motion = { git = "https://github.com/unified-field-dev/orbital", branch 
 orbital-theme = { git = "https://github.com/unified-field-dev/orbital", branch = "main", default-features = false }
 
 # Platform: crates.io for published cores; git for unpublished kits on unified-field-dev
+# Apps path-patch this kit; keep on `branch = main` with higgs rewritten via [patch] below.
 valence = { package = "uf-valence", git = "https://github.com/unified-field-dev/valence", branch = "main", default-features = false, features = ["mem", "sqlite"] }
 valence-codegen = { package = "uf-valence-codegen", git = "https://github.com/unified-field-dev/valence", branch = "main" }
 higgs = { git = "https://github.com/unified-field-dev/higgs", branch = "main", default-features = false }
@@ -99,6 +100,8 @@ spectra = { package = "uf-spectra", git = "https://github.com/unified-field-dev/
 spectra-core = { package = "uf-spectra-core", git = "https://github.com/unified-field-dev/Spectra", branch = "main" }
 totp-rs = { version = "5.7", default-features = false }
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+chacha20poly1305 = "0.10"
+base64 = "0.22"
 tracing = "0.1"
 futures = "0.3"
 
@@ -151,3 +154,14 @@ chrono = { version = "0.4", features = ["serde"] }
 webauthn-rs = { version = "0.5.5", default-features = false, features = ["danger-allow-state-serialisation"] }
 
 # Transitive kits may still git-pin older Valence/Boson/Photon; force one crates.io graph.
+# Align with higgs (`tag = v0.1.2`) so host-adapter and higgs share one Valence.
+[patch.crates-io]
+uf-valence = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-core = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-codegen = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-macros = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-telemetry = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-mem = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-sqlite = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-sql = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-schema-dsl = { git = "https://github.com/unified-field-dev/valence", branch = "main" }

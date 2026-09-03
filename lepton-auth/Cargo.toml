@@ -44,6 +44,8 @@ photon = { workspace = true, optional = true }
 photon-leptos = { workspace = true, optional = true, default-features = false }
 totp-rs = { workspace = true, optional = true }
 qrcode = { version = "0.14", default-features = false, features = ["svg"], optional = true }
+chacha20poly1305 = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"], optional = true }
@@ -152,6 +154,10 @@ name = "totp_recovery"
 required-features = ["ssr", "totp"]
 
 [[test]]
+name = "totp_seal_enroll"
+required-features = ["ssr", "totp"]
+
+[[test]]
 name = "confirm_account_status"
 required-features = ["ssr", "phone"]
 
@@ -206,8 +212,8 @@ ssr = [
 email = ["dep:lepton-smtp"]
 # SMS OTP + lepton-sms adapters.
 phone = ["dep:lepton-sms"]
-# TOTP verify / enroll QR (totp-rs + qrcode SVG on SSR).
-totp = ["dep:totp-rs", "dep:qrcode"]
+# TOTP verify / enroll QR (totp-rs + qrcode SVG on SSR) + AEAD seed seal.
+totp = ["dep:totp-rs", "dep:qrcode", "dep:chacha20poly1305", "dep:base64"]
 # Alias for totp.
 two_factor = ["totp"]
 # WebAuthn passkey ceremony for AuthDevice kind=webauthn (server-side verify).

@@ -30,5 +30,7 @@ pub mod password_reset;
 pub mod signin;
 /// Signup server function.
 pub mod signup;
+/// Step-up TOTP verify (opens a session sudo window).
+pub mod step_up;
 /// TOTP enroll / disable / recovery server functions (Account Settings).
 pub mod totp;
