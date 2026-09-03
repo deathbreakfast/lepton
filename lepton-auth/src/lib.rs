@@ -328,8 +328,10 @@ pub use services::{
 };
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub use step_up::{
-    clear_window, require_recent_verification, verify_fresh_totp, verify_totp_for_session,
-    StepUpError, StepUpMode, StepUpOutcome, StepUpScope, STEP_UP_TTL_SECS,
+    clear_window, load_window, require_recent_verification, verify_code_against_factor,
+    verify_fresh_totp, verify_fresh_totp_for_session_user, verify_totp_for_session,
+    window_matches_identity, LoadedWindow, StepUpError, StepUpMode, StepUpOutcome, StepUpScope,
+    STEP_UP_TTL_SECS,
 };
 #[cfg(all(feature = "ssr", feature = "phone"))]
 pub use token_helpers::{generate_phone_otp_code, IssuedPhoneChallenge, PHONE_OTP_DIGIT_LEN};

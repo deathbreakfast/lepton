@@ -54,6 +54,15 @@ impl StepUpMode {
             _ => None,
         }
     }
+
+    /// Whether this mode reads or opens the session sudo window.
+    ///
+    /// [`Self::Fresh`] skips the window entirely (`verify_fresh_totp` only verifies
+    /// the code; it never calls `load_window`).
+    #[must_use]
+    pub const fn consults_session_window(self) -> bool {
+        matches!(self, Self::Window)
+    }
 }
 
 #[cfg(test)]
@@ -75,5 +84,12 @@ mod tests {
         assert_eq!(StepUpMode::parse("window"), Some(StepUpMode::Window));
         assert_eq!(StepUpMode::parse("fresh"), Some(StepUpMode::Fresh));
         assert_eq!(StepUpMode::parse("bogus"), None);
+    }
+
+    #[test]
+    fn fresh_mode_does_not_consult_window() {
+        assert_eq!(StepUpMode::parse("fresh"), Some(StepUpMode::Fresh));
+        assert!(!StepUpMode::Fresh.consults_session_window());
+        assert!(StepUpMode::Window.consults_session_window());
     }
 }

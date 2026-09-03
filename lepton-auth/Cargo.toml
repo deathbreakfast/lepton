@@ -158,6 +158,10 @@ name = "totp_seal_enroll"
 required-features = ["ssr", "totp"]
 
 [[test]]
+name = "step_up_verify"
+required-features = ["ssr", "totp"]
+
+[[test]]
 name = "confirm_account_status"
 required-features = ["ssr", "phone"]
 

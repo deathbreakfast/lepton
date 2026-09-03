@@ -27,6 +27,7 @@ pub fn record_failure(failed_attempts: i64, now: DateTime<Utc>) -> (i64, Option<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::step_up::error::StepUpError;
 
     #[test]
     fn lockout_after_budget() {
@@ -35,6 +36,11 @@ mod tests {
         assert_eq!(n, MAX_FAILED_ATTEMPTS);
         assert!(until.is_some());
         assert!(is_locked(until.as_ref(), now));
+        // verify path maps lockout / budget exhaustion to this reason_class.
+        assert_eq!(
+            StepUpError::StepUpRateLimited.reason_class(),
+            "step_up_rate_limited"
+        );
     }
 
     #[test]
@@ -43,5 +49,6 @@ mod tests {
         let (n, until) = record_failure(1, now);
         assert_eq!(n, 2);
         assert!(until.is_none());
+        assert_eq!(StepUpError::StepUpInvalid.reason_class(), "step_up_invalid");
     }
 }

@@ -59,6 +59,12 @@ pub struct LoadedWindow {
     pub scope: StepUpScope,
 }
 
+/// Whether `loaded` is bound to this user id and auth-hash (require identity check).
+#[must_use]
+pub fn window_matches_identity(loaded: &LoadedWindow, user_id: &str, auth_hash: &[u8]) -> bool {
+    loaded.user_id == user_id && loaded.auth_hash.as_slice() == auth_hash
+}
+
 /// Read the window if present (does not clear on expiry; caller decides).
 pub async fn load_window(session: &Session) -> Result<Option<LoadedWindow>, StepUpError> {
     let Some(expires_ts) = session
@@ -166,5 +172,71 @@ mod tests {
             loaded.expires_at <= Utc::now(),
             "loaded window must fail the unexpired check"
         );
+    }
+
+    #[tokio::test]
+    async fn clear_window_removes_step_up_keys_happy() {
+        let session = memory_session();
+        let now = Utc::now();
+        store_window(
+            &session,
+            "user-1",
+            b"auth-hash",
+            StepUpScope::SensitiveMutation,
+            now,
+        )
+        .await
+        .expect("store");
+        assert!(load_window(&session).await.expect("load").is_some());
+
+        clear_window(&session).await;
+
+        assert!(
+            load_window(&session)
+                .await
+                .expect("load after clear")
+                .is_none(),
+            "clear_window must drop all step-up session keys"
+        );
+        assert!(session
+            .get::<i64>(crate::session_binding::STEP_UP_EXPIRES_AT_KEY)
+            .await
+            .expect("get")
+            .is_none());
+        assert!(session
+            .get::<String>(crate::session_binding::STEP_UP_USER_ID_KEY)
+            .await
+            .expect("get")
+            .is_none());
+        assert!(session
+            .get::<Vec<u8>>(crate::session_binding::STEP_UP_AUTH_HASH_KEY)
+            .await
+            .expect("get")
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn window_wrong_user_or_auth_hash_rejected_sad() {
+        let session = memory_session();
+        let now = Utc::now();
+        store_window(
+            &session,
+            "user-1",
+            b"auth-hash-a",
+            StepUpScope::SensitiveMutation,
+            now,
+        )
+        .await
+        .expect("store");
+        let loaded = load_window(&session).await.expect("load").expect("present");
+
+        assert!(window_matches_identity(&loaded, "user-1", b"auth-hash-a"));
+        // Mirror require_recent_verification: mismatched binding ⇒ StepUpRequired.
+        assert!(!window_matches_identity(
+            &loaded,
+            "user-other",
+            b"auth-hash-a"
+        ));
+        assert!(!window_matches_identity(&loaded, "user-1", b"auth-hash-b"));
     }
 }

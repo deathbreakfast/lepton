@@ -120,7 +120,16 @@ async fn apply_success(
     Ok(())
 }
 
-async fn verify_code_against_factor(
+/// Verify a TOTP code against a loaded factor (throttle, same-step replay, seal/migrate).
+///
+/// Used by [`verify_totp_for_session`] and [`verify_fresh_totp`]. Exposed so library
+/// tests (and hosts that already hold a [`TotpFactor`] under System Valence) can
+/// exercise the verify core without a Leptos session extract.
+///
+/// # Errors
+///
+/// See [`StepUpError`].
+pub async fn verify_code_against_factor(
     valence: &Valence,
     factor: &TotpFactor,
     code: &str,
@@ -190,11 +199,11 @@ pub async fn require_recent_verification(scope: StepUpScope) -> Result<(), StepU
     if loaded.scope != scope {
         return Err(StepUpError::StepUpRequired);
     }
-    if loaded.user_id != bare_user_id(&user) {
-        window::clear_window(&session).await;
-        return Err(StepUpError::StepUpRequired);
-    }
-    if loaded.auth_hash.as_slice() != user.session_stamp.as_slice() {
+    if !window::window_matches_identity(
+        &loaded,
+        &bare_user_id(&user),
+        user.session_stamp.as_slice(),
+    ) {
         window::clear_window(&session).await;
         return Err(StepUpError::StepUpRequired);
     }
@@ -215,6 +224,32 @@ pub async fn verify_fresh_totp(code: &str) -> Result<(), StepUpError> {
     let (_ctx, user) = require_signed_in().await?;
     let system = system_valence_for_totp().await?;
     let record = user_record(&user);
+    let factor = load_enabled_factor(&system, &record).await?;
+    let now = Utc::now();
+    verify_code_against_factor(&system, &factor, code, now).await
+}
+
+/// Fresh TOTP verify bound to a Higgs session user id (no axum-login).
+///
+/// Lab hosts that inject [`higgs_identity::SessionSnapshot`] without
+/// `AuthSession` use this for IsolatedLab fresh gates. Production product
+/// hosts should prefer [`verify_fresh_totp`].
+///
+/// `session_user_id` may be bare (`admin`) or `user:admin`.
+///
+/// # Errors
+///
+/// See [`StepUpError`].
+pub async fn verify_fresh_totp_for_session_user(
+    session_user_id: &str,
+    code: &str,
+) -> Result<(), StepUpError> {
+    let system = system_valence_for_totp().await?;
+    let bare = session_user_id
+        .split(':')
+        .next_back()
+        .unwrap_or(session_user_id);
+    let record = RecordId::new("user", bare);
     let factor = load_enabled_factor(&system, &record).await?;
     let now = Utc::now();
     verify_code_against_factor(&system, &factor, code, now).await
@@ -241,6 +276,7 @@ async fn system_valence_for_totp() -> Result<Valence, StepUpError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::step_up::scope::StepUpMode;
 
     #[test]
     fn same_step_replay_denied() {
@@ -254,5 +290,12 @@ mod tests {
     #[test]
     fn window_ttl_is_five_minutes() {
         assert_eq!(crate::session_binding::STEP_UP_TTL_SECS, 300);
+    }
+
+    #[test]
+    fn fresh_verify_path_skips_window_contract() {
+        // Documented contract: verify_fresh_totp never calls load_window / store_window.
+        assert!(!StepUpMode::Fresh.consults_session_window());
+        assert!(StepUpMode::Window.consults_session_window());
     }
 }

@@ -150,8 +150,13 @@ Live operator CLIs are never CI. Setup and env names: `lepton-e2e/README.md`
 cargo test -p lepton-auth --features "ssr,totp" seal_ -- --nocapture
 cargo test -p lepton-auth --features "ssr,totp" step_up -- --nocapture
 cargo test -p lepton-auth --lib --features "ssr,totp" throttle::
-# Macro expansion (uf-product workspace)
+# Macro expansion + StepUpMode / error-prefix pins (uf-product workspace)
 cargo test -p uf-product-macros server_step_up
+cargo test -p uf-product --lib step_up_mode_ -- --nocapture
+cargo test -p uf-product --lib step_up_error_prefixes -- --nocapture
+# Consumer inventory (gauge / neutrino workspaces; monorepo composer sources)
+cargo test -p gauge --test product_surface step_up -- --nocapture
+cargo test -p neutrino --test product_surface step_up -- --nocapture
 # Runnable sketch
 cargo run -p lepton-auth --example step_up_totp --features "ssr,totp"
 ```

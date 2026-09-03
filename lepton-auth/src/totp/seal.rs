@@ -126,4 +126,15 @@ mod tests {
         assert_eq!(open, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
         assert!(!is_sealed_envelope("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"));
     }
+
+    #[test]
+    fn corrupt_sealed_secret_fails_closed_sad() {
+        std::env::set_var(ALLOW_TEST_KEY_ENV, "1");
+        let err = unseal_totp_secret("v1:not-valid-base64!!!").expect_err("corrupt");
+        assert!(matches!(err, FactorChallengeError::TotpSecret));
+        let msg = err.to_string();
+        assert_eq!(err.reason_class(), "totp_secret");
+        assert!(!msg.contains("not-valid-base64"));
+        assert!(!msg.to_lowercase().contains("panic"));
+    }
 }
