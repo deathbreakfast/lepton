@@ -217,6 +217,9 @@ mod tests {
 
     #[tokio::test]
     async fn window_wrong_user_or_auth_hash_rejected_sad() {
+        // TM-3 session/credential bind: require_recent_verification rejects when the
+        // window's user_id or auth_hash does not match the live session identity.
+        // Password-change / logout clear is covered by `tests/step_up_session_binding.rs`.
         let session = memory_session();
         let now = Utc::now();
         store_window(
@@ -238,5 +241,11 @@ mod tests {
             b"auth-hash-a"
         ));
         assert!(!window_matches_identity(&loaded, "user-1", b"auth-hash-b"));
+        // Both wrong: still fail closed.
+        assert!(!window_matches_identity(
+            &loaded,
+            "user-other",
+            b"auth-hash-b"
+        ));
     }
 }

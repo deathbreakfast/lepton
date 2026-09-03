@@ -162,6 +162,14 @@ name = "step_up_verify"
 required-features = ["ssr", "totp"]
 
 [[test]]
+name = "step_up_session_binding"
+required-features = ["ssr"]
+
+[[test]]
+name = "step_up_modal_coverage_inventory"
+required-features = ["ssr"]
+
+[[test]]
 name = "confirm_account_status"
 required-features = ["ssr", "phone"]
 
