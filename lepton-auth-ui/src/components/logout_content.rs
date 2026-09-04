@@ -2,7 +2,7 @@
 //! or standalone.
 
 use leptos::prelude::*;
-use orbital_primitives::{
+use orbital_core_components::{
     Button, ButtonAppearance, ButtonType, Flex, FlexGap, Link, MessageBar, MessageBarIntent, Text,
 };
 

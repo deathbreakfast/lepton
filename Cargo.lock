@@ -2325,7 +2325,6 @@ dependencies = [
  "orbital-base-components",
  "orbital-core-components",
  "orbital-motion",
- "orbital-primitives",
  "parcel_selectors",
  "tracing",
  "turf",

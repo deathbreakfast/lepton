@@ -1,7 +1,7 @@
 //! Step-up form body: password and/or TOTP fields inside [`super::StepUpDialog`].
 
 use leptos::prelude::*;
-use orbital_primitives::{
+use orbital_core_components::{
     Body1, Button, ButtonAppearance, ButtonType, Field, Flex, FlexGap, Input, InputAppearance,
     InputBind, InputType, Link, MessageBar, MessageBarIntent,
 };

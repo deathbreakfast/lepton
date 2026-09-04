@@ -11,8 +11,7 @@ publish = false
 lepton-auth = { workspace = true, default-features = false }
 leptos = { workspace = true }
 leptos_router = { workspace = true }
-orbital-primitives = { workspace = true, default-features = false }
-orbital-core-components = { workspace = true }
+orbital-core-components = { workspace = true, default-features = false }
 orbital-base-components = { workspace = true }
 orbital-motion = { workspace = true }
 turf = { workspace = true }
@@ -32,16 +31,15 @@ oauth-google = ["lepton-auth/oauth-google"]
 # Gates Continue with GitHub / the “or” divider in OAuthProviderButtons.
 oauth-github = ["lepton-auth/oauth-github"]
 hydrate = [
-    "orbital-primitives/hydrate",
+    "orbital-core-components/hydrate",
     "orbital-motion/hydrate",
     "leptos/hydrate",
     "lepton-auth/hydrate",
     "dep:wasm-bindgen-futures",
 ]
 ssr = [
-    "orbital-primitives/ssr",
-    "orbital-base-components/ssr",
     "orbital-core-components/ssr",
+    "orbital-base-components/ssr",
     "orbital-motion/ssr",
     "leptos/ssr",
     "leptos_router/ssr",

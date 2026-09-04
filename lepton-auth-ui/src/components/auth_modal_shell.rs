@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use orbital_base_components::OpenBind;
 use orbital_motion::{MotionCurve, OrbitalPresence, PresenceMotion};
-use orbital_primitives::{
+use orbital_core_components::{
     Dialog, DialogBody, DialogContent, DialogDismissConfig, DialogSurface, DialogTitle, Material,
     MaterialCorners, MaterialElevation, MaterialVariant,
 };

@@ -2,7 +2,7 @@
 
 use leptos::prelude::*;
 use orbital_core_components::Text;
-use orbital_primitives::{
+use orbital_core_components::{
     Button, ButtonType, Field, Flex, FlexGap, Input, InputAppearance, InputBind, InputType,
     MessageBar, MessageBarIntent,
 };
