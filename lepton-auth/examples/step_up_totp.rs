@@ -23,7 +23,7 @@ fn main() {
     let _ = require_recent_verification;
     let _ = verify_fresh_totp;
     let _ = StepUpScope::SensitiveMutation;
-    assert!(STEP_UP_TTL_SECS >= 60);
+    const { assert!(STEP_UP_TTL_SECS >= 60) };
     eprintln!(
         "step_up_totp: OK — verify_totp_for_session + require_recent_verification + verify_fresh_totp"
     );

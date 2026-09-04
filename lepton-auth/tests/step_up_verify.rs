@@ -81,7 +81,7 @@ async fn same_step_code_replay_denied_sad() {
     let user = seed_user(&valence).await;
     let totp = fixture_totp();
     let now = Utc::now();
-    let code = totp.generate(now.timestamp() as u64);
+    let code = totp.generate(now.timestamp().cast_unsigned());
 
     let (factor_id, factor) =
         seed_enabled_factor(&valence, &user, FIXTURE_SECRET_B32.into(), None, None, None).await;
@@ -164,7 +164,7 @@ async fn legacy_plaintext_verify_reseals_v1_happy() {
 
     let totp = fixture_totp();
     let now = Utc::now();
-    let code = totp.generate(now.timestamp() as u64);
+    let code = totp.generate(now.timestamp().cast_unsigned());
 
     verify_code_against_factor(&valence, &factor, &code, now)
         .await
