@@ -37,13 +37,13 @@ fn user_record(user: &User) -> RecordId {
     RecordId::new("user", bare_user_id(user))
 }
 
-fn current_step(now_secs: i64) -> i64 {
+const fn current_step(now_secs: i64) -> i64 {
     now_secs.div_euclid(30)
 }
 
 /// Whether this TOTP time-step was already accepted (same-step replay).
 #[must_use]
-pub(crate) fn step_already_used(last_used_step: Option<i64>, now_secs: i64) -> bool {
+fn step_already_used(last_used_step: Option<i64>, now_secs: i64) -> bool {
     last_used_step == Some(current_step(now_secs))
 }
 
@@ -147,7 +147,7 @@ pub async fn verify_code_against_factor(
         crate::factor::FactorChallengeError::TotpSecret => StepUpError::TotpSecret,
         _ => StepUpError::StepUpInvalid,
     })?;
-    match verify_totp_against_sealed(&open, code, Some(now.timestamp() as u64)) {
+    match verify_totp_against_sealed(&open, code, Some(now.timestamp().cast_unsigned())) {
         Ok(()) => {
             apply_success(valence, factor, factor.secret_sealed(), step, now).await?;
             Ok(())
@@ -231,8 +231,8 @@ pub async fn verify_fresh_totp(code: &str) -> Result<(), StepUpError> {
 
 /// Fresh TOTP verify bound to a Higgs session user id (no axum-login).
 ///
-/// Lab hosts that inject [`higgs_identity::SessionSnapshot`] without
-/// `AuthSession` use this for IsolatedLab fresh gates. Production product
+/// Lab hosts that inject a Higgs session snapshot without
+/// `AuthSession` use this for `IsolatedLab` fresh gates. Production product
 /// hosts should prefer [`verify_fresh_totp`].
 ///
 /// `session_user_id` may be bare (`admin`) or `user:admin`.

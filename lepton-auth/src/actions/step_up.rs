@@ -26,8 +26,12 @@ pub async fn verify_step_up_totp(
 }
 
 #[cfg(not(all(feature = "ssr", feature = "totp")))]
+/// Stub when `totp` is off: always returns `STEP_UP:totp_unavailable`.
 #[server(VerifyStepUpTotp)]
-pub async fn verify_step_up_totp(totp_code: String) -> Result<i64, ServerFnError> {
+pub async fn verify_step_up_totp(
+    /// Unused when the `totp` feature is disabled.
+    totp_code: String,
+) -> Result<i64, ServerFnError> {
     let _ = totp_code;
     Err(ServerFnError::new(
         "STEP_UP:totp_unavailable: totp feature disabled",
