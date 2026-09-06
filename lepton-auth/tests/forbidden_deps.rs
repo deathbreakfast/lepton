@@ -68,7 +68,7 @@ fn lepton_auth_has_no_orbital_dep_happy_path() {
 fn lepton_auth_ui_declares_orbital_sad_if_missing() {
     let ui = read("lepton-auth-ui/Cargo.toml");
     assert!(
-        ui.contains("orbital-primitives"),
-        "lepton-auth-ui must depend on orbital-primitives"
+        ui.contains("orbital-core-components"),
+        "lepton-auth-ui must depend on orbital-core-components"
     );
 }
