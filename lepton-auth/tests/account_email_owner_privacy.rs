@@ -1,9 +1,7 @@
-//! AccountEmail owner denial: non-owner User cannot read; System can (always_allow).
+//! AccountEmail owner denial: non-owner User cannot read; owner and System can.
 //!
-//! Entity read uses `defer_to_edge: "account"` (owner via Account.user). Field-level
-//! `address` policies still evaluate sync buckets only — `SYSTEM_ONLY` always_allow —
-//! so owner User can pass entity defer but may not deserialize `address` until Valence
-//! field filtering honors defer. This suite validates peer denial + System read.
+//! Entity read uses `defer_to_edge: "account"` (owner via Account.user). Address
+//! has no field-level policy so owners who pass entity defer can deserialize it.
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
@@ -84,6 +82,19 @@ async fn account_email_system_can_read_address_happy() {
         .await
         .expect("get")
         .expect("System always_allow may read email");
+    assert_eq!(row.address(), address.as_str());
+}
+
+#[tokio::test]
+async fn account_email_owner_can_read_address_happy() {
+    let sys = system_valence("email_owner_read").await;
+    let (owner_bare, email_bare, address) = seed_owner_with_email(&sys).await;
+    let owner_v = user_valence(&sys, &owner_bare);
+
+    let row = AccountEmail::get(&email_bare, &owner_v)
+        .await
+        .expect("get")
+        .expect("owner must read own email after entity defer");
     assert_eq!(row.address(), address.as_str());
 }
 

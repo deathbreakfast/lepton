@@ -4,7 +4,7 @@ use valence::privacy_policies::common::SYSTEM_ONLY;
 valence_schema! {
     AccountEmail {
         table: "account_email",
-        version: "0.4.1",
+        version: "0.4.2",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Email address belonging to an account (legal identity), with per-row verification",
 
@@ -54,23 +54,13 @@ valence_schema! {
                 required: true,
                 unique: true,
                 validations: [Validator::Email],
-                policies: {
-                    // Same owner gate as the entity (via Account.user).
-                    read: {
-                        always_allow: [SYSTEM_ONLY],
-                        defer_to_edge: "account",
-                    },
-                },
+                // No field-level read policy: sync field filtering ignores
+                // defer_to_edge, so SYSTEM_ONLY here would hide address from the
+                // owner after entity defer succeeds. Entity read is the owner gate.
             },
             verified_at: {
                 r#type: FieldType::DateTime,
                 required: false,
-                policies: {
-                    read: {
-                        always_allow: [SYSTEM_ONLY],
-                        defer_to_edge: "account",
-                    },
-                },
             },
             created_at: {
                 r#type: FieldType::DateTime,
