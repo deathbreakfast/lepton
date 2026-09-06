@@ -1,11 +1,11 @@
 //! `AccountEmail` privacy contract: entity read is owner-deferred, not AUTHENTICATED.
 //!
 //! Address has no field-level read policy — Valence sync field filtering does not
-//! honor `defer_to_edge`, so entity defer_to_edge + SYSTEM_ONLY is the owner gate.
+//! honor `defer_to_edge`, so entity `defer_to_edge` + `SYSTEM_ONLY` is the owner gate.
 
 #![allow(clippy::expect_used)]
 
-fn account_email_schema_src() -> &'static str {
+const fn account_email_schema_src() -> &'static str {
     include_str!("../schemas/account_email_valence_schema.rs")
 }
 
