@@ -53,7 +53,7 @@
 //! - `AccountEmail` / `AccountPhone` — contacts owned by `Account` (unique `address` /
 //!   `e164`, per-row `verified_at`).
 //!
-//! ### AccountEmail read privacy
+//! ### `AccountEmail` read privacy
 //!
 //! Email addresses are owner and System readable. Entity `read` uses
 //! `always_allow: [SYSTEM_ONLY]` plus `defer_to_edge: "account"` (Account founding
