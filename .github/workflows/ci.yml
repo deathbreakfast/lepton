@@ -186,6 +186,7 @@ jobs:
       - name: cargo leptos end-to-end
         env:
           CI: true
+          LEPTON_TOTP_ALLOW_TEST_SEAL_KEY: "1"
         run: cargo leptos end-to-end --project lepton-auth-ui-e2e
 
       - name: Upload Playwright artifacts on failure

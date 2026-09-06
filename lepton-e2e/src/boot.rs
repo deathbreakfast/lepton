@@ -212,6 +212,15 @@ fn apply_valence_env_defaults() {
             std::env::set_var("VALENCE_OWNERSHIP_COLOCATE", "0");
         }
     }
+    // Sealed TOTP secrets require a key; CI/local e2e use the non-production test key.
+    if std::env::var_os("LEPTON_TOTP_SEAL_KEY").is_none()
+        && std::env::var_os("LEPTON_TOTP_ALLOW_TEST_SEAL_KEY").is_none()
+    {
+        // SAFETY: same as above — set once before the e2e host serves requests.
+        unsafe {
+            std::env::set_var("LEPTON_TOTP_ALLOW_TEST_SEAL_KEY", "1");
+        }
+    }
 }
 
 struct MemRouter {
