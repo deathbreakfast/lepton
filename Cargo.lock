@@ -436,21 +436,8 @@ version = "0.1.4"
 source = "git+https://github.com/unified-field-dev/boson?branch=main#5123840aecf6f704a9f20ca90cba2f1aec5cffb3"
 dependencies = [
  "async-trait",
- "boson-core 0.1.4",
+ "boson-core",
  "chrono",
- "uuid",
-]
-
-[[package]]
-name = "boson-core"
-version = "0.1.2"
-source = "git+https://github.com/unified-field-dev/boson?tag=v0.1.2#8187b7d6877c2b9ea3908c45b0b9b3954004364d"
-dependencies = [
- "async-trait",
- "chrono",
- "serde",
- "serde_json",
- "thiserror 2.0.19",
  "uuid",
 ]
 
@@ -483,7 +470,7 @@ version = "0.1.4"
 source = "git+https://github.com/unified-field-dev/boson?branch=main#5123840aecf6f704a9f20ca90cba2f1aec5cffb3"
 dependencies = [
  "async-trait",
- "boson-core 0.1.4",
+ "boson-core",
  "boson-telemetry",
  "chrono",
  "serde_json",
@@ -502,12 +489,12 @@ dependencies = [
 [[package]]
 name = "boson-valence-identity"
 version = "0.1.0"
-source = "git+https://github.com/unified-field-dev/boson-valence-identity?branch=main#a27a590ed5b2042440c5538a00bf65eae7694abd"
+source = "git+https://github.com/unified-field-dev/boson-valence-identity?branch=main#80b4b3ef90cf1167b6b13d356d4561bd4df4301f"
 dependencies = [
- "boson-core 0.1.2",
+ "boson-core",
  "serde",
  "serde_json",
- "uf-valence 0.1.2",
+ "uf-valence",
 ]
 
 [[package]]
@@ -1687,7 +1674,7 @@ dependencies = [
  "log",
  "serde_json",
  "thiserror 2.0.19",
- "uf-valence 0.1.5",
+ "uf-valence",
 ]
 
 [[package]]
@@ -1705,7 +1692,7 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
- "uf-valence 0.1.5",
+ "uf-valence",
 ]
 
 [[package]]
@@ -1721,7 +1708,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "uf-valence 0.1.5",
+ "uf-valence",
 ]
 
 [[package]]
@@ -2267,7 +2254,7 @@ dependencies = [
  "axum-login",
  "base64 0.22.1",
  "boson-backend-mem",
- "boson-core 0.1.4",
+ "boson-core",
  "boson-macros",
  "boson-runtime",
  "boson-valence-identity",
@@ -2302,7 +2289,7 @@ dependencies = [
  "tracing",
  "uf-photon 0.1.4 (git+https://github.com/unified-field-dev/photon?branch=main)",
  "uf-quark 0.1.3 (git+https://github.com/unified-field-dev/quark?branch=main)",
- "uf-valence 0.1.5",
+ "uf-valence",
  "url",
  "urlencoding",
  "uuid",
@@ -2373,7 +2360,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tracing-wasm",
- "uf-valence 0.1.5",
+ "uf-valence",
  "url",
  "urlencoding",
  "wasm-bindgen",
@@ -2402,7 +2389,7 @@ dependencies = [
  "tokio",
  "totp-rs",
  "tracing",
- "uf-valence 0.1.5",
+ "uf-valence",
  "url",
  "urlencoding",
 ]
@@ -2435,7 +2422,7 @@ dependencies = [
  "tower",
  "tower-sessions",
  "tracing",
- "uf-valence 0.1.5",
+ "uf-valence",
  "uf-valence-codegen",
  "uuid",
 ]
@@ -2453,7 +2440,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tracing",
- "uf-valence 0.1.5",
+ "uf-valence",
  "uf-valence-codegen",
  "uuid",
 ]
@@ -2524,7 +2511,7 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
- "uf-valence 0.1.5",
+ "uf-valence",
 ]
 
 [[package]]
@@ -6055,26 +6042,16 @@ dependencies = [
 
 [[package]]
 name = "uf-valence"
-version = "0.1.2"
-source = "git+https://github.com/unified-field-dev/valence?tag=v0.1.2#c393b0e52178c0d586f2b337cb5437353799e580"
-dependencies = [
- "uf-valence-backend-mem 0.1.2",
- "uf-valence-core 0.1.2",
- "uf-valence-macros 0.1.2",
-]
-
-[[package]]
-name = "uf-valence"
 version = "0.1.5"
 source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
 dependencies = [
  "uf-valence-backend-hybrid",
  "uf-valence-backend-indradb",
- "uf-valence-backend-mem 0.1.5",
+ "uf-valence-backend-mem",
  "uf-valence-backend-postgres",
  "uf-valence-backend-sqlite",
- "uf-valence-core 0.1.5",
- "uf-valence-macros 0.1.5",
+ "uf-valence-core",
+ "uf-valence-macros",
 ]
 
 [[package]]
@@ -6087,7 +6064,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "uf-valence-backend-indradb",
- "uf-valence-core 0.1.5",
+ "uf-valence-core",
 ]
 
 [[package]]
@@ -6099,19 +6076,8 @@ dependencies = [
  "indradb-lib",
  "serde_json",
  "tokio",
- "uf-valence-core 0.1.5",
+ "uf-valence-core",
  "uuid",
-]
-
-[[package]]
-name = "uf-valence-backend-mem"
-version = "0.1.2"
-source = "git+https://github.com/unified-field-dev/valence?tag=v0.1.2#c393b0e52178c0d586f2b337cb5437353799e580"
-dependencies = [
- "async-trait",
- "serde_json",
- "tokio",
- "uf-valence-core 0.1.2",
 ]
 
 [[package]]
@@ -6122,7 +6088,7 @@ dependencies = [
  "async-trait",
  "serde_json",
  "tokio",
- "uf-valence-core 0.1.5",
+ "uf-valence-core",
 ]
 
 [[package]]
@@ -6135,7 +6101,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "uf-valence-backend-sql",
- "uf-valence-core 0.1.5",
+ "uf-valence-core",
 ]
 
 [[package]]
@@ -6149,7 +6115,7 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
- "uf-valence-core 0.1.5",
+ "uf-valence-core",
  "uuid",
 ]
 
@@ -6163,7 +6129,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "uf-valence-backend-sql",
- "uf-valence-core 0.1.5",
+ "uf-valence-core",
 ]
 
 [[package]]
@@ -6176,27 +6142,8 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
- "uf-valence-core 0.1.5",
- "uf-valence-schema-dsl 0.1.5",
-]
-
-[[package]]
-name = "uf-valence-core"
-version = "0.1.2"
-source = "git+https://github.com/unified-field-dev/valence?tag=v0.1.2#c393b0e52178c0d586f2b337cb5437353799e580"
-dependencies = [
- "async-trait",
- "chrono",
- "inventory",
- "quick_cache",
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.19",
- "tokio",
- "tracing",
- "uf-valence-telemetry 0.1.2",
- "uuid",
+ "uf-valence-core",
+ "uf-valence-schema-dsl",
 ]
 
 [[package]]
@@ -6214,40 +6161,19 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
- "uf-valence-telemetry 0.1.5",
+ "uf-valence-telemetry",
  "uuid",
 ]
 
 [[package]]
 name = "uf-valence-macros"
-version = "0.1.2"
-source = "git+https://github.com/unified-field-dev/valence?tag=v0.1.2#c393b0e52178c0d586f2b337cb5437353799e580"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
- "uf-valence-schema-dsl 0.1.2",
-]
-
-[[package]]
-name = "uf-valence-macros"
 version = "0.1.5"
 source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
- "uf-valence-schema-dsl 0.1.5",
-]
-
-[[package]]
-name = "uf-valence-schema-dsl"
-version = "0.1.2"
-source = "git+https://github.com/unified-field-dev/valence?tag=v0.1.2#c393b0e52178c0d586f2b337cb5437353799e580"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
+ "uf-valence-schema-dsl",
 ]
 
 [[package]]
@@ -6258,14 +6184,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "uf-valence-telemetry"
-version = "0.1.2"
-source = "git+https://github.com/unified-field-dev/valence?tag=v0.1.2#c393b0e52178c0d586f2b337cb5437353799e580"
-dependencies = [
- "serde_json",
 ]
 
 [[package]]
