@@ -153,8 +153,9 @@ uuid = { version = "1", features = ["serde", "v4", "v5"] }
 chrono = { version = "0.4", features = ["serde"] }
 webauthn-rs = { version = "0.5.5", default-features = false, features = ["danger-allow-state-serialisation"] }
 
-# Transitive kits may still git-pin older Valence/Boson/Photon; force one crates.io graph.
-# Align with higgs (`tag = v0.1.2`) so host-adapter and higgs share one Valence.
+# Transitive crates.io pins (if any) get forced onto uf-dev Valence main.
+# Git tag vs branch diamonds (boson-valence-identity still on tag=v0.1.2) are
+# fixed by landing that kit's branch=main tip, then `cargo update` here.
 [patch.crates-io]
 uf-valence = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
 uf-valence-core = { git = "https://github.com/unified-field-dev/valence", branch = "main" }

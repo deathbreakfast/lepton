@@ -1,4 +1,4 @@
-//! AccountEmail owner denial: non-owner User cannot read; owner and System can.
+//! `AccountEmail` owner denial: non-owner User cannot read; owner and System can.
 //!
 //! Entity read uses `defer_to_edge: "account"` (owner via Account.user). Address
 //! has no field-level policy so owners who pass entity defer can deserialize it.
@@ -123,8 +123,7 @@ async fn account_email_peer_cannot_read_address_sad() {
 
     let denied = AccountEmail::get(&email_bare, &peer_v).await;
     match denied {
-        Ok(None) => {}
-        Err(_) => {}
+        Ok(None) | Err(_) => {}
         Ok(Some(row)) => panic!(
             "peer must not read owner email address, got {}",
             row.address()

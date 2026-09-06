@@ -1,4 +1,4 @@
-//! AccountEmail privacy contract: entity read is owner-deferred, not AUTHENTICATED.
+//! `AccountEmail` privacy contract: entity read is owner-deferred, not AUTHENTICATED.
 //!
 //! Address has no field-level read policy — Valence sync field filtering does not
 //! honor `defer_to_edge`, so entity defer_to_edge + SYSTEM_ONLY is the owner gate.
