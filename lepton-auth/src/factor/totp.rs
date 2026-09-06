@@ -43,7 +43,7 @@ pub(super) async fn consume_recovery_for_user(
     }
 }
 
-/// Verify `code` against a sealed (base32) TOTP secret.
+/// Verify `code` against a sealed (AEAD or legacy base32) TOTP secret.
 ///
 /// **SSR / library only** — do not expose `secret_sealed` over a client-readable API.
 /// When `time_secs` is `Some`, uses that Unix timestamp instead of wall clock
@@ -55,7 +55,8 @@ pub fn verify_totp_against_sealed(
 ) -> Result<(), FactorChallengeError> {
     use totp_rs::{Algorithm, Secret, TOTP};
 
-    let secret = Secret::Encoded(secret_sealed.trim().to_string())
+    let open = crate::totp::seal::unseal_totp_secret(secret_sealed)?;
+    let secret = Secret::Encoded(open.trim().to_string())
         .to_bytes()
         .map_err(|_| FactorChallengeError::TotpSecret)?;
     let totp = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret)

@@ -1,7 +1,7 @@
 //! OAuth callback content: completes the provider handoff and establishes a session.
 
 use leptos::prelude::*;
-use orbital_primitives::{Flex, FlexGap, MessageBar, MessageBarIntent, Text};
+use orbital_core_components::{Flex, FlexGap, MessageBar, MessageBarIntent, Text};
 
 /// Runs [`CompleteOAuthCallback`] once when `code` / `state` / `provider` are present.
 #[component]

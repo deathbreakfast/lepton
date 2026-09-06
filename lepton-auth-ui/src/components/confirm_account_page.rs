@@ -16,7 +16,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
-use orbital_primitives::{
+use orbital_core_components::{
     Badge, BadgeAppearance, Body1, Button, ButtonAppearance, ButtonType, Card, CardContent,
     CardHeader, Field, Flex, FlexAlign, FlexGap, FlexWrap, Input, InputAppearance, InputBind,
     InputType, MessageBar, MessageBarIntent, Text, Title3,

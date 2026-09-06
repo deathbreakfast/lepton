@@ -458,23 +458,10 @@ pub async fn serve_handler(
 
         let backend_key = files_config.default_backend_key.as_str();
         let session_v = user_valence(Arc::clone(&valence_router), backend_key, &user)?;
-        let photo = match ProfilePhoto::get(&id, &session_v).await {
-            Ok(Some(p)) => p,
-            Ok(None) => {
-                return Err((StatusCode::NOT_FOUND, "File not found".to_string()));
-            }
-            Err(_) => {
-                let system_v = system_valence(valence_router, backend_key, "file_serve")?;
-                ProfilePhoto::get(&id, &system_v)
-                    .await
-                    .map_err(|_| {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            "Failed to load file".to_string(),
-                        )
-                    })?
-                    .ok_or_else(|| (StatusCode::NOT_FOUND, "File not found".to_string()))?
-            }
+        // Privacy denial is Err(Error::Privacy); treat the same as missing —
+        // never elevate to System to re-fetch (uf-no-actor-elevation).
+        let Ok(Some(photo)) = ProfilePhoto::get(&id, &session_v).await else {
+            return Err((StatusCode::NOT_FOUND, "File not found".to_string()));
         };
 
         let key = photo.storage_path().clone();

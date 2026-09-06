@@ -142,3 +142,23 @@ Live operator CLIs are never CI. Setup and env names: `lepton-e2e/README.md`
 - Hosts that load sessions use host product APIs (`get_session` /
   `init_auth_resource`), not a `lepton-auth` product feature.
 - Hosts supply plain config; this kit does not pull a secrets manager.
+
+## Action verification (step-up)
+
+```bash
+# Unit: seal roundtrip, throttle, scope/mode, replay arithmetic, error prefix
+cargo test -p lepton-auth --features "ssr,totp" seal_ -- --nocapture
+cargo test -p lepton-auth --features "ssr,totp" step_up -- --nocapture
+cargo test -p lepton-auth --lib --features "ssr,totp" throttle::
+# Macro expansion + StepUpMode / error-prefix pins (uf-product workspace)
+cargo test -p uf-product-macros server_step_up
+cargo test -p uf-product --lib step_up_mode_ -- --nocapture
+cargo test -p uf-product --lib step_up_error_prefixes -- --nocapture
+# Consumer inventory (gauge / neutrino workspaces; monorepo composer sources)
+cargo test -p gauge --test product_surface step_up -- --nocapture
+cargo test -p neutrino --test product_surface step_up -- --nocapture
+# Runnable sketch
+cargo run -p lepton-auth --example step_up_totp --features "ssr,totp"
+```
+
+Set `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1` (or `LEPTON_TOTP_SEAL_KEY` as 64 hex) before SSR hosts that enroll/verify TOTP.

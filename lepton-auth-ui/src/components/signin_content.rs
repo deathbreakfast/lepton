@@ -5,7 +5,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::NavigateOptions;
 use orbital_core_components::FormHint;
-use orbital_primitives::{
+use orbital_core_components::{
     Body1, Button, ButtonAppearance, ButtonType, Field, Flex, FlexGap, Input, InputAppearance,
     InputBind, InputType, Link, MessageBar, MessageBarIntent, Text,
 };

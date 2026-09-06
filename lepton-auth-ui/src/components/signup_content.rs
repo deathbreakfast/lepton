@@ -6,11 +6,11 @@ use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
 use orbital_base_components::Handler;
 use orbital_core_components::Text;
-use orbital_motion::{MotionCurve, OrbitalPresence, PresenceMotion, SlideFrom};
-use orbital_primitives::{
+use orbital_core_components::{
     Body1, Button, ButtonAppearance, ButtonType, Field, Flex, FlexGap, InfoLabel, InfoLabelInfo,
     Input, InputAppearance, InputBind, InputEvents, InputType, Link, MessageBar, MessageBarIntent,
 };
+use orbital_motion::{MotionCurve, OrbitalPresence, PresenceMotion, SlideFrom};
 
 use lepton_auth::actions::account::{RequestEmailVerification, VerifyEmailToken};
 use lepton_auth::actions::confirm_account::{issue_phone_otp, verify_phone_otp};

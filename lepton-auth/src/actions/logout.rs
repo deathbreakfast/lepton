@@ -26,6 +26,8 @@ pub async fn logout(
 
     let session: tower_sessions::Session = extract().await?;
     session.remove::<String>("account_email").await?;
+    crate::session_binding::clear_step_up_window(&session).await;
+    crate::session_binding::clear_pending_mfa(&session).await;
 
     let redirect_to = crate::routes::auth_redirect_path(sanitize_referer_path(referer));
     leptos_axum::redirect(&redirect_to);

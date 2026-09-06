@@ -91,6 +91,9 @@ async fn seed_enabled_totp(valence: &valence::Valence, user: &RecordId) -> Strin
     let factor = TotpFactor::new(
         user.clone(),
         "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ".into(),
+        None,
+        None,
+        None,
         Some(now),
         Some(now),
         now,

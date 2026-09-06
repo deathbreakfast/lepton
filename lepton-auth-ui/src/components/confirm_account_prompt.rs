@@ -6,7 +6,7 @@ use lepton_auth::routes::confirm_account_path_with_referer;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::NavigateOptions;
-use orbital_primitives::{
+use orbital_core_components::{
     Badge, BadgeAppearance, Body1, Button, ButtonAppearance, Card, CardContent, CardHeader, Flex,
     FlexAlign, FlexGap, FlexWrap, MessageBar, MessageBarActions, MessageBarBody, MessageBarIntent,
     MessageBarLayout, Text, Title3,

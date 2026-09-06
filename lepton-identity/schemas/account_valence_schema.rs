@@ -1,11 +1,11 @@
 use valence::prelude::*;
-use valence::privacy_policies::common::{AUTHENTICATED, PUBLIC_READ, SYSTEM_ONLY};
+use valence::privacy_policies::common::{PUBLIC_READ, SYSTEM_ONLY};
 use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
 valence_schema! {
     Account {
         table: "account",
-        version: "0.4.0",
+        version: "0.5.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Account — plan, status, and contacts for a legal identity (1:1 with founding user)",
 
@@ -14,9 +14,12 @@ valence_schema! {
         },
 
         policies: {
+            // Owner-only entity read so AccountEmail (defer_to_edge: account) cannot
+            // be enumerated by arbitrary authenticated users. Public display names
+            // live on UserProfile, not Account.
             read: {
                 always_allow: [],
-                allow: [AUTHENTICATED],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },

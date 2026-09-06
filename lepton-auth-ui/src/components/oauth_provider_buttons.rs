@@ -8,7 +8,7 @@
 mod enabled {
     use leptos::prelude::*;
     use orbital_core_components::Divider;
-    use orbital_primitives::{
+    use orbital_core_components::{
         Button, ButtonAppearance, ButtonType, Flex, FlexGap, MessageBar, MessageBarIntent, Text,
     };
 
@@ -171,10 +171,9 @@ mod tests {
     fn oauth_ui_off_without_provider_features() {
         #[cfg(not(any(feature = "oauth-google", feature = "oauth-github")))]
         {
-            assert!(
-                !(cfg!(feature = "oauth-google") || cfg!(feature = "oauth-github")),
-                "default build must not enable OAuth UI features"
-            );
+            const {
+                assert!(!(cfg!(feature = "oauth-google") || cfg!(feature = "oauth-github")));
+            }
         }
         #[cfg(all(feature = "oauth-google", feature = "oauth-github"))]
         {

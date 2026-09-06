@@ -85,11 +85,11 @@ pub async fn begin_totp_enroll(
         return Err(TotpEnrollError::AlreadyEnabled);
     }
 
-    // 20 random bytes → base32 sealed secret (same encoding as verify path).
+    // 20 random bytes → base32 for otpauth, then AEAD-sealed at rest.
     let mut raw = [0u8; 20];
     OsRng.fill_bytes(&mut raw);
     let secret = Secret::Raw(raw.to_vec());
-    let secret_sealed = secret.to_encoded().to_string();
+    let secret_b32 = secret.to_encoded().to_string();
     let _totp = TOTP::new(
         Algorithm::SHA1,
         6,
@@ -98,12 +98,24 @@ pub async fn begin_totp_enroll(
         secret.to_bytes().map_err(|_| TotpEnrollError::Store)?,
     )
     .map_err(|_| TotpEnrollError::Store)?;
-    let otpauth_uri = otpauth_uri_for(account_label, issuer, &secret_sealed);
+    let otpauth_uri = otpauth_uri_for(account_label, issuer, &secret_b32);
+    let secret_sealed =
+        crate::totp::seal::seal_totp_secret(&secret_b32).map_err(|_| TotpEnrollError::Store)?;
 
     let now = Utc::now();
     let factor_id = random_token_part(12);
-    let factor = TotpFactor::new(user.clone(), secret_sealed, None, None, now, now)
-        .map_err(|_| TotpEnrollError::Store)?;
+    let factor = TotpFactor::new(
+        user.clone(),
+        secret_sealed,
+        None,
+        None,
+        None,
+        None,
+        None,
+        now,
+        now,
+    )
+    .map_err(|_| TotpEnrollError::Store)?;
     TotpFactor::upsert(&factor_id, factor, valence)
         .await
         .map_err(|_| TotpEnrollError::Store)?;
