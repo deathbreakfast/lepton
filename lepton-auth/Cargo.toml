@@ -134,6 +134,10 @@ name = "account_primary_email"
 required-features = ["ssr"]
 
 [[test]]
+name = "account_email_owner_privacy"
+required-features = ["ssr"]
+
+[[test]]
 name = "contact_validators"
 required-features = ["ssr"]
 
