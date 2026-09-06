@@ -20,6 +20,9 @@ pub(super) async fn seed_enabled_totp(
     let factor = TotpFactor::new(
         user_id.clone(),
         secret_sealed.to_string(),
+        None,
+        None,
+        None,
         Some(now),
         Some(now),
         now,

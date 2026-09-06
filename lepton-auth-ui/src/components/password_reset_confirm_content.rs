@@ -1,7 +1,7 @@
 //! [`PasswordResetConfirmContent`] — the "set new password" form for a reset token.
 
 use leptos::prelude::*;
-use orbital_primitives::{
+use orbital_core_components::{
     Button, ButtonType, Field, Flex, FlexGap, InfoLabel, InfoLabelInfo, Input, InputAppearance,
     InputBind, InputType, Link, MessageBar, MessageBarIntent,
 };

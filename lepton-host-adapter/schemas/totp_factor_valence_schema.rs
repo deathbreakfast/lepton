@@ -57,6 +57,18 @@ valence_schema! {
                     read: { allow: [SYSTEM_ONLY] },
                 },
             },
+            last_used_step: {
+                r#type: FieldType::Integer,
+                required: false,
+            },
+            failed_attempts: {
+                r#type: FieldType::Integer,
+                required: false,
+            },
+            locked_until: {
+                r#type: FieldType::DateTime,
+                required: false,
+            },
             confirmed_at: {
                 r#type: FieldType::DateTime,
                 required: false,

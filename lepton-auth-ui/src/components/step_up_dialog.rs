@@ -1,7 +1,7 @@
 //! [`StepUpDialog`] — host-mounted modal bound to [`super::StepUpController`].
 
 use leptos::prelude::*;
-use orbital_primitives::DialogDismissConfig;
+use orbital_core_components::DialogDismissConfig;
 
 use super::auth_modal_shell::AuthModalShell;
 use super::step_up_content::StepUpContent;

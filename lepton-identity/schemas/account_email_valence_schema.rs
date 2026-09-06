@@ -1,10 +1,10 @@
 use valence::prelude::*;
-use valence::privacy_policies::common::{AUTHENTICATED, SYSTEM_ONLY};
+use valence::privacy_policies::common::SYSTEM_ONLY;
 
 valence_schema! {
     AccountEmail {
         table: "account_email",
-        version: "0.3.0",
+        version: "0.4.2",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Email address belonging to an account (legal identity), with per-row verification",
 
@@ -13,11 +13,11 @@ valence_schema! {
         },
 
         policies: {
+            // Owner-only via Account.user (OWNER_BY_USER_FIELD on Account). System
+            // always_allow covers login/signup/reset that mint System Valence.
             read: {
-                always_allow: [],
-                allow: [AUTHENTICATED, SYSTEM_ONLY],
-                block: [],
-                always_block: [],
+                always_allow: [SYSTEM_ONLY],
+                defer_to_edge: "account",
             },
             create: {
                 always_allow: [],
@@ -54,16 +54,13 @@ valence_schema! {
                 required: true,
                 unique: true,
                 validations: [Validator::Email],
-                policies: {
-                    read: { allow: [AUTHENTICATED, SYSTEM_ONLY] },
-                },
+                // No field-level read policy: sync field filtering ignores
+                // defer_to_edge, so SYSTEM_ONLY here would hide address from the
+                // owner after entity defer succeeds. Entity read is the owner gate.
             },
             verified_at: {
                 r#type: FieldType::DateTime,
                 required: false,
-                policies: {
-                    read: { allow: [AUTHENTICATED, SYSTEM_ONLY] },
-                },
             },
             created_at: {
                 r#type: FieldType::DateTime,

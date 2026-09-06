@@ -78,27 +78,30 @@ leptos_router = { version = "0.8", default-features = false, features = ["nightl
 leptos_axum = { version = "0.8", default-features = false }
 
 # Zone A Orbital UI (crates.io 0.1.4 — parcel_selectors pin + turf verify).
-orbital-core-components = { version = "0.1.4" }
-orbital-base-components = { version = "0.1.4" }
-orbital-primitives = { version = "0.1.4", default-features = false }
-orbital-motion = { version = "0.1.4", default-features = false }
-orbital-theme = { version = "0.1.4", default-features = false }
+orbital-core-components = { git = "https://github.com/unified-field-dev/orbital", branch = "main" }
+orbital-base-components = { git = "https://github.com/unified-field-dev/orbital", branch = "main" }
+orbital-primitives = { git = "https://github.com/unified-field-dev/orbital", branch = "main", default-features = false }
+orbital-motion = { git = "https://github.com/unified-field-dev/orbital", branch = "main", default-features = false }
+orbital-theme = { git = "https://github.com/unified-field-dev/orbital", branch = "main", default-features = false }
 
 # Platform: crates.io for published cores; git for unpublished kits on unified-field-dev
-valence = { package = "uf-valence", version = "0.1.5", default-features = false, features = ["mem", "sqlite"] }
-valence-codegen = { package = "uf-valence-codegen", version = "0.1.5" }
+# Apps path-patch this kit; keep on `branch = main` with higgs rewritten via [patch] below.
+valence = { package = "uf-valence", git = "https://github.com/unified-field-dev/valence", branch = "main", default-features = false, features = ["mem", "sqlite"] }
+valence-codegen = { package = "uf-valence-codegen", git = "https://github.com/unified-field-dev/valence", branch = "main" }
 higgs = { git = "https://github.com/unified-field-dev/higgs", branch = "main", default-features = false }
-higgs-core = { git = "https://github.com/unified-field-dev/higgs", branch = "main", package = "higgs-core", default-features = false }
-higgs-host = { git = "https://github.com/unified-field-dev/higgs", branch = "main", package = "higgs-host", default-features = false }
-higgs-identity = { git = "https://github.com/unified-field-dev/higgs", branch = "main", package = "higgs-identity" }
-higgs-macros = { git = "https://github.com/unified-field-dev/higgs", branch = "main", package = "higgs-macros" }
-photon = { package = "uf-photon", version = "0.1.4", default-features = false }
+higgs-core = { package = "higgs-core", git = "https://github.com/unified-field-dev/higgs", branch = "main", default-features = false }
+higgs-host = { package = "higgs-host", git = "https://github.com/unified-field-dev/higgs", branch = "main", default-features = false }
+higgs-identity = { package = "higgs-identity", git = "https://github.com/unified-field-dev/higgs", branch = "main" }
+higgs-macros = { package = "higgs-macros", git = "https://github.com/unified-field-dev/higgs", branch = "main" }
+photon = { package = "uf-photon", git = "https://github.com/unified-field-dev/photon", branch = "main", default-features = false }
 photon-leptos = { git = "https://github.com/unified-field-dev/photon-leptos", branch = "main", default-features = false }
 photon-axum = { git = "https://github.com/unified-field-dev/photon-leptos", branch = "main", default-features = false }
-spectra = { package = "uf-spectra", version = "0.1.3", default-features = false }
-spectra-core = { package = "uf-spectra-core", version = "0.1.3" }
+spectra = { package = "uf-spectra", git = "https://github.com/unified-field-dev/Spectra", branch = "main", default-features = false }
+spectra-core = { package = "uf-spectra-core", git = "https://github.com/unified-field-dev/Spectra", branch = "main" }
 totp-rs = { version = "5.7", default-features = false }
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+chacha20poly1305 = "0.10"
+base64 = "0.22"
 tracing = "0.1"
 futures = "0.3"
 
@@ -112,12 +115,12 @@ lepton-spectra-telemetry = { path = "lepton-spectra-telemetry" }
 lepton-host-adapter = { path = "lepton-host-adapter", default-features = false, features = ["db-sqlite"] }
 
 # Boson — durable delivery under lepton-auth `boson-delivery`
-boson-core = { version = "0.1.4" }
-boson-macros = { version = "0.1.4" }
-boson-runtime = { version = "0.1.4", default-features = false }
+boson-core = { git = "https://github.com/unified-field-dev/boson", branch = "main" }
+boson-macros = { git = "https://github.com/unified-field-dev/boson", branch = "main" }
+boson-runtime = { git = "https://github.com/unified-field-dev/boson", branch = "main", default-features = false }
 boson-valence-identity = { git = "https://github.com/unified-field-dev/boson-valence-identity", branch = "main" }
-boson-backend-mem = { version = "0.1.4" }
-quark = { package = "uf-quark", version = "0.1.3" }
+boson-backend-mem = { git = "https://github.com/unified-field-dev/boson", branch = "main" }
+quark = { package = "uf-quark", git = "https://github.com/unified-field-dev/quark", branch = "main" }
 
 # UI / styling
 turf = "0.10"
@@ -151,27 +154,14 @@ chrono = { version = "0.4", features = ["serde"] }
 webauthn-rs = { version = "0.5.5", default-features = false, features = ["danger-allow-state-serialisation"] }
 
 # Transitive kits may still git-pin older Valence/Boson/Photon; force one crates.io graph.
-[patch."https://github.com/unified-field-dev/valence"]
-uf-valence = { version = "0.1.5" }
-uf-valence-core = { version = "0.1.5" }
-uf-valence-codegen = { version = "0.1.5" }
-uf-valence-macros = { version = "0.1.5" }
-uf-valence-telemetry = { version = "0.1.5" }
-uf-valence-backend-mem = { version = "0.1.5" }
-uf-valence-backend-sqlite = { version = "0.1.5" }
-uf-valence-backend-sql = { version = "0.1.5" }
-
-[patch."https://github.com/unified-field-dev/boson"]
-boson-core = { version = "0.1.4" }
-boson-macros = { version = "0.1.4" }
-boson-runtime = { version = "0.1.4" }
-boson-telemetry = { version = "0.1.4" }
-boson-backend-mem = { version = "0.1.4" }
-
-[patch."https://github.com/unified-field-dev/photon"]
-uf-photon = { version = "0.1.4" }
-uf-photon-core = { version = "0.1.4" }
-photon-runtime = { version = "0.1.4" }
-photon-backend = { version = "0.1.4" }
-photon-telemetry = { version = "0.1.4" }
-photon-macros = { version = "0.1.4" }
+# Align with higgs (`tag = v0.1.2`) so host-adapter and higgs share one Valence.
+[patch.crates-io]
+uf-valence = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-core = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-codegen = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-macros = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-telemetry = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-mem = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-sqlite = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-sql = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-schema-dsl = { git = "https://github.com/unified-field-dev/valence", branch = "main" }

@@ -18,14 +18,18 @@
 //! - **Factors** — Issues and verifies email/SMS OTP and TOTP through [`factor`] /
 //!   [`FactorChallengeService`] when a flow needs a second factor
 //!   ([`factor` Examples](factor/index.html#examples)).
+//! - **Action verification (step-up)** — Opens a short session sudo window with
+//!   [`verify_totp_for_session`], asserts it with [`require_recent_verification`],
+//!   or demands a one-shot code with [`verify_fresh_totp`] for break-glass paths
+//!   ([Verify TOTP for a sudo window](#verify-totp-for-a-sudo-window)).
 //! - **Signup, OAuth, contacts, and devices** — Covers account creation and linked
 //!   identity surfaces in [`signup_api`], [`oauth`], [`contacts`], and [`devices`]
-//!   (wipe/erase under [`identity_delete`]; [Examples ladder](#examples-ladder)).
+//!   (wipe/erase under [`identity_delete`]; [Examples](#examples)).
 //! - **Tokens and policy** — Provides one-time tokens ([`token_helpers`]) and password /
 //!   audit helpers ([`security`]) for reset and policy checks
 //!   ([Boot delivery](#boot-delivery-email-only)).
 //! - **Durable delivery** — Enqueues mail/SMS through Boson when `boson-delivery` is on
-//!   so retries survive process restarts ([Examples ladder](#examples-ladder)).
+//!   so retries survive process restarts ([Examples](#examples)).
 //! - **Auth UI actions** — Exposes [`actions`] server functions consumed by
 //!   [`lepton_auth_ui`](../lepton_auth_ui/index.html). Mount the shell at
 //!   [Mount `AuthDialog`](../lepton_auth_ui/index.html#mount-authdialog-shell).
@@ -120,6 +124,67 @@
 //! }
 //! ```
 //!
+//! ## Verify TOTP for a sudo window
+//!
+//! Action verification opens a short session sudo window after a successful TOTP
+//! check so sensitive product mutations can require recent proof without tying that
+//! proof to login MFA. Call [`verify_totp_for_session`] from a dedicated prompt
+//! server fn at the start of a critical flow; gated mutations then assert the
+//! window with [`require_recent_verification`] (or the product macro `step_up` /
+//! `uf_product::permissions::require_step_up`) on each request.
+//!
+//! Prerequisites: `features = ["ssr", "totp"]`, an enabled `TotpFactor`, and
+//! `LEPTON_TOTP_SEAL_KEY` (64 hex) or `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1` in tests.
+//!
+//! 1. Prompt: [`verify_totp_for_session`] with [`StepUpScope::SensitiveMutation`] and the code.
+//! 2. Gate: [`require_recent_verification`] inside the mutation (or `step_up` / `require_step_up("window")`).
+//! 3. Map failures through [`StepUpError::to_server_fn_error`] (`STEP_UP:<reason_class>:…`).
+//!
+//! ```rust,ignore
+//! use lepton_auth::{
+//!     require_recent_verification, verify_fresh_totp, verify_totp_for_session,
+//!     StepUpScope,
+//! };
+//!
+//! // Dedicated prompt (opens a 300s session window).
+//! async fn open_window(code: String) -> Result<(), leptos::prelude::ServerFnError> {
+//!     verify_totp_for_session(StepUpScope::SensitiveMutation, &code)
+//!         .await
+//!         .map_err(|e| e.to_server_fn_error())?;
+//!     Ok(())
+//! }
+//!
+//! // Gated mutation (window mode).
+//! async fn sensitive_mutation() -> Result<(), leptos::prelude::ServerFnError> {
+//!     require_recent_verification(StepUpScope::SensitiveMutation)
+//!         .await
+//!         .map_err(|e| e.to_server_fn_error())?;
+//!     Ok(())
+//! }
+//!
+//! // Fresh mode ignores any open window.
+//! async fn break_glass(code: String) -> Result<(), leptos::prelude::ServerFnError> {
+//!     verify_fresh_totp(&code)
+//!         .await
+//!         .map_err(|e| e.to_server_fn_error())?;
+//!     Ok(())
+//! }
+//! ```
+//!
+//! Variants:
+//!
+//! - **Enrollment** — No enabled `TotpFactor` yields `totp_enrollment_required`. Send the
+//!   user to Account Settings, then retry the prompt.
+//! - **Expiry** — After [`STEP_UP_TTL_SECS`] (300s), or when the session / auth-hash no
+//!   longer matches, [`require_recent_verification`] returns `step_up_expired` or
+//!   `step_up_required`. Open the prompt again.
+//! - **Fresh** — [`verify_fresh_totp`] demands a code on that call even when a window is
+//!   open (break-glass reveal, Super User membership, handoff finalize). Same-step
+//!   replay and attempt lockout return `step_up_invalid` / `step_up_rate_limited`.
+//!
+//! Runnable: `cargo run -p lepton-auth --example step_up_totp --features ssr,totp`.
+//! UI retry: `lepton-auth-ui` `StepUpController` / `StepUpDialog`.
+//!
 //! ## Typical verification flow (backend)
 //!
 //! 1. Inject SMTP/SMS via [`provide_auth_services`] at SSR boot.
@@ -164,13 +229,12 @@
 //! Auth UI server functions in [`actions`] register through Leptos
 //! `generate_route_list` / `leptos_routes_with_context`.
 //!
-//! # Examples ladder
+//! # Examples
 //!
-//! | Level | Where |
-//! |-------|--------|
-//! | Highlight | [Boot delivery](#boot-delivery-email-only) |
-//! | Mid | [`factor` Examples](factor/index.html#examples); `examples/password_and_token` |
-//! | Detailed | `examples/auth_flows_noop_smtp`, `examples/auth_totp_enroll`, `tests/delivery_attempt.rs` |
+//! Start with [Boot delivery](#boot-delivery-email-only). [`factor` Examples](factor/index.html#examples)
+//! and `examples/password_and_token` cover challenge issue and verify flows. Runnable hosts:
+//! `examples/auth_flows_noop_smtp`, `examples/auth_totp_enroll`; durable delivery in
+//! `tests/delivery_attempt.rs`.
 //!
 //! # Further reading
 //!
@@ -224,6 +288,9 @@ pub mod session_mfa;
 pub mod signup_api;
 /// Open-signup enablement (`UF_LEPTON_SIGNUP_DISABLED`).
 pub mod signup_policy;
+/// Session-bound TOTP step-up / sudo window (`ssr` + `totp`).
+#[cfg(all(feature = "ssr", feature = "totp"))]
+pub mod step_up;
 /// One-time token issuance and lifecycle checks (verification/reset).
 pub mod token_helpers;
 /// Client-side one-time token URL helpers (fragment-first; legacy query strip).
@@ -258,6 +325,13 @@ pub use factor::{FactorChallengeError, FactorChallengeService};
 pub use services::{
     auth_services, provide_auth_services, LeptonAuthServices, LeptonAuthServicesBuilder,
     LeptonAuthServicesError,
+};
+#[cfg(all(feature = "ssr", feature = "totp"))]
+pub use step_up::{
+    clear_window, load_window, require_recent_verification, verify_code_against_factor,
+    verify_fresh_totp, verify_fresh_totp_for_session_user, verify_totp_for_session,
+    window_matches_identity, LoadedWindow, StepUpError, StepUpMode, StepUpOutcome, StepUpScope,
+    STEP_UP_TTL_SECS,
 };
 #[cfg(all(feature = "ssr", feature = "phone"))]
 pub use token_helpers::{generate_phone_otp_code, IssuedPhoneChallenge, PHONE_OTP_DIGIT_LEN};

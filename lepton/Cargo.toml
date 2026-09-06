@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "SSR identity and token model bindings for Unified Field hosts"
+description = "Lepton host facade: SSR identity and token model bindings for Unified Field."
 publish = false
 
 [lints]

@@ -35,6 +35,8 @@ mod api;
 mod error;
 #[cfg(all(feature = "ssr", feature = "totp"))]
 mod qr;
+#[cfg(all(feature = "ssr", feature = "totp"))]
+pub(crate) mod seal;
 
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub use api::{

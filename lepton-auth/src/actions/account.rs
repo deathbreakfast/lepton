@@ -34,7 +34,13 @@ pub async fn change_password(
             confirm_password,
         },
     )
-    .await
+    .await?;
+
+    // Password change rotates the credential-bound session stamp; drop any open
+    // TOTP sudo window so Tier A gates require a fresh step-up (TM-3).
+    let session: tower_sessions::Session = leptos_axum::extract().await?;
+    crate::session_binding::clear_step_up_window(&session).await;
+    Ok(())
 }
 
 /// Request a change to the signed-in user's email; sends a verification code to

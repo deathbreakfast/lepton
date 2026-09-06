@@ -9,7 +9,7 @@ use chrono::Utc;
 use lepton_auth::security::random_token_part;
 use lepton_auth::totp::{
     begin_totp_enroll, confirm_totp_enroll, consume_totp_recovery_code, disable_totp,
-    regenerate_totp_recovery_codes, TotpEnrollError,
+    manual_secret_from_otpauth_uri, regenerate_totp_recovery_codes, TotpEnrollError,
 };
 use lepton_host_adapter::auth::hash_password;
 use lepton_host_adapter::generated::{
@@ -98,17 +98,14 @@ async fn consume_recovery_wrong_sad() {
 
 #[tokio::test]
 async fn disable_totp_after_enroll_happy() {
+    std::env::set_var("LEPTON_TOTP_ALLOW_TEST_SEAL_KEY", "1");
     let valence = system_valence("totp_disable_after_enroll").await;
     let user = seed_user(&valence).await;
 
     let pending = begin_totp_enroll(&valence, &user, "a@example.com", "UF")
         .await
         .expect("begin");
-    let factor = TotpFactor::get(&pending.factor_id, &valence)
-        .await
-        .expect("get")
-        .expect("factor");
-    let secret = factor.secret_sealed().clone();
+    let secret = manual_secret_from_otpauth_uri(&pending.otpauth_uri).expect("otpauth secret");
     let secret_bytes = Secret::Encoded(secret).to_bytes().expect("bytes");
     let totp = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_bytes).expect("totp");
     let t = std::time::SystemTime::now()

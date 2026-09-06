@@ -128,13 +128,18 @@
 //!
 //! ## Step-up (critical action)
 //!
-//! Mount [`StepUpDialog`] once after [`provide_step_up_controller`]. On a sensitive
-//! action, call [`StepUpController::request`], then verify with
-//! [`lepton_auth::factor::FactorChallengeService`] (or password re-check) and call
-//! [`StepUpController::complete_success`] / [`StepUpController::report_error`].
+//! Step-up re-proofs an already signed-in user before a sensitive mutation. Mount
+//! [`StepUpDialog`] once after [`provide_step_up_controller`], then call
+//! [`StepUpController::request`] when a server fn returns `STEP_UP:step_up_required`
+//! (or before a known Tier A action). Verify factors with
+//! [`lepton_auth::factor::FactorChallengeService`] (or password re-check) and finish
+//! with [`StepUpController::complete_success`] / [`StepUpController::report_error`].
 //!
 //! Observable: after `request`, [`StepUpController::open`] is `true` until success,
 //! error report, or cancel.
+//!
+//! **Prerequisites:** Host already called [`provide_step_up_controller`] (often
+//! beside [`AuthDialog`]); `lepton-auth` step-up server fn registered.
 //!
 //! ```rust,ignore
 //! use lepton_auth_ui::{

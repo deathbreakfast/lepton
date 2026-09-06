@@ -52,6 +52,26 @@
 //!   founding User + Owner membership.
 //! - `AccountEmail` / `AccountPhone` — contacts owned by `Account` (unique `address` /
 //!   `e164`, per-row `verified_at`).
+//!
+//! ### AccountEmail read privacy
+//!
+//! Email addresses are owner and System readable. Entity `read` uses
+//! `always_allow: [SYSTEM_ONLY]` plus `defer_to_edge: "account"` (Account founding
+//! user). There is no field-level read policy on `address`: Valence sync field
+//! filtering does not honor field `defer_to_edge`, so a `SYSTEM_ONLY` field policy
+//! would hide the address from owners who already passed entity defer.
+//!
+//! | Actor | `AccountEmail::get` |
+//! |-------|---------------------|
+//! | System | Reads address |
+//! | Account owner (via Account.user) | Reads address |
+//! | Other authenticated user | Denied (`Ok(None)` or Privacy error) |
+//!
+//! Auth flows (login, signup, reset) mint System Valence explicitly. UI labels
+//! should use display name + short user id, not email, under viewer Valence.
+//! Validating tests: `lepton-auth` `account_email_owner_privacy` and
+//! `lepton-identity` `account_email_owner_policy_contract`.
+//!
 //! - `User.primary_email` / `primary_phone` — login FKs only (no email/phone collections
 //!   on `User`).
 //! - `AccountMembership`, `LinkedIdentity`, `AuthDevice` / `AuthDeviceCeremony` — membership,
