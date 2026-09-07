@@ -2,7 +2,7 @@
 //!
 //! Authenticates the caller and checks ownership before creating System Valence
 //! `ProfilePhoto` records. Byte I/O runs through [`crate::files::FileByteBackend`]
-//! (default [`crate::files::LocalDiskBlobStore`]).
+//! (default [`crate::files::LocalDiskBlobStore`] from Meson).
 //!
 //! # Concern → API
 //!
@@ -11,7 +11,7 @@
 //! | Mount routes | [`crate::files::files_routes`] |
 //! | Upload | [`crate::files::upload_handler`] |
 //! | Serve | [`crate::files::serve_handler`] |
-//! | Bytes | [`crate::files::FileByteBackend`], [`crate::files::LocalDiskBlobStore`] |
+//! | Bytes | [`crate::files::FileByteBackend`], [`crate::files::LocalDiskBlobStore`] (Meson) |
 //!
 //! # Examples
 //!

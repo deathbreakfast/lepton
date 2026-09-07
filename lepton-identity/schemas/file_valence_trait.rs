@@ -1,3 +1,7 @@
+// Shared Valence File trait — metadata for uploadable objects.
+// Canonical definition lives in Meson; this file is vendored for local codegen.
+// Keep uploaded_by → user typed hop for lepton-identity User navigation.
+
 use valence::prelude::*;
 
 valence_trait_schema! {

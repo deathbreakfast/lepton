@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 lepton-identity = { path = "../lepton-identity", default-features = false }
+meson = { workspace = true }
 higgs-identity = { workspace = true }
 higgs-core = { workspace = true, optional = true }
 higgs-host = { workspace = true, features = ["ssr"] }
@@ -41,8 +42,8 @@ workspace = true
 
 [features]
 default = ["db-sqlite"]
-db-sqlite = ["lepton-identity/db-sqlite", "valence/sqlite"]
-db-hybrid = ["lepton-identity/db-hybrid", "valence/hybrid"]
+db-sqlite = ["lepton-identity/db-sqlite", "valence/sqlite", "meson/db-sqlite"]
+db-hybrid = ["lepton-identity/db-hybrid", "valence/hybrid", "meson/db-hybrid"]
 ssr = [
     "dep:leptos_axum",
     "dep:axum",
