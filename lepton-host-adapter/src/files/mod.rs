@@ -11,7 +11,7 @@
 //! | Mount routes | [`crate::files::files_routes`] |
 //! | Upload | [`crate::files::upload_handler`] |
 //! | Serve | [`crate::files::serve_handler`] |
-//! | Bytes | [`crate::files::FileByteBackend`], [`crate::files::LocalDiskBlobStore`] (Meson) |
+//! | Bytes | [`crate::files::FileByteBackend`], [`crate::files::LocalDiskBlobStore`], [`crate::files::blob_store_from_env`] (Meson) |
 //!
 //! # Examples
 //!
@@ -31,7 +31,9 @@
 
 mod backend;
 
-pub use backend::{FileByteBackend, FileStoreError, LocalDiskBlobStore};
+pub use backend::{
+    blob_store_from_env, BlobStoreConfigError, FileByteBackend, FileStoreError, LocalDiskBlobStore,
+};
 
 use crate::auth::{Backend, User};
 use axum::body::Body;

@@ -113,7 +113,7 @@ lepton-smtp = { path = "lepton-smtp" }
 lepton-sms = { path = "lepton-sms" }
 lepton-spectra-telemetry = { path = "lepton-spectra-telemetry" }
 lepton-host-adapter = { path = "lepton-host-adapter", default-features = false, features = ["db-sqlite"] }
-meson = { git = "https://github.com/deathbreakfast/meson", branch = "main", default-features = false, features = ["db-sqlite"] }
+meson = { git = "https://github.com/deathbreakfast/meson", branch = "main", default-features = false, features = ["db-sqlite", "backend-local"] }
 
 # Boson — durable delivery under lepton-auth `boson-delivery`
 boson-core = { git = "https://github.com/unified-field-dev/boson", branch = "main" }

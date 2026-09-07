@@ -2991,7 +2991,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "meson"
 version = "0.1.0"
-source = "git+https://github.com/deathbreakfast/meson?branch=main#c3f280d2f3cfaea352af4b36527aac26ae613c4b"
+source = "git+https://github.com/deathbreakfast/meson?branch=main#0fb81bc775512322687da9cd77ce445abfc4463b"
 dependencies = [
  "async-trait",
  "chrono",
