@@ -6043,7 +6043,7 @@ dependencies = [
 [[package]]
 name = "uf-valence"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "uf-valence-backend-hybrid",
  "uf-valence-backend-indradb",
@@ -6057,7 +6057,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-backend-hybrid"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "async-trait",
  "serde",
@@ -6070,7 +6070,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-backend-indradb"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "async-trait",
  "indradb-lib",
@@ -6083,7 +6083,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-backend-mem"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "async-trait",
  "serde_json",
@@ -6094,7 +6094,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-backend-postgres"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "async-trait",
  "serde_json",
@@ -6107,7 +6107,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-backend-sql"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "serde",
  "serde_json",
@@ -6122,7 +6122,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-backend-sqlite"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "async-trait",
  "serde_json",
@@ -6135,7 +6135,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-codegen"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "anyhow",
  "prettyplease",
@@ -6149,7 +6149,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-core"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "async-trait",
  "chrono",
@@ -6168,7 +6168,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-macros"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6179,7 +6179,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-schema-dsl"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6189,7 +6189,7 @@ dependencies = [
 [[package]]
 name = "uf-valence-telemetry"
 version = "0.1.5"
-source = "git+https://github.com/unified-field-dev/valence?branch=main#a04a60a452360275f340d1207a1d267134170db3"
+source = "git+https://github.com/unified-field-dev/valence?branch=main#7072b14f0c0c9a409b54c699d309118b16805c3e"
 dependencies = [
  "serde_json",
 ]
@@ -6612,7 +6612,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
