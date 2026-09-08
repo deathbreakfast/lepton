@@ -45,9 +45,9 @@ use axum::{Json, Router};
 use axum_login::AuthSession;
 use chrono::Utc;
 use lepton_identity::generated::{FileFileStatus, ProfilePhoto, UserProfile};
+use meson::{get_installed_object, install_blob_store, put_new_object};
 use std::sync::Arc;
 use tracing::{info_span, Instrument};
-use uuid::Uuid;
 use valence::{Actor, DatabaseRouter, Model, RecordId, RecordPredicate, Valence};
 
 const MAX_FILE_SIZE: usize = 5 * 1024 * 1024;
@@ -172,11 +172,13 @@ fn user_valence(
 ///
 /// Merge inside the auth / session layer stack. Hosts must also layer
 /// `Extension(Arc<DatabaseRouter>)` (already common) and pass the same
-/// `default_backend_key` used for Higgs.
+/// `default_backend_key` used for Higgs. Installs `backend` as the process-wide
+/// Meson blob store for File upload / load helpers.
 pub fn files_routes<S>(backend: Arc<dyn FileByteBackend>, config: FilesConfig) -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
 {
+    let _ = install_blob_store(Arc::clone(&backend));
     Router::<S>::new()
         .route("/api/files/upload", post(upload_handler))
         .route("/api/files/{id}", get(serve_handler))
@@ -376,7 +378,7 @@ async fn create_photo_and_set_active(
 pub async fn upload_handler(
     auth: AuthSession<Backend>,
     Extension(valence_router): Extension<Arc<DatabaseRouter>>,
-    Extension(backend): Extension<Arc<dyn FileByteBackend>>,
+    Extension(_backend): Extension<Arc<dyn FileByteBackend>>,
     Extension(files_config): Extension<FilesConfig>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -389,7 +391,7 @@ pub async fn upload_handler(
         let (file_bytes, original_name, form_profile_id) =
             read_upload_multipart(&mut multipart).await?;
         let (extension, mime) = validate_upload_meta(&original_name, file_bytes.len())?;
-        let size_bytes = i64_size_bytes(file_bytes.len())?;
+        let _size_check = i64_size_bytes(file_bytes.len())?;
         let backend_key = files_config.default_backend_key.as_str();
 
         let session_v = user_valence(Arc::clone(&valence_router), backend_key, &user)?;
@@ -403,8 +405,7 @@ pub async fn upload_handler(
         })?;
         assert_profile_id_owned(form_profile_id.as_deref(), &owned_bare)?;
 
-        let storage_key = format!("{}.{}", Uuid::new_v4(), extension);
-        backend.put(&storage_key, &file_bytes).await.map_err(|_| {
+        let put = put_new_object(&extension, &file_bytes).await.map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Storage error".to_string(),
@@ -415,8 +416,8 @@ pub async fn upload_handler(
             original_name: original_name.clone(),
             extension: extension.clone(),
             mime,
-            size_bytes,
-            storage_key,
+            size_bytes: put.size_bytes,
+            storage_key: put.storage_path,
         };
         let photo_id =
             create_photo_and_set_active(valence_router, backend_key, &user, &profile, &stored)
@@ -424,7 +425,7 @@ pub async fn upload_handler(
 
         tracing::info!(
             outcome = "ok",
-            size_bytes,
+            size_bytes = stored.size_bytes,
             extension = %extension,
             "profile photo uploaded"
         );
@@ -436,7 +437,7 @@ pub async fn upload_handler(
                 "id": photo_id.to_string(),
                 "url": photo_url,
                 "file_name": original_name,
-                "size_bytes": size_bytes,
+                "size_bytes": stored.size_bytes,
             })),
         ))
     }
@@ -448,7 +449,7 @@ pub async fn upload_handler(
 pub async fn serve_handler(
     auth: AuthSession<Backend>,
     Extension(valence_router): Extension<Arc<DatabaseRouter>>,
-    Extension(backend): Extension<Arc<dyn FileByteBackend>>,
+    Extension(_backend): Extension<Arc<dyn FileByteBackend>>,
     Extension(files_config): Extension<FilesConfig>,
     Path(id): Path<String>,
 ) -> Result<Response, (StatusCode, String)> {
@@ -466,14 +467,15 @@ pub async fn serve_handler(
             return Err((StatusCode::NOT_FOUND, "File not found".to_string()));
         };
 
-        let key = photo.storage_path().clone();
-        let bytes = backend.get(&key).await.map_err(|e| match e {
-            FileStoreError::NotFound => (StatusCode::NOT_FOUND, "File not found".to_string()),
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to read file".to_string(),
-            ),
-        })?;
+        let bytes = get_installed_object(photo.storage_path())
+            .await
+            .map_err(|e| match e {
+                FileStoreError::NotFound => (StatusCode::NOT_FOUND, "File not found".to_string()),
+                _ => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to read file".to_string(),
+                ),
+            })?;
 
         let mime = photo.mime_type().clone();
         tracing::info!(outcome = "ok", "profile photo served");
