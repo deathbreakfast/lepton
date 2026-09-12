@@ -57,7 +57,8 @@ use lepton_identity::generated::{FileFileStatus, ProfilePhoto, UserProfile};
 use meson::{
     create_with_put, enqueue_virus_scan, get_installed_object, install_blob_store,
     install_quarantine_store, install_virus_scanner, register_file_scan_adapter,
-    AlwaysCleanScanner, FileCreateMeta, FileFileStatus as MesonFileStatus, FileUploadError,
+    AlwaysCleanScanner, AlwaysInfectedScanner, FileCreateMeta, FileFileStatus as MesonFileStatus,
+    FileUploadError,
 };
 use std::sync::{Arc, Once};
 use tracing::{info_span, Instrument};
@@ -204,6 +205,9 @@ fn user_valence(
 ///
 /// Installs both stores from `layout`, registers the profile-photo scan adapter,
 /// and installs [`AlwaysCleanScanner`] as the default virus scanner.
+///
+/// When `MESON_E2E_INFECTED=1`, installs [`AlwaysInfectedScanner`] instead so
+/// embedded Playwright can assert the Quarantined sad path.
 pub fn files_routes<S>(layout: BlobStoreLayout, config: FilesConfig) -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
@@ -211,7 +215,11 @@ where
     ensure_profile_photo_scan_adapter();
     let _ = install_blob_store(Arc::clone(&layout.available));
     let _ = install_quarantine_store(Arc::clone(&layout.quarantine));
-    install_virus_scanner(Arc::new(AlwaysCleanScanner));
+    if std::env::var("MESON_E2E_INFECTED").ok().as_deref() == Some("1") {
+        install_virus_scanner(Arc::new(AlwaysInfectedScanner));
+    } else {
+        install_virus_scanner(Arc::new(AlwaysCleanScanner));
+    }
     let available = Arc::clone(&layout.available);
     Router::<S>::new()
         .route("/api/files/upload", post(upload_handler))
