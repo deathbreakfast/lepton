@@ -54,6 +54,7 @@ use axum::{Json, Router};
 use axum_login::AuthSession;
 use chrono::Utc;
 use lepton_identity::generated::{FileFileStatus, ProfilePhoto, UserProfile};
+use meson::events::publish_file_updated;
 use meson::{
     create_with_put, enqueue_virus_scan, get_installed_object, install_blob_store,
     install_quarantine_store, install_virus_scanner, register_file_scan_adapter,
@@ -387,6 +388,13 @@ async fn create_photo_and_set_active(
 
     if matches!(created.file_status(), FileFileStatus::PendingVirusScan) {
         let bare = bare_id(&photo_id);
+        let user_bare = bare_id(&user.id);
+        publish_file_updated(
+            &user_bare,
+            &bare,
+            MesonFileStatus::PendingVirusScan.as_str(),
+        )
+        .await;
         if let Err(e) = enqueue_virus_scan("profile_photo", &bare).await {
             tracing::warn!(
                 target: "lepton.files.upload",
