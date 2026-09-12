@@ -377,10 +377,7 @@ async fn create_photo_and_set_active(
         )
     })?;
 
-    if matches!(
-        created.file_status(),
-        FileFileStatus::PendingVirusScan
-    ) {
+    if matches!(created.file_status(), FileFileStatus::PendingVirusScan) {
         let bare = bare_id(&photo_id);
         if let Err(e) = enqueue_virus_scan("profile_photo", &bare).await {
             tracing::warn!(
@@ -520,10 +517,7 @@ pub async fn serve_handler(
         };
 
         if !matches!(photo.file_status(), FileFileStatus::Available) {
-            return Err((
-                StatusCode::FORBIDDEN,
-                "File is not available".to_string(),
-            ));
+            return Err((StatusCode::FORBIDDEN, "File is not available".to_string()));
         }
 
         let bytes = get_installed_object(photo.storage_path())
