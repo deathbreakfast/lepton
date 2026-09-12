@@ -3,6 +3,7 @@ use valence::privacy_policies::common::SYSTEM_ONLY;
 
 valence_schema! {
     OAuthPendingState {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "oauth_pending_state",
         version: "0.1.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,

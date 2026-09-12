@@ -4,6 +4,7 @@ use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
 valence_schema! {
     AuthDevice {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "auth_device",
         version: "0.3.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,

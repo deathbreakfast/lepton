@@ -2,6 +2,7 @@ use valence::prelude::*;
 
 valence_trait_schema! {
     OneTimeTokenLifecycle {
+        repository: "https://github.com/unified-field-dev/lepton",
         fields: [
             user: {
                 r#type: FieldType::Record("user"),

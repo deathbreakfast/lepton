@@ -3,6 +3,7 @@ use valence::privacy_policies::common::SYSTEM_ONLY;
 
 valence_schema! {
     PhoneVerificationToken {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "phone_verification_token",
         version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
