@@ -388,13 +388,9 @@ async fn create_photo_and_set_active(
 
     if matches!(created.file_status(), FileFileStatus::PendingVirusScan) {
         let bare = bare_id(&photo_id);
-        let user_bare = bare_id(&user.id);
-        publish_file_updated(
-            &user_bare,
-            &bare,
-            MesonFileStatus::PendingVirusScan.as_str(),
-        )
-        .await;
+        // Photon auth = "user" keys match AuthUser::id (`user:<uuid>`), not bare ids.
+        let user_key = user.id.to_string();
+        publish_file_updated(&user_key, &bare, MesonFileStatus::PendingVirusScan.as_str()).await;
         if let Err(e) = enqueue_virus_scan("profile_photo", &bare).await {
             tracing::warn!(
                 target: "lepton.files.upload",
