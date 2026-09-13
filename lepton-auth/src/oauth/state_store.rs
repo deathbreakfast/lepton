@@ -81,7 +81,7 @@ pub(super) async fn put_state(
         now,
     )
     .map_err(|_| OAuthError::Store)?;
-    OauthPendingState::upsert(&state, row, valence)
+    OauthPendingState::upsert_used(&state, row, valence, valence::use_!("upsert OauthPendingState in src/oauth/state_store.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?;
     Ok(state)
@@ -96,7 +96,7 @@ pub(super) async fn take_state(
     if state.is_empty() {
         return Ok(None);
     }
-    let Some(row) = OauthPendingState::get(state, valence)
+    let Some(row) = OauthPendingState::get_used(state, valence, valence::use_!("get OauthPendingState in src/oauth/state_store.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?
     else {
@@ -117,7 +117,7 @@ pub async fn peek_provider(valence: &Valence, state: &str) -> Result<OAuthProvid
     if state.is_empty() {
         return Err(OAuthError::State);
     }
-    let Some(row) = OauthPendingState::get(state, valence)
+    let Some(row) = OauthPendingState::get_used(state, valence, valence::use_!("get OauthPendingState in src/oauth/state_store.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?
     else {

@@ -31,7 +31,7 @@ pub(super) async fn seed_enabled_totp(
     .map_err(|_| SeedError::Persistence {
         operation: "totp_new",
     })?;
-    TotpFactor::upsert(&factor_id, factor, valence)
+    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!("upsert TotpFactor in src/builder/totp.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| SeedError::Persistence {
             operation: "totp_upsert",

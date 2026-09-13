@@ -78,7 +78,7 @@ pub async fn create_oauth_user(
         now,
     )
     .map_err(|_| OAuthError::Store)?;
-    let created = User::create(user, valence)
+    let created = User::create_used(user, valence, valence::use_!("create User in src/oauth/provision.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?;
     let user_id = created.id().cloned().ok_or(OAuthError::Store)?;
@@ -95,7 +95,7 @@ pub async fn create_oauth_user(
         now,
     )
     .map_err(|_| OAuthError::Store)?;
-    let account_created = Account::create(account, valence)
+    let account_created = Account::create_used(account, valence, valence::use_!("create Account in src/oauth/provision.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?;
     let account_thing = account_created.id().cloned().ok_or(OAuthError::Store)?;
@@ -111,13 +111,13 @@ pub async fn create_oauth_user(
             now,
         )
         .map_err(|_| OAuthError::Store)?;
-        let email_created = AccountEmail::create(row, valence)
+        let email_created = AccountEmail::create_used(row, valence, valence::use_!("create AccountEmail in src/oauth/provision.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|_| OAuthError::Store)?;
         if let Some(email_id) = email_created.id().cloned() {
             email_bare = Some(bare_id_from_record(&email_id));
             account_created
-                .get_mutable(valence)
+                .get_mutable_used(valence, valence::use_!("get_mutable via provision.rs; mutable handle for in-place update; typed store; session/service path."))
                 .set_primary_email(email_id.clone())
                 .map_err(|_| OAuthError::Store)?
                 .set_updated_at(now)
@@ -126,7 +126,7 @@ pub async fn create_oauth_user(
                 .await
                 .map_err(|_| OAuthError::Store)?;
             created
-                .get_mutable(valence)
+                .get_mutable_used(valence, valence::use_!("get_mutable via provision.rs; mutable handle for in-place update; typed store; session/service path."))
                 .set_primary_email(email_id)
                 .map_err(|_| OAuthError::Store)?
                 .set_updated_at(now)
@@ -139,7 +139,7 @@ pub async fn create_oauth_user(
 
     let profile = UserProfile::new(user_id.clone(), legal_name, display_name, now, now, None)
         .map_err(|_| OAuthError::Store)?;
-    let created_profile = UserProfile::create(profile, valence)
+    let created_profile = UserProfile::create_used(profile, valence, valence::use_!("create UserProfile in src/oauth/provision.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?;
     let profile_bare = bare_id_from_record(created_profile.id().ok_or(OAuthError::Store)?);
@@ -152,7 +152,7 @@ pub async fn create_oauth_user(
         now,
     )
     .map_err(|_| OAuthError::Store)?;
-    let created_membership = AccountMembership::create(membership, valence)
+    let created_membership = AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in src/oauth/provision.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?;
     let membership_bare = bare_id_from_record(created_membership.id().ok_or(OAuthError::Store)?);

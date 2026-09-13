@@ -38,7 +38,7 @@ pub async fn try_consume_phone_verification_token(
     otp_code: &str,
     valence: &Valence,
 ) -> Result<Option<PhoneVerificationToken>, ServerFnError> {
-    let token = PhoneVerificationToken::get(challenge_id, valence)
+    let token = PhoneVerificationToken::get_used(challenge_id, valence, valence::use_!("get PhoneVerificationToken in src/token_helpers/phone.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -51,7 +51,7 @@ pub async fn try_consume_phone_verification_token(
 
     let consume_marker = new_consume_marker();
     token
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via phone.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_used_at(Utc::now())
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
@@ -60,7 +60,7 @@ pub async fn try_consume_phone_verification_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = PhoneVerificationToken::get(challenge_id, valence)
+    let latest = PhoneVerificationToken::get_used(challenge_id, valence, valence::use_!("get PhoneVerificationToken in src/token_helpers/phone.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
@@ -97,7 +97,7 @@ pub async fn issue_phone_verification_token(
     )
     .map_err(|_| token_store_error("build"))?;
 
-    PhoneVerificationToken::upsert(&challenge_id, token, valence)
+    PhoneVerificationToken::upsert_used(&challenge_id, token, valence, valence::use_!("upsert PhoneVerificationToken in src/token_helpers/phone.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("persist"))?;
 

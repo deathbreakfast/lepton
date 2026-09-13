@@ -42,7 +42,7 @@ async fn seed_user_with_email(
         now,
     )
     .expect("user");
-    let created = User::create(user, valence).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/confirm_account_status.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create user");
     let user_id = created.id().cloned().expect("user id");
 
     let account = Account::new(
@@ -56,12 +56,12 @@ async fn seed_user_with_email(
         now,
     )
     .expect("account");
-    let account_created = Account::create(account, valence)
+    let account_created = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/confirm_account_status.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("create account");
     let account_id = account_created.id().cloned().expect("account id");
 
-    AccountMembership::create(
+    AccountMembership::create_used(
         AccountMembership::new(
             account_id.clone(),
             user_id.clone(),
@@ -71,6 +71,7 @@ async fn seed_user_with_email(
         )
         .expect("membership"),
         valence,
+        valence::use_!("create AccountMembership in lepton-auth/tests/confirm_account_status.rs; Valence persistence for this feature path; typed store; visible to test harness."),
     )
     .await
     .expect("create membership");
@@ -83,13 +84,13 @@ async fn seed_user_with_email(
         now,
     )
     .expect("email");
-    let email_created = AccountEmail::create(email_row, valence)
+    let email_created = AccountEmail::create_used(email_row, valence, valence::use_!("create AccountEmail in lepton-auth/tests/confirm_account_status.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("create email");
     let email_id = email_created.id().cloned().expect("email id");
 
     account_created
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via confirm_account_status.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_email(email_id.clone())
         .expect("set")
         .set_updated_at(now)
@@ -98,7 +99,7 @@ async fn seed_user_with_email(
         .await
         .expect("commit");
     created
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via confirm_account_status.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_email(email_id)
         .expect("set")
         .set_updated_at(now)

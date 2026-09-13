@@ -163,7 +163,7 @@ pub async fn try_consume_email_verification_token(
     token_id: &str,
     valence: &Valence,
 ) -> Result<bool, ServerFnError> {
-    let token = EmailVerificationToken::get(token_id, valence)
+    let token = EmailVerificationToken::get_used(token_id, valence, valence::use_!("get EmailVerificationToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -176,7 +176,7 @@ pub async fn try_consume_email_verification_token(
 
     let consume_marker = new_consume_marker();
     token
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via mod.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_used_at(Utc::now())
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
@@ -185,7 +185,7 @@ pub async fn try_consume_email_verification_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = EmailVerificationToken::get(token_id, valence)
+    let latest = EmailVerificationToken::get_used(token_id, valence, valence::use_!("get EmailVerificationToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
@@ -206,7 +206,7 @@ pub async fn try_consume_password_reset_token(
 ) -> Result<Option<lepton_host_adapter::generated::PasswordResetToken>, ServerFnError> {
     use lepton_host_adapter::generated::PasswordResetToken;
 
-    let token = PasswordResetToken::get(token_id, valence)
+    let token = PasswordResetToken::get_used(token_id, valence, valence::use_!("get PasswordResetToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -219,7 +219,7 @@ pub async fn try_consume_password_reset_token(
 
     let consume_marker = new_consume_marker();
     token
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via mod.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_used_at(Utc::now())
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
@@ -228,7 +228,7 @@ pub async fn try_consume_password_reset_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = PasswordResetToken::get(token_id, valence)
+    let latest = PasswordResetToken::get_used(token_id, valence, valence::use_!("get PasswordResetToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
@@ -264,7 +264,7 @@ pub async fn issue_email_verification_token(
     )
     .map_err(|_| token_store_error("build"))?;
 
-    EmailVerificationToken::upsert(&token_id, token, valence)
+    EmailVerificationToken::upsert_used(&token_id, token, valence, valence::use_!("upsert EmailVerificationToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| token_store_error("persist"))?;
 

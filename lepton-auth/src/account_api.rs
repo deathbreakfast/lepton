@@ -196,7 +196,7 @@ pub mod ssr {
 
         let user_id = auth_user.id.to_string();
         let record_id = user_id.split(':').next_back().unwrap_or(&user_id);
-        let user = User::get(record_id, valence)
+        let user = User::get_used(record_id, valence, valence::use_!("get User in lepton-auth/src/account_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?;
         let Some(user) = user else {
@@ -230,7 +230,7 @@ pub mod ssr {
         let new_hash = lepton_host_adapter::auth::hash_password(&req.new_password)
             .map_err(|e| ServerFnError::new(format!("Failed to hash password: {e}")))?;
 
-        user.get_mutable(valence)
+        user.get_mutable_used(valence, valence::use_!("get_mutable via account_api.rs; mutable handle for in-place update; typed store; session/service path."))
             .set_password_hash(new_hash)
             .map_err(|e| ServerFnError::new(format!("Failed to set new hash: {e}")))?
             .set_updated_at(Utc::now())
@@ -283,7 +283,7 @@ pub mod ssr {
 
         let user_id = auth_user.id.to_string();
         let record_id = user_id.split(':').next_back().unwrap_or(&user_id);
-        let user = User::get(record_id, valence)
+        let user = User::get_used(record_id, valence, valence::use_!("get User in lepton-auth/src/account_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found"))?;
@@ -300,7 +300,7 @@ pub mod ssr {
             return Err(ServerFnError::Args("Current password is incorrect".into()));
         }
 
-        if AccountEmail::query(valence)
+        if AccountEmail::query_used(valence, valence::use_!("query AccountEmail in lepton-auth/src/account_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .where_address(StringPredicate::Equals(candidate.clone()))
             .first()
             .await
@@ -403,7 +403,7 @@ pub mod ssr {
     ) -> Result<User, ServerFnError> {
         let user_id = valence::extract_id_from_record(user_record)
             .map_err(|e| ServerFnError::new(e.to_string()))?;
-        User::get(&user_id, valence)
+        User::get_used(&user_id, valence, valence::use_!("get User in lepton-auth/src/account_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found for verification token"))
@@ -425,7 +425,7 @@ pub mod ssr {
         audit_flow: &str,
     ) -> Result<(), ServerFnError> {
         let record_id = user_bare_id(auth_user);
-        let user = User::get(&record_id, valence)
+        let user = User::get_used(&record_id, valence, valence::use_!("get User in lepton-auth/src/account_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found"))?;
@@ -518,7 +518,7 @@ pub mod ssr {
 
         verify_current_password(valence, auth_user, &req.current_password, "account_wipe").await?;
 
-        let memberships = AccountMembership::query(valence)
+        let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in lepton-auth/src/account_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .where_user(RecordPredicate::Equals(auth_user.id.clone()))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load memberships: {e}")))?;

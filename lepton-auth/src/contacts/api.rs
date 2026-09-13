@@ -17,7 +17,7 @@ pub async fn account_for_user(
     valence: &Valence,
     user: &RecordId,
 ) -> Result<RecordId, ContactError> {
-    let memberships = AccountMembership::query(valence)
+    let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user.clone()))
         .await
         .map_err(|_| ContactError::Store)?;
@@ -33,7 +33,7 @@ async fn user_is_account_member(
     account: &RecordId,
     user: &RecordId,
 ) -> Result<bool, ContactError> {
-    let memberships = AccountMembership::query(valence)
+    let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_account(RecordPredicate::Equals(account.clone()))
         .await
         .map_err(|_| ContactError::Store)?;
@@ -50,7 +50,7 @@ pub async fn find_account_email_by_address(
     valence: &Valence,
     address: &str,
 ) -> Result<Option<AccountEmail>, ContactError> {
-    AccountEmail::query(valence)
+    AccountEmail::query_used(valence, valence::use_!("query AccountEmail in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_address(StringPredicate::Equals(address.trim().to_string()))
         .first()
         .await
@@ -83,7 +83,7 @@ pub async fn add_account_email(
         return Err(ContactError::Conflict);
     }
     let account_bare = bare_id(account);
-    if Account::get(&account_bare, valence)
+    if Account::get_used(&account_bare, valence, valence::use_!("get Account in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .is_none()
@@ -93,7 +93,7 @@ pub async fn add_account_email(
     let now = Utc::now();
     let row = AccountEmail::new(account.clone(), address, None, now, now)
         .map_err(|_| ContactError::Store)?;
-    let result = AccountEmail::create(row, valence)
+    let result = AccountEmail::create_used(row, valence, valence::use_!("create AccountEmail in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store);
     #[cfg(feature = "spectra")]
@@ -126,7 +126,7 @@ pub async fn add_account_phone(
     e164: &str,
 ) -> Result<AccountPhone, ContactError> {
     let e164 = e164.trim().to_string();
-    let existing = AccountPhone::query(valence)
+    let existing = AccountPhone::query_used(valence, valence::use_!("query AccountPhone in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_e164(StringPredicate::Equals(e164.clone()))
         .first()
         .await
@@ -142,7 +142,7 @@ pub async fn add_account_phone(
         return Err(ContactError::Conflict);
     }
     let account_bare = bare_id(account);
-    if Account::get(&account_bare, valence)
+    if Account::get_used(&account_bare, valence, valence::use_!("get Account in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .is_none()
@@ -152,7 +152,7 @@ pub async fn add_account_phone(
     let now = Utc::now();
     let row = AccountPhone::new(account.clone(), e164, None, now, now)
         .map_err(|_| ContactError::Store)?;
-    let result = AccountPhone::create(row, valence)
+    let result = AccountPhone::create_used(row, valence, valence::use_!("create AccountPhone in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store);
     #[cfg(feature = "spectra")]
@@ -180,7 +180,7 @@ pub async fn set_primary_email(
     account_email: &RecordId,
 ) -> Result<(), ContactError> {
     let email_bare = bare_id(account_email);
-    let email = AccountEmail::get(&email_bare, valence)
+    let email = AccountEmail::get_used(&email_bare, valence, valence::use_!("get AccountEmail in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -191,12 +191,12 @@ pub async fn set_primary_email(
         return Err(ContactError::Unverified);
     }
     let uid = bare_id(user);
-    let user_row = User::get(&uid, valence)
+    let user_row = User::get_used(&uid, valence, valence::use_!("get User in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::UserMissing)?;
     user_row
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_email(account_email.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -221,7 +221,7 @@ pub async fn set_account_primary_email(
     account_email: &RecordId,
 ) -> Result<(), ContactError> {
     let email_bare = bare_id(account_email);
-    let email = AccountEmail::get(&email_bare, valence)
+    let email = AccountEmail::get_used(&email_bare, valence, valence::use_!("get AccountEmail in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -230,7 +230,7 @@ pub async fn set_account_primary_email(
     }
 
     let account_bare = bare_id(account);
-    let account_row = Account::get(&account_bare, valence)
+    let account_row = Account::get_used(&account_bare, valence, valence::use_!("get Account in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::AccountMissing)?;
@@ -240,7 +240,7 @@ pub async fn set_account_primary_email(
     }
 
     account_row
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_email(account_email.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -258,7 +258,7 @@ pub async fn set_primary_phone(
     account_phone: &RecordId,
 ) -> Result<(), ContactError> {
     let phone_bare = bare_id(account_phone);
-    let phone = AccountPhone::get(&phone_bare, valence)
+    let phone = AccountPhone::get_used(&phone_bare, valence, valence::use_!("get AccountPhone in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -269,12 +269,12 @@ pub async fn set_primary_phone(
         return Err(ContactError::Unverified);
     }
     let uid = bare_id(user);
-    let user_row = User::get(&uid, valence)
+    let user_row = User::get_used(&uid, valence, valence::use_!("get User in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::UserMissing)?;
     user_row
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_phone(account_phone.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -292,7 +292,7 @@ pub async fn set_account_primary_phone(
     account_phone: &RecordId,
 ) -> Result<(), ContactError> {
     let phone_bare = bare_id(account_phone);
-    let phone = AccountPhone::get(&phone_bare, valence)
+    let phone = AccountPhone::get_used(&phone_bare, valence, valence::use_!("get AccountPhone in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -301,7 +301,7 @@ pub async fn set_account_primary_phone(
     }
 
     let account_bare = bare_id(account);
-    let account_row = Account::get(&account_bare, valence)
+    let account_row = Account::get_used(&account_bare, valence, valence::use_!("get Account in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::AccountMissing)?;
@@ -311,7 +311,7 @@ pub async fn set_account_primary_phone(
     }
 
     account_row
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_phone(account_phone.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -333,7 +333,7 @@ pub async fn mark_account_email_verified(
         .cloned()
         .ok_or(ContactError::ContactMissing)?;
     account_email
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_verified_at(now)
         .map_err(|_| ContactError::Store)?
         .set_updated_at(now)
@@ -342,13 +342,13 @@ pub async fn mark_account_email_verified(
         .await
         .map_err(|_| ContactError::Store)?;
 
-    let memberships = AccountMembership::query(valence)
+    let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_account(RecordPredicate::Equals(account_email.account().clone()))
         .await
         .map_err(|_| ContactError::Store)?;
     for membership in memberships {
         let uid = bare_id(membership.user());
-        let Some(user) = User::get(&uid, valence)
+        let Some(user) = User::get_used(&uid, valence, valence::use_!("get User in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|_| ContactError::Store)?
         else {
@@ -379,7 +379,7 @@ pub async fn mark_account_phone_verified(
         .cloned()
         .ok_or(ContactError::ContactMissing)?;
     account_phone
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_verified_at(now)
         .map_err(|_| ContactError::Store)?
         .set_updated_at(now)
@@ -388,13 +388,13 @@ pub async fn mark_account_phone_verified(
         .await
         .map_err(|_| ContactError::Store)?;
 
-    let memberships = AccountMembership::query(valence)
+    let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_account(RecordPredicate::Equals(account_phone.account().clone()))
         .await
         .map_err(|_| ContactError::Store)?;
     for membership in memberships {
         let uid = bare_id(membership.user());
-        let Some(user) = User::get(&uid, valence)
+        let Some(user) = User::get_used(&uid, valence, valence::use_!("get User in src/contacts/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|_| ContactError::Store)?
         else {

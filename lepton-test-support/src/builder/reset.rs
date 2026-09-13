@@ -25,7 +25,7 @@ pub(super) async fn seed_reset_token(
     .map_err(|_| SeedError::Persistence {
         operation: "reset_token_new",
     })?;
-    PasswordResetToken::upsert(&token_id, token, valence)
+    PasswordResetToken::upsert_used(&token_id, token, valence, valence::use_!("upsert PasswordResetToken in src/builder/reset.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| SeedError::Persistence {
             operation: "reset_token_upsert",

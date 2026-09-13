@@ -16,7 +16,7 @@ pub(super) fn bare_id(record: &RecordId) -> String {
 
 pub(super) async fn ensure_user(valence: &Valence, user: &RecordId) -> Result<(), DeviceError> {
     let uid = bare_id(user);
-    if User::get(&uid, valence)
+    if User::get_used(&uid, valence, valence::use_!("get User in src/devices/ceremony.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .is_none()
@@ -40,7 +40,7 @@ pub(super) async fn insert_ceremony(
     let ceremony_id = random_token_part(16);
     let row = AuthDeviceCeremony::new(user.clone(), phase, label, state_json, expires_at, now, now)
         .map_err(|_| DeviceError::Store)?;
-    AuthDeviceCeremony::upsert(&ceremony_id, row, valence)
+    AuthDeviceCeremony::upsert_used(&ceremony_id, row, valence, valence::use_!("upsert AuthDeviceCeremony in src/devices/ceremony.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?;
     Ok(ceremony_id)
@@ -53,7 +53,7 @@ pub(super) async fn load_valid_ceremony(
     ceremony_id: &str,
     phase: AuthDeviceCeremonyPhase,
 ) -> Result<AuthDeviceCeremony, DeviceError> {
-    let ceremony = AuthDeviceCeremony::get(ceremony_id, valence)
+    let ceremony = AuthDeviceCeremony::get_used(ceremony_id, valence, valence::use_!("get AuthDeviceCeremony in src/devices/ceremony.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::CeremonyInvalid)?;
@@ -80,7 +80,7 @@ pub(super) async fn consume_ceremony(
     let past = Utc::now() - Duration::seconds(1);
     ceremony
         .clone()
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via ceremony.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_expires_at(past)
         .map_err(|_| DeviceError::Store)?
         .set_updated_at(Utc::now())

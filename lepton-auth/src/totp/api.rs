@@ -58,7 +58,7 @@ pub async fn begin_totp_enroll(
     use totp_rs::{Algorithm, Secret, TOTP};
 
     let uid = bare_id(user);
-    if User::get(&uid, valence)
+    if User::get_used(&uid, valence, valence::use_!("get User in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| TotpEnrollError::Store)?
         .is_none()
@@ -116,7 +116,7 @@ pub async fn begin_totp_enroll(
         now,
     )
     .map_err(|_| TotpEnrollError::Store)?;
-    TotpFactor::upsert(&factor_id, factor, valence)
+    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!("upsert TotpFactor in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| TotpEnrollError::Store)?;
 
@@ -143,7 +143,7 @@ pub async fn confirm_totp_enroll(
     factor_id: &str,
     code: &str,
 ) -> Result<(), TotpEnrollError> {
-    let factor = match TotpFactor::get(factor_id, valence).await {
+    let factor = match TotpFactor::get_used(factor_id, valence, valence::use_!("get TotpFactor in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path.")).await {
         Ok(Some(f)) => f,
         Ok(None) => {
             #[cfg(feature = "spectra")]
@@ -184,7 +184,7 @@ pub async fn confirm_totp_enroll(
     }
     let now = Utc::now();
     factor
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_confirmed_at(now)
         .map_err(|_| TotpEnrollError::Store)?
         .set_enabled_at(now)
@@ -236,7 +236,7 @@ pub async fn disable_totp(valence: &Valence, user: &RecordId) -> Result<(), Totp
         .map_err(|_| TotpEnrollError::Store)?;
     for code in recovery {
         if code.used_at().is_none() {
-            code.get_mutable(valence)
+            code.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
                 .set_used_at(now)
                 .map_err(|_| TotpEnrollError::Store)?
                 .commit()
@@ -334,7 +334,7 @@ pub async fn consume_totp_recovery_code(
     };
 
     let now = Utc::now();
-    row.get_mutable(valence)
+    row.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_used_at(now)
         .map_err(|_| TotpEnrollError::Store)?
         .commit()
@@ -370,7 +370,7 @@ pub async fn regenerate_totp_recovery_codes(
         .map_err(|_| TotpEnrollError::Store)?;
     let now = Utc::now();
     for code in existing {
-        code.get_mutable(valence)
+        code.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
             .set_used_at(now)
             .map_err(|_| TotpEnrollError::Store)?
             .commit()
@@ -385,7 +385,7 @@ pub async fn regenerate_totp_recovery_codes(
         let row = TotpRecoveryCode::new(user.clone(), hash, None, now)
             .map_err(|_| TotpEnrollError::Store)?;
         let id = random_token_part(12);
-        TotpRecoveryCode::upsert(&id, row, valence)
+        TotpRecoveryCode::upsert_used(&id, row, valence, valence::use_!("upsert TotpRecoveryCode in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|_| TotpEnrollError::Store)?;
         plain.push(code);

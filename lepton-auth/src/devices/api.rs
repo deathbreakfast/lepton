@@ -33,7 +33,7 @@ pub async fn register_auth_device(
 ) -> Result<PendingAuthDevice, DeviceError> {
     let gen_kind = kind_to_generated(kind)?;
     let uid = bare_id(user);
-    if User::get(&uid, valence)
+    if User::get_used(&uid, valence, valence::use_!("get User in src/devices/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .is_none()
@@ -61,7 +61,7 @@ pub async fn register_auth_device(
         now,
     )
     .map_err(|_| DeviceError::Store)?;
-    AuthDevice::upsert(&device_id, row, valence)
+    AuthDevice::upsert_used(&device_id, row, valence, valence::use_!("upsert AuthDevice in src/devices/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?;
     #[cfg(feature = "spectra")]
@@ -93,7 +93,7 @@ pub async fn confirm_auth_device(
 ) -> Result<(), DeviceError> {
     use argon2::{password_hash::PasswordHash, PasswordVerifier};
 
-    let device = AuthDevice::get(device_id, valence)
+    let device = AuthDevice::get_used(device_id, valence, valence::use_!("get AuthDevice in src/devices/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::DeviceMissing)?;
@@ -118,7 +118,7 @@ pub async fn confirm_auth_device(
     }
     let now = Utc::now();
     device
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_trusted_at(now)
         .map_err(|_| DeviceError::Store)?
         .set_last_seen_at(now)
@@ -183,7 +183,7 @@ pub async fn revoke_auth_device(
     user: &RecordId,
     device_id: &str,
 ) -> Result<(), DeviceError> {
-    let device = AuthDevice::get(device_id, valence)
+    let device = AuthDevice::get_used(device_id, valence, valence::use_!("get AuthDevice in src/devices/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::DeviceMissing)?;
@@ -192,7 +192,7 @@ pub async fn revoke_auth_device(
     }
     let now = Utc::now();
     device
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_revoked_at(now)
         .map_err(|_| DeviceError::Store)?
         .clear_binding_secret_hash()
@@ -221,7 +221,7 @@ pub async fn touch_auth_device(
     user: &RecordId,
     device_id: &str,
 ) -> Result<(), DeviceError> {
-    let device = AuthDevice::get(device_id, valence)
+    let device = AuthDevice::get_used(device_id, valence, valence::use_!("get AuthDevice in src/devices/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::DeviceMissing)?;
@@ -236,7 +236,7 @@ pub async fn touch_auth_device(
     }
     let now = Utc::now();
     device
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_last_seen_at(now)
         .map_err(|_| DeviceError::Store)?
         .set_updated_at(now)

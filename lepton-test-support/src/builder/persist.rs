@@ -54,7 +54,7 @@ async fn create_active_user(
         operation: "user_new",
     })?;
     let created =
-        IdentityUser::create(user, valence)
+        IdentityUser::create_used(user, valence, valence::use_!("create IdentityUser in src/builder/persist.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|_| SeedError::Persistence {
                 operation: "user_create",
@@ -85,7 +85,7 @@ async fn create_owner_account(
         operation: "account_new",
     })?;
     let account_created =
-        Account::create(account, valence)
+        Account::create_used(account, valence, valence::use_!("create Account in src/builder/persist.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|_| SeedError::Persistence {
                 operation: "account_create",
@@ -107,7 +107,7 @@ async fn create_owner_account(
     .map_err(|_| SeedError::Persistence {
         operation: "membership_new",
     })?;
-    AccountMembership::create(membership, valence)
+    AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in src/builder/persist.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| SeedError::Persistence {
             operation: "membership_create",
@@ -129,7 +129,7 @@ async fn attach_primary_email(
         .map_err(|_| SeedError::Persistence {
             operation: "email_new",
         })?;
-    let email_created = AccountEmail::create(email_row, valence)
+    let email_created = AccountEmail::create_used(email_row, valence, valence::use_!("create AccountEmail in src/builder/persist.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| SeedError::Persistence {
             operation: "email_create",
@@ -139,7 +139,7 @@ async fn attach_primary_email(
     })?;
 
     created_account
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via persist.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_email(email_id.clone())
         .map_err(|_| SeedError::Persistence {
             operation: "account_set_primary_email",
@@ -155,7 +155,7 @@ async fn attach_primary_email(
         })?;
 
     created_user
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via persist.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_primary_email(email_id.clone())
         .map_err(|_| SeedError::Persistence {
             operation: "user_set_primary_email",

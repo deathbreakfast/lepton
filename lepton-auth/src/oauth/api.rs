@@ -451,7 +451,7 @@ pub async fn complete_oauth(
         }
         OAuthIntent::Signup => {
             if let Some(ref email) = email_hint {
-                let taken = AccountEmail::query(valence)
+                let taken = AccountEmail::query_used(valence, valence::use_!("query AccountEmail in src/oauth/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
                     .where_address(StringPredicate::Equals(email.clone()))
                     .first()
                     .await
@@ -557,7 +557,7 @@ async fn find_link(
     subject: &str,
 ) -> Result<Option<LinkedIdentity>, OAuthError> {
     let gen = provider.to_generated();
-    let rows = LinkedIdentity::query(valence)
+    let rows = LinkedIdentity::query_used(valence, valence::use_!("query LinkedIdentity in src/oauth/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_provider_subject(StringPredicate::Equals(subject.to_string()))
         .await
         .map_err(|_| OAuthError::Store)?;
@@ -586,7 +586,7 @@ async fn insert_link(
     )
     .map_err(|_| OAuthError::Store)?;
     let id = random_token_part(12);
-    LinkedIdentity::upsert(&id, row, valence)
+    LinkedIdentity::upsert_used(&id, row, valence, valence::use_!("upsert LinkedIdentity in src/oauth/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?;
     Ok(())
@@ -626,7 +626,7 @@ pub async fn unlink_oauth_identity(
     linked_id: &RecordId,
 ) -> Result<(), OAuthError> {
     let id = bare_id(linked_id);
-    let row = LinkedIdentity::get(&id, valence)
+    let row = LinkedIdentity::get_used(&id, valence, valence::use_!("get LinkedIdentity in src/oauth/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| OAuthError::Store)?
         .ok_or(OAuthError::LinkMissing)?;

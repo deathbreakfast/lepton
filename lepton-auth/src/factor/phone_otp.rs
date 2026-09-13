@@ -23,13 +23,13 @@ pub(super) async fn issue(
     target: &str,
 ) -> Result<String, FactorChallengeError> {
     let e164 = normalize_phone_to_e164(target).map_err(|_| FactorChallengeError::InvalidPhone)?;
-    let phone = if let Some(existing) = AccountPhone::query(valence)
+    let phone = if let Some(existing) = AccountPhone::query_used(valence, valence::use_!("query AccountPhone in src/factor/phone_otp.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_e164(valence::StringPredicate::Equals(e164.clone()))
         .first()
         .await
         .map_err(|_| FactorChallengeError::Token)?
     {
-        let memberships = lepton_host_adapter::generated::AccountMembership::query(valence)
+        let memberships = lepton_host_adapter::generated::AccountMembership::query_used(valence, valence::use_!("query AccountMembership in src/factor/phone_otp.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .where_user(valence::RecordPredicate::Equals(user.clone()))
             .await
             .map_err(|_| FactorChallengeError::Token)?;
@@ -98,7 +98,7 @@ pub(super) async fn verify(
     };
 
     let phone_bare = bare_id(token.user_phone());
-    let phone = AccountPhone::get(&phone_bare, valence)
+    let phone = AccountPhone::get_used(&phone_bare, valence, valence::use_!("get AccountPhone in src/factor/phone_otp.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| FactorChallengeError::Token)?
         .ok_or(FactorChallengeError::UserMissing)?;

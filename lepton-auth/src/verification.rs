@@ -114,7 +114,7 @@ pub async fn lookup_status_with_valence(
 
     let store_err = || ServerFnError::new("reason_class=status: lookup failed");
 
-    if let Some(token) = EmailVerificationToken::get(challenge_id, valence)
+    if let Some(token) = EmailVerificationToken::get_used(challenge_id, valence, valence::use_!("get EmailVerificationToken in lepton-auth/src/verification.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| store_err())?
     {
@@ -127,7 +127,7 @@ pub async fn lookup_status_with_valence(
         return Ok(snap);
     }
 
-    if let Some(token) = PhoneVerificationToken::get(challenge_id, valence)
+    if let Some(token) = PhoneVerificationToken::get_used(challenge_id, valence, valence::use_!("get PhoneVerificationToken in lepton-auth/src/verification.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| store_err())?
     {
@@ -140,7 +140,7 @@ pub async fn lookup_status_with_valence(
         return Ok(snap);
     }
 
-    if let Some(factor) = TotpFactor::get(challenge_id, valence)
+    if let Some(factor) = TotpFactor::get_used(challenge_id, valence, valence::use_!("get TotpFactor in lepton-auth/src/verification.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| store_err())?
     {

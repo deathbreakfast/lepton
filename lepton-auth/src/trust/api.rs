@@ -12,7 +12,7 @@ fn bare_id(record: &RecordId) -> String {
 
 async fn load_user(valence: &Valence, user: &RecordId) -> Result<User, TrustError> {
     let uid = bare_id(user);
-    User::get(&uid, valence)
+    User::get_used(&uid, valence, valence::use_!("get User in src/trust/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| TrustError::Store)?
         .ok_or(TrustError::UserMissing)
@@ -31,7 +31,7 @@ pub async fn primary_email_verified(
     let Some(primary) = user.primary_email() else {
         return Ok(false);
     };
-    let email = AccountEmail::get(&bare_id(primary), valence)
+    let email = AccountEmail::get_used(&bare_id(primary), valence, valence::use_!("get AccountEmail in src/trust/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| TrustError::Store)?;
     Ok(email.is_some_and(|e| e.verified_at().is_some()))
@@ -50,7 +50,7 @@ pub async fn primary_phone_verified(
     let Some(primary) = user.primary_phone() else {
         return Ok(false);
     };
-    let phone = AccountPhone::get(&bare_id(primary), valence)
+    let phone = AccountPhone::get_used(&bare_id(primary), valence, valence::use_!("get AccountPhone in src/trust/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| TrustError::Store)?;
     Ok(phone.is_some_and(|p| p.verified_at().is_some()))
@@ -92,7 +92,7 @@ pub async fn confirm_user(valence: &Valence, user: &RecordId) -> Result<(), Trus
         return Ok(());
     }
     let now = Utc::now();
-    row.get_mutable(valence)
+    row.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_confirmed_at(now)
         .map_err(|_| TrustError::Store)?
         .set_updated_at(now)
@@ -111,7 +111,7 @@ pub async fn confirm_user(valence: &Valence, user: &RecordId) -> Result<(), Trus
 pub async fn mark_user_id_verified(valence: &Valence, user: &RecordId) -> Result<(), TrustError> {
     let row = load_user(valence, user).await?;
     let now = Utc::now();
-    row.get_mutable(valence)
+    row.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_id_verified_at(now)
         .map_err(|_| TrustError::Store)?
         .set_updated_at(now)

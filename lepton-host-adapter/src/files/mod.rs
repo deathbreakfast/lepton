@@ -278,7 +278,7 @@ async fn load_or_create_session_profile(
     user: &User,
 ) -> Result<UserProfile, HttpErr> {
     let user_thing = user.id.clone();
-    let profile = UserProfile::query(session_v)
+    let profile = UserProfile::query_used(session_v, valence::use_!("query UserProfile in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .first()
         .await
@@ -302,7 +302,7 @@ async fn load_or_create_session_profile(
                 "Failed to build profile".to_string(),
             )
         })?;
-    UserProfile::create(new_profile, session_v)
+    UserProfile::create_used(new_profile, session_v, valence::use_!("create UserProfile in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| {
             (
@@ -402,7 +402,7 @@ async fn create_photo_and_set_active(
     }
 
     let session_v = user_valence(valence_router, backend_key, user)?;
-    let profile = UserProfile::query(&session_v)
+    let profile = UserProfile::query_used(&session_v, valence::use_!("query UserProfile in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user.id.clone()))
         .first()
         .await
@@ -420,7 +420,7 @@ async fn create_photo_and_set_active(
         })?;
 
     profile
-        .get_mutable(&session_v)
+        .get_mutable_used(&session_v, valence::use_!("get_mutable via mod.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_active_photo(photo_id.clone())
         .map_err(|_| {
             (
@@ -524,7 +524,7 @@ pub async fn serve_handler(
         let session_v = user_valence(Arc::clone(&valence_router), backend_key, &user)?;
         // Privacy denial is Err(Error::Privacy); treat the same as missing —
         // never elevate to System to re-fetch (uf-no-actor-elevation).
-        let Ok(Some(photo)) = ProfilePhoto::get(&id, &session_v).await else {
+        let Ok(Some(photo)) = ProfilePhoto::get_used(&id, &session_v, valence::use_!("get ProfilePhoto in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path.")).await else {
             return Err((StatusCode::NOT_FOUND, "File not found".to_string()));
         };
 

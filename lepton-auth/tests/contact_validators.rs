@@ -30,7 +30,7 @@ async fn seed_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    let created = User::create(user, valence).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/contact_validators.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create user");
     created.id().cloned().expect("user id")
 }
 
@@ -47,7 +47,7 @@ async fn seed_account_with_membership(valence: &valence::Valence, user: &RecordI
         now,
     )
     .expect("account");
-    let account = Account::create(account, valence)
+    let account = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/contact_validators.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("create account");
     let account_id = account.id().cloned().expect("account id");
@@ -59,7 +59,7 @@ async fn seed_account_with_membership(valence: &valence::Valence, user: &RecordI
         now,
     )
     .expect("membership");
-    AccountMembership::create(membership, valence)
+    AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in lepton-auth/tests/contact_validators.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("create membership");
     account_id

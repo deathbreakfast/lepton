@@ -53,7 +53,7 @@ async fn seed_password_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    let created = User::create(user, valence).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/oauth_link_settings.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create user");
     created.id().cloned().expect("user id")
 }
 

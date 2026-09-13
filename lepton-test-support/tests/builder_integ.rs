@@ -20,13 +20,13 @@ async fn builder_verified_email_happy() {
         .await
         .expect("build");
 
-    let email = AccountEmail::get(&bare_id_from_record(&user.email_id), &v)
+    let email = AccountEmail::get_used(&bare_id_from_record(&user.email_id), &v, valence::use_!("get AccountEmail in lepton-test-support/tests/builder_integ.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("get email")
         .expect("email row");
     assert!(email.verified_at().is_some());
 
-    let identity = IdentityUser::get(&bare_id_from_record(&user.user_id), &v)
+    let identity = IdentityUser::get_used(&bare_id_from_record(&user.user_id), &v, valence::use_!("get IdentityUser in lepton-test-support/tests/builder_integ.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("get user")
         .expect("user row");
@@ -45,7 +45,7 @@ async fn builder_unverified_email_happy() {
         .build(&v)
         .await
         .expect("build");
-    let email = AccountEmail::get(&bare_id_from_record(&user.email_id), &v)
+    let email = AccountEmail::get_used(&bare_id_from_record(&user.email_id), &v, valence::use_!("get AccountEmail in lepton-test-support/tests/builder_integ.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("get email")
         .expect("email row");

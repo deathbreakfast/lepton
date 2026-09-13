@@ -37,11 +37,11 @@ fn mock_cfg() -> OAuthClientConfig {
 }
 
 async fn count_users(valence: &valence::Valence) -> usize {
-    User::query(valence).await.expect("users").len()
+    User::query_used(valence, valence::use_!("query User in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("users").len()
 }
 
 async fn count_accounts(valence: &valence::Valence) -> usize {
-    Account::query(valence).await.expect("accounts").len()
+    Account::query_used(valence, valence::use_!("query Account in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("accounts").len()
 }
 
 async fn seed_taken_email(valence: &valence::Valence, address: &str) {
@@ -59,7 +59,7 @@ async fn seed_taken_email(valence: &valence::Valence, address: &str) {
         now,
     )
     .expect("user");
-    let created = User::create(user, valence).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create user");
     let user_id = created.id().cloned().expect("user id");
 
     let account = Account::new(
@@ -73,7 +73,7 @@ async fn seed_taken_email(valence: &valence::Valence, address: &str) {
         now,
     )
     .expect("account");
-    let account = Account::create(account, valence)
+    let account = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("create account");
     let account_id = account.id().cloned().expect("account id");
@@ -86,12 +86,12 @@ async fn seed_taken_email(valence: &valence::Valence, address: &str) {
         now,
     )
     .expect("membership");
-    AccountMembership::create(membership, valence)
+    AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("membership");
 
     let email = AccountEmail::new(account_id, address.into(), Some(now), now, now).expect("email");
-    AccountEmail::create(email, valence).await.expect("email");
+    AccountEmail::create_used(email, valence, valence::use_!("create AccountEmail in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("email");
 }
 
 #[tokio::test]
@@ -139,7 +139,7 @@ async fn oauth_signup_free_email_happy() {
         other => panic!("expected SignedUp, got {other:?}"),
     };
 
-    let account = Account::query(&valence)
+    let account = Account::query_used(&valence, valence::use_!("query Account in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .where_user(RecordPredicate::Equals(user_id.clone()))
         .first()
         .await
@@ -151,14 +151,14 @@ async fn oauth_signup_free_email_happy() {
     );
     assert!(account.primary_email().is_some());
 
-    let user = User::get(&bare_id_from_record(&user_id), &valence)
+    let user = User::get_used(&bare_id_from_record(&user_id), &valence, valence::use_!("get User in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("get")
         .expect("user");
     assert!(user.primary_email().is_some());
 
     let address = format!("{code}@oauth.mock.test");
-    assert!(AccountEmail::query(&valence)
+    assert!(AccountEmail::query_used(&valence, valence::use_!("query AccountEmail in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .where_address(StringPredicate::Equals(address))
         .first()
         .await
@@ -188,7 +188,7 @@ async fn oauth_signup_no_hint_happy() {
         other => panic!("expected SignedUp, got {other:?}"),
     };
 
-    let account = Account::query(&valence)
+    let account = Account::query_used(&valence, valence::use_!("query Account in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .where_user(RecordPredicate::Equals(user_id.clone()))
         .first()
         .await
@@ -200,7 +200,7 @@ async fn oauth_signup_no_hint_happy() {
     );
     assert!(account.primary_email().is_none());
 
-    let user = User::get(&bare_id_from_record(&user_id), &valence)
+    let user = User::get_used(&bare_id_from_record(&user_id), &valence, valence::use_!("get User in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("get")
         .expect("user");
@@ -222,7 +222,7 @@ async fn oauth_provision_sets_account_user_happy() {
         OAuthCompletion::SignedUp { user_id } => user_id,
         other => panic!("expected SignedUp, got {other:?}"),
     };
-    let account = Account::query(&valence)
+    let account = Account::query_used(&valence, valence::use_!("query Account in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .where_user(RecordPredicate::Equals(user_id.clone()))
         .first()
         .await
@@ -255,7 +255,7 @@ async fn oauth_provision_no_email_hint_happy() {
         OAuthCompletion::SignedUp { user_id } => user_id,
         other => panic!("expected SignedUp, got {other:?}"),
     };
-    let account = Account::query(&valence)
+    let account = Account::query_used(&valence, valence::use_!("query Account in lepton-auth/tests/oauth_signup_collision.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .where_user(RecordPredicate::Equals(user_id.clone()))
         .first()
         .await

@@ -127,7 +127,7 @@ async fn email_task_noop_success_writes_attempt_happy() {
         .build()
         .expect("valence");
 
-    let rows = DeliveryAttempt::query(&valence).await.expect("query");
+    let rows = DeliveryAttempt::query_used(&valence, valence::use_!("query DeliveryAttempt in lepton-auth/tests/delivery_attempt.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("query");
     let hit = rows
         .iter()
         .find(|r| r.intent_id() == "tok-drain-1")

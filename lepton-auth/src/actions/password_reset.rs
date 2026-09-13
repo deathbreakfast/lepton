@@ -26,7 +26,7 @@ pub async fn request_password_reset(
         .unsafe_system_valence()
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    let maybe_email = AccountEmail::query(&valence)
+    let maybe_email = AccountEmail::query_used(&valence, valence::use_!("query AccountEmail in src/actions/password_reset.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_address(StringPredicate::Equals(email.clone()))
         .first()
         .await
@@ -34,7 +34,7 @@ pub async fn request_password_reset(
 
     let maybe_user = if let Some(row) = maybe_email {
         match row.id().cloned() {
-            Some(email_id) => User::query(&valence)
+            Some(email_id) => User::query_used(&valence, valence::use_!("query User in src/actions/password_reset.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
                 .where_primary_email(valence::RecordPredicate::Equals(email_id))
                 .first()
                 .await
@@ -64,7 +64,7 @@ pub async fn request_password_reset(
             )
             .map_err(|e| ServerFnError::new(format!("Failed to build reset token: {e}")))?;
 
-            PasswordResetToken::upsert(&token_id, token, &valence)
+            PasswordResetToken::upsert_used(&token_id, token, &valence, valence::use_!("upsert PasswordResetToken in src/actions/password_reset.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
                 .await
                 .map_err(|e| ServerFnError::new(format!("Failed to save reset token: {e}")))?;
 
@@ -160,7 +160,7 @@ pub async fn reset_password(
 
     let user_id = extract_id_from_record(reset_record.user())
         .map_err(|e| ServerFnError::new(format!("Invalid user ref on reset token: {e}")))?;
-    let user = User::get(&user_id, &valence)
+    let user = User::get_used(&user_id, &valence, valence::use_!("get User in src/actions/password_reset.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?;
     let Some(user) = user else {
@@ -170,7 +170,7 @@ pub async fn reset_password(
     let new_hash = lepton_host_adapter::auth::hash_password(&new_password)
         .map_err(|e| ServerFnError::new(format!("Failed to hash password: {e}")))?;
 
-    user.get_mutable(&valence)
+    user.get_mutable_used(&valence, valence::use_!("get_mutable via password_reset.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_password_hash(new_hash)
         .map_err(|e| ServerFnError::new(format!("Failed to set new hash: {e}")))?
         .set_updated_at(Utc::now())

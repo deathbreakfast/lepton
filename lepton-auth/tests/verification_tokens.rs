@@ -41,7 +41,7 @@ async fn seed_user(
         now,
     )
     .expect("user");
-    let created = IdentityUser::create(user, valence).await.expect("create");
+    let created = IdentityUser::create_used(user, valence, valence::use_!("create IdentityUser in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create");
     let user_id = created.id().cloned().expect("id");
 
     let account = Account::new(
@@ -55,7 +55,7 @@ async fn seed_user(
         now,
     )
     .expect("account");
-    let account_created = Account::create(account, valence)
+    let account_created = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("create account");
     let account_id = account_created.id().cloned().expect("account id");
@@ -68,7 +68,7 @@ async fn seed_user(
         now,
     )
     .expect("membership");
-    AccountMembership::create(membership, valence)
+    AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("create membership");
 
@@ -80,7 +80,7 @@ async fn seed_user(
         now,
     )
     .expect("email");
-    let email_created = AccountEmail::create(email, valence)
+    let email_created = AccountEmail::create_used(email, valence, valence::use_!("create AccountEmail in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("email create");
     let email_id = email_created.id().cloned().expect("email id");
@@ -120,7 +120,7 @@ async fn seed_user_with_phone(
     let now = Utc::now();
     let phone =
         AccountPhone::new(account_id, "+15551234567".to_string(), None, now, now).expect("phone");
-    let created = AccountPhone::create(phone, valence)
+    let created = AccountPhone::create_used(phone, valence, valence::use_!("create AccountPhone in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("phone create");
     let phone_id = created.id().cloned().expect("phone id");

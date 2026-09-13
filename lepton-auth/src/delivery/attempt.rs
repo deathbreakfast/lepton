@@ -59,7 +59,7 @@ pub async fn record_delivery_attempt(
         Utc::now(),
     )
     .map_err(|_| DeliveryAttemptWriteError::Store)?;
-    DeliveryAttempt::upsert(&id, row, valence)
+    DeliveryAttempt::upsert_used(&id, row, valence, valence::use_!("upsert DeliveryAttempt in src/delivery/attempt.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeliveryAttemptWriteError::Store)
 }

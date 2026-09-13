@@ -184,7 +184,7 @@ pub async fn step_up_demo_password_and_totp(
         .split_once(':')
         .map(|(_, rest)| rest.to_string())
         .unwrap_or(record_id);
-    let user = User::get(&bare, &valence)
+    let user = User::get_used(&bare, &valence, valence::use_!("get User in lepton-auth-ui-e2e/src/step_up_demo.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
         .ok_or_else(|| ServerFnError::new("User not found"))?;

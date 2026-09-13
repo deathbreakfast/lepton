@@ -111,7 +111,7 @@ pub async fn verify_email_token(
         .unsafe_system_valence()
         .map_err(|e| crate::ssr_support::map_higgs_err(&e))?;
 
-    let token_record = EmailVerificationToken::get(&token_id, &valence)
+    let token_record = EmailVerificationToken::get_used(&token_id, &valence, valence::use_!("get EmailVerificationToken in src/actions/account.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|e| ServerFnError::new(format!("Failed to load verification token: {e}")))?
         .ok_or_else(|| {
@@ -162,7 +162,7 @@ pub async fn verify_email_token(
 
     let consumed = try_consume_email_verification_token(&token_id, &valence).await?;
     if !consumed {
-        let latest = EmailVerificationToken::get(&token_id, &valence)
+        let latest = EmailVerificationToken::get_used(&token_id, &valence, valence::use_!("get EmailVerificationToken in src/actions/account.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to reload verification token: {e}")))?;
         let err = latest.map_or(TokenLifecycleError::Invalid, |latest_token| {
@@ -186,7 +186,7 @@ pub async fn verify_email_token(
 
     let email_bare = valence::extract_id_from_record(token_record.user_email())
         .map_err(|e| ServerFnError::new(e.to_string()))?;
-    let email_row = AccountEmail::get(&email_bare, &valence)
+    let email_row = AccountEmail::get_used(&email_bare, &valence, valence::use_!("get AccountEmail in src/actions/account.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|e| ServerFnError::new(format!("Failed to load user email: {e}")))?
         .ok_or_else(|| ServerFnError::new("User email not found for verification token"))?;
@@ -202,7 +202,7 @@ pub async fn verify_email_token(
     }
 
     let user = crate::account_api::ssr::load_user_from_token(&valence, token_record.user()).await?;
-    user.get_mutable(&valence)
+    user.get_mutable_used(&valence, valence::use_!("get_mutable via account.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_status(UserStatus::Active)
         .map_err(|e| ServerFnError::new(format!("Failed to update user status: {e}")))?
         .set_updated_at(Utc::now())

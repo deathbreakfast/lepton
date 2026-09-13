@@ -121,12 +121,12 @@ pub async fn erase_account(
         "lepton_auth.identity_delete.erase_account"
     );
     let account_bare = bare_id(account);
-    let _ = Account::get(&account_bare, valence)
+    let _ = Account::get_used(&account_bare, valence, valence::use_!("get Account in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
         .ok_or(IdentityDeleteError::AccountMissing)?;
 
-    let memberships = AccountMembership::query(valence)
+    let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_account(RecordPredicate::Equals(account.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
@@ -136,13 +136,13 @@ pub async fn erase_account(
         .filter_map(|m| m.id().map(bare_id))
         .collect();
 
-    let emails = AccountEmail::query(valence)
+    let emails = AccountEmail::query_used(valence, valence::use_!("query AccountEmail in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_account(RecordPredicate::Equals(account.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
     let email_bares: Vec<String> = emails.iter().filter_map(|e| e.id().map(bare_id)).collect();
 
-    let phones = AccountPhone::query(valence)
+    let phones = AccountPhone::query_used(valence, valence::use_!("query AccountPhone in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_account(RecordPredicate::Equals(account.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
@@ -161,7 +161,7 @@ pub async fn erase_account(
 
     for user_id in member_ids {
         let uid = bare_id(&user_id);
-        if User::get(&uid, valence)
+        if User::get_used(&uid, valence, valence::use_!("get User in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|_| IdentityDeleteError::Store)?
             .is_some()
@@ -201,7 +201,7 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
     };
 
     let user_thing = RecordId::new("user", uid);
-    let memberships = AccountMembership::query(valence)
+    let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
@@ -228,7 +228,7 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
 
     // Known user-owned tables via reverse FK (reliable ids; fail on store error).
     // Account phones are account-owned (erased with the account), not deleted here.
-    for device in AuthDevice::query(valence)
+    for device in AuthDevice::query_used(valence, valence::use_!("query AuthDevice in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
@@ -237,7 +237,7 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
             physical_delete(valence, "auth_device", &bare_id(id)).await?;
         }
     }
-    for ceremony in AuthDeviceCeremony::query(valence)
+    for ceremony in AuthDeviceCeremony::query_used(valence, valence::use_!("query AuthDeviceCeremony in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
@@ -246,7 +246,7 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
             physical_delete(valence, "auth_device_ceremony", &bare_id(id)).await?;
         }
     }
-    for linked in LinkedIdentity::query(valence)
+    for linked in LinkedIdentity::query_used(valence, valence::use_!("query LinkedIdentity in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
@@ -278,18 +278,18 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
 /// Delete a user persona with sole-member and account-primary guards.
 pub async fn delete_user(valence: &Valence, user: &RecordId) -> Result<(), IdentityDeleteError> {
     let uid = bare_id(user);
-    let user_row = User::get(&uid, valence)
+    let user_row = User::get_used(&uid, valence, valence::use_!("get User in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
         .ok_or(IdentityDeleteError::UserMissing)?;
 
-    let memberships = AccountMembership::query(valence)
+    let memberships = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
 
     for membership in &memberships {
-        let siblings = AccountMembership::query(valence)
+        let siblings = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .where_account(RecordPredicate::Equals(membership.account().clone()))
             .await
             .map_err(|_| IdentityDeleteError::Store)?;
@@ -302,7 +302,7 @@ pub async fn delete_user(valence: &Valence, user: &RecordId) -> Result<(), Ident
         let login_bare = bare_id(login);
         for membership in &memberships {
             let account_bare = bare_id(membership.account());
-            let Some(account) = Account::get(&account_bare, valence)
+            let Some(account) = Account::get_used(&account_bare, valence, valence::use_!("get Account in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
                 .await
                 .map_err(|_| IdentityDeleteError::Store)?
             else {
@@ -318,7 +318,7 @@ pub async fn delete_user(valence: &Valence, user: &RecordId) -> Result<(), Ident
     }
 
     // Founding `Account.user` Restrict — erase the account (or transfer founding) first.
-    let founded = Account::query(valence)
+    let founded = Account::query_used(valence, valence::use_!("query Account in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_user(RecordPredicate::Equals(user.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
@@ -335,13 +335,13 @@ pub async fn delete_account_email(
     user_email: &RecordId,
 ) -> Result<(), IdentityDeleteError> {
     let email_bare = bare_id(user_email);
-    let email = AccountEmail::get(&email_bare, valence)
+    let email = AccountEmail::get_used(&email_bare, valence, valence::use_!("get AccountEmail in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
         .ok_or(IdentityDeleteError::ContactMissing)?;
 
     let account_bare = bare_id(email.account());
-    if let Some(account) = Account::get(&account_bare, valence)
+    if let Some(account) = Account::get_used(&account_bare, valence, valence::use_!("get Account in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
     {
@@ -361,13 +361,13 @@ pub async fn delete_account_email(
     }
 
     // Clear login FKs that point at this email (SetNull policy; applied here for mem hosts).
-    let users = User::query(valence)
+    let users = User::query_used(valence, valence::use_!("query User in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_primary_email(RecordPredicate::Equals(user_email.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
     let now = chrono::Utc::now();
     for user in users {
-        user.get_mutable(valence)
+        user.get_mutable_used(valence, valence::use_!("get_mutable via identity_delete.rs; mutable handle for in-place update; typed store; session/service path."))
             .clear_primary_email()
             .set_updated_at(now)
             .map_err(|_| IdentityDeleteError::Store)?
@@ -402,12 +402,12 @@ pub async fn delete_membership(
     membership: &RecordId,
 ) -> Result<(), IdentityDeleteError> {
     let mid = bare_id(membership);
-    let row = AccountMembership::get(&mid, valence)
+    let row = AccountMembership::get_used(&mid, valence, valence::use_!("get AccountMembership in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
         .ok_or(IdentityDeleteError::MembershipMissing)?;
 
-    let siblings = AccountMembership::query(valence)
+    let siblings = AccountMembership::query_used(valence, valence::use_!("query AccountMembership in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_account(RecordPredicate::Equals(row.account().clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
@@ -446,13 +446,13 @@ pub async fn delete_account_phone(
     account_phone: &RecordId,
 ) -> Result<(), IdentityDeleteError> {
     let phone_bare = bare_id(account_phone);
-    let phone = AccountPhone::get(&phone_bare, valence)
+    let phone = AccountPhone::get_used(&phone_bare, valence, valence::use_!("get AccountPhone in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
         .ok_or(IdentityDeleteError::ContactMissing)?;
 
     let account_bare = bare_id(phone.account());
-    if let Some(account) = Account::get(&account_bare, valence)
+    if let Some(account) = Account::get_used(&account_bare, valence, valence::use_!("get Account in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| IdentityDeleteError::Store)?
     {
@@ -471,13 +471,13 @@ pub async fn delete_account_phone(
         return Err(IdentityDeleteError::RestrictPrimary);
     }
 
-    let users = User::query(valence)
+    let users = User::query_used(valence, valence::use_!("query User in lepton-auth/src/identity_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .where_primary_phone(RecordPredicate::Equals(account_phone.clone()))
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
     let now = chrono::Utc::now();
     for user in users {
-        user.get_mutable(valence)
+        user.get_mutable_used(valence, valence::use_!("get_mutable via identity_delete.rs; mutable handle for in-place update; typed store; session/service path."))
             .clear_primary_phone()
             .set_updated_at(now)
             .map_err(|_| IdentityDeleteError::Store)?

@@ -58,7 +58,7 @@ pub async fn issue_device_binding(
     user: &RecordId,
     device_id: &str,
 ) -> Result<DeviceBindingCookie, DeviceError> {
-    let device = AuthDevice::get(device_id, valence)
+    let device = AuthDevice::get_used(device_id, valence, valence::use_!("get AuthDevice in src/devices/binding.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::DeviceMissing)?;
@@ -78,7 +78,7 @@ pub async fn issue_device_binding(
     let hash = hash_password(&secret).map_err(|_| DeviceError::Store)?;
     let now = Utc::now();
     device
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via binding.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_binding_secret_hash(hash)
         .map_err(|_| DeviceError::Store)?
         .set_last_seen_at(now)
@@ -108,7 +108,7 @@ pub async fn verify_device_binding(
 ) -> Result<String, DeviceError> {
     use argon2::{password_hash::PasswordHash, PasswordVerifier};
 
-    let device = AuthDevice::get(&cookie.device_id, valence)
+    let device = AuthDevice::get_used(&cookie.device_id, valence, valence::use_!("get AuthDevice in src/devices/binding.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::BindingInvalid)?;
@@ -136,7 +136,7 @@ pub async fn verify_device_binding(
     }
     let now = Utc::now();
     device
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via binding.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_last_seen_at(now)
         .map_err(|_| DeviceError::Store)?
         .set_updated_at(now)

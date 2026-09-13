@@ -23,7 +23,7 @@ impl FileScanAdapter for ProfilePhotoScanAdapter {
         valence: &Valence,
         file_id: &str,
     ) -> Result<FileScanSnapshot, FileScanAdapterError> {
-        let row = ProfilePhoto::get(file_id, valence)
+        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!("get ProfilePhoto in src/files/scan_adapter.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await?
             .ok_or(FileScanAdapterError::NotFound)?;
         Ok(FileScanSnapshot {
@@ -39,10 +39,10 @@ impl FileScanAdapter for ProfilePhotoScanAdapter {
         file_id: &str,
         storage_path: String,
     ) -> Result<(), FileScanAdapterError> {
-        let row = ProfilePhoto::get(file_id, valence)
+        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!("get ProfilePhoto in src/files/scan_adapter.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await?
             .ok_or(FileScanAdapterError::NotFound)?;
-        row.get_mutable(valence)
+        row.get_mutable_used(valence, valence::use_!("get_mutable via scan_adapter.rs; mutable handle for in-place update; typed store; session/service path."))
             .set_storage_path(storage_path)
             .map_err(FileScanAdapterError::Valence)?
             .set_file_status(FileFileStatus::Available)
@@ -58,10 +58,10 @@ impl FileScanAdapter for ProfilePhotoScanAdapter {
         valence: &Valence,
         file_id: &str,
     ) -> Result<(), FileScanAdapterError> {
-        let row = ProfilePhoto::get(file_id, valence)
+        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!("get ProfilePhoto in src/files/scan_adapter.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await?
             .ok_or(FileScanAdapterError::NotFound)?;
-        row.get_mutable(valence)
+        row.get_mutable_used(valence, valence::use_!("get_mutable via scan_adapter.rs; mutable handle for in-place update; typed store; session/service path."))
             .set_file_status(FileFileStatus::Quarantined)
             .map_err(FileScanAdapterError::Valence)?
             .commit()

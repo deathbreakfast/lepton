@@ -48,14 +48,14 @@ pub async fn clear_account_primaries_if_login_matched(
     let account_bare = extract_id_from_record(account).unwrap_or_default();
     let user_bare = extract_id_from_record(user).unwrap_or_default();
 
-    let Some(account_row) = Account::get(&account_bare, valence).await? else {
+    let Some(account_row) = Account::get_used(&account_bare, valence, valence::use_!("get Account in src/side_effects/clear_account_primary_on_membership_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path.")).await? else {
         return Ok(());
     };
-    let Some(user_row) = User::get(&user_bare, valence).await? else {
+    let Some(user_row) = User::get_used(&user_bare, valence, valence::use_!("get User in src/side_effects/clear_account_primary_on_membership_delete.rs; Valence persistence for this feature path; typed store; visible to session actor / service path.")).await? else {
         return Ok(());
     };
 
-    let mut mutable = account_row.get_mutable(valence);
+    let mut mutable = account_row.get_mutable_used(valence, valence::use_!("get_mutable via clear_account_primary_on_membership_delete.rs; mutable handle for in-place update; typed store; session/service path."));
     let mut changed = false;
 
     if let (Some(acct_primary), Some(login)) =

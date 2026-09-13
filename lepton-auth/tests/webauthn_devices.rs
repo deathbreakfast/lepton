@@ -46,7 +46,7 @@ async fn seed_user(valence: &valence::Valence) -> valence::RecordId {
         now,
     )
     .expect("user");
-    let created = IdentityUser::create(user, valence).await.expect("create");
+    let created = IdentityUser::create_used(user, valence, valence::use_!("create IdentityUser in lepton-auth/tests/webauthn_devices.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create");
     created.id().cloned().expect("id")
 }
 
@@ -162,13 +162,13 @@ async fn webauthn_ceremony_expired_sad() {
     let pending = begin_webauthn_registration(&valence, &rp, &user, "SoftKey")
         .await
         .expect("begin");
-    let ceremony = AuthDeviceCeremony::get(&pending.ceremony_id, &valence)
+    let ceremony = AuthDeviceCeremony::get_used(&pending.ceremony_id, &valence, valence::use_!("get AuthDeviceCeremony in lepton-auth/tests/webauthn_devices.rs; Valence persistence for this feature path; typed store; visible to test harness."))
         .await
         .expect("get")
         .expect("row");
     let past = Utc::now() - Duration::hours(1);
     ceremony
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!("get_mutable via webauthn_devices.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_expires_at(past)
         .expect("set")
         .set_updated_at(Utc::now())

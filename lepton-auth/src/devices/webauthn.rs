@@ -190,7 +190,7 @@ pub async fn finish_webauthn_registration(
         now,
     )
     .map_err(|_| DeviceError::Store)?;
-    AuthDevice::upsert(&device_id, row, valence)
+    AuthDevice::upsert_used(&device_id, row, valence, valence::use_!("upsert AuthDevice in src/devices/webauthn.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
         .await
         .map_err(|_| DeviceError::Store)?;
     tracing::info!(
@@ -301,7 +301,7 @@ pub async fn finish_webauthn_assertion(
     let updated_json = passkey_to_json(&passkey)?;
     let device_id = device.id().map(bare_id).ok_or(DeviceError::Store)?;
     device
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via webauthn.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_passkey_json(updated_json)
         .map_err(|_| DeviceError::Store)?
         .set_sign_count(sign_count)

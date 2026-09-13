@@ -69,7 +69,7 @@ async fn apply_failure(
 ) -> Result<StepUpError, StepUpError> {
     let (next, locked_until) = record_failure(failed_attempts, now);
     let mut mutable = factor
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via verify.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_failed_attempts(next)
         .map_err(|_| StepUpError::Store)?;
     mutable = if let Some(until) = locked_until {
@@ -104,7 +104,7 @@ async fn apply_success(
         sealed = seal_totp_secret(&sealed).map_err(|_| StepUpError::TotpSecret)?;
     }
     factor
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!("get_mutable via verify.rs; mutable handle for in-place update; typed store; session/service path."))
         .set_secret_sealed(sealed)
         .map_err(|_| StepUpError::Store)?
         .set_last_used_step(step)

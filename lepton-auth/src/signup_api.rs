@@ -154,10 +154,6 @@ pub mod ssr {
                 VerificationEmailFlow::Signup,
             )
             .await;
-            leptos::logging::log!(
-                "[email-verification] signup token delivered for {}",
-                pending.email
-            );
         }
 
         let auth_user = AuthUser::from_generated(
@@ -262,7 +258,7 @@ pub mod ssr {
         valence: &Valence,
         email: &str,
     ) -> Result<(), ServerFnError> {
-        let existing = AccountEmail::query(valence)
+        let existing = AccountEmail::query_used(valence, valence::use_!("query AccountEmail in lepton-auth/src/signup_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .where_address(StringPredicate::Equals(email.to_string()))
             .first()
             .await
@@ -305,7 +301,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create user: {e}")))?;
 
-        let user_created = User::create(user, valence)
+        let user_created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/src/signup_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create user: {e}")))?;
         let user_thing = user_created
@@ -325,7 +321,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create account: {e}")))?;
 
-        let account_created = Account::create(account, valence)
+        let account_created = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/src/signup_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create account: {e}")))?;
 
@@ -336,7 +332,7 @@ pub mod ssr {
 
         let email_row = AccountEmail::new(account_thing.clone(), email.to_string(), None, now, now)
             .map_err(|e| ServerFnError::new(format!("Failed to create account email: {e}")))?;
-        let email_created = AccountEmail::create(email_row, valence)
+        let email_created = AccountEmail::create_used(email_row, valence, valence::use_!("create AccountEmail in lepton-auth/src/signup_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create account email: {e}")))?;
         let email_thing = email_created
@@ -345,7 +341,7 @@ pub mod ssr {
             .ok_or_else(|| ServerFnError::new("Account email missing id after create"))?;
 
         account_created
-            .get_mutable(valence)
+            .get_mutable_used(valence, valence::use_!("get_mutable via signup_api.rs; mutable handle for in-place update; typed store; session/service path."))
             .set_primary_email(email_thing.clone())
             .map_err(|e| ServerFnError::new(format!("Failed to set account primary email: {e}")))?
             .set_updated_at(now)
@@ -357,7 +353,7 @@ pub mod ssr {
             })?;
 
         user_created
-            .get_mutable(valence)
+            .get_mutable_used(valence, valence::use_!("get_mutable via signup_api.rs; mutable handle for in-place update; typed store; session/service path."))
             .set_primary_email(email_thing.clone())
             .map_err(|e| ServerFnError::new(format!("Failed to set primary email: {e}")))?
             .set_updated_at(now)
@@ -366,7 +362,7 @@ pub mod ssr {
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to persist primary email: {e}")))?;
 
-        let user_created = User::get(&bare_id_from_record(&user_thing), valence)
+        let user_created = User::get_used(&bare_id_from_record(&user_thing), valence, valence::use_!("get User in lepton-auth/src/signup_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to reload user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User missing after create"))?;
@@ -385,7 +381,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create user profile: {e}")))?;
 
-        let created_profile = UserProfile::create(profile, valence)
+        let created_profile = UserProfile::create_used(profile, valence, valence::use_!("create UserProfile in lepton-auth/src/signup_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create user profile: {e}")))?;
         let profile_bare = bare_id_from_record(
@@ -403,7 +399,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create account membership: {e}")))?;
 
-        let created_membership = AccountMembership::create(membership, valence)
+        let created_membership = AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in lepton-auth/src/signup_api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create account membership: {e}")))?;
         let membership_bare = bare_id_from_record(
