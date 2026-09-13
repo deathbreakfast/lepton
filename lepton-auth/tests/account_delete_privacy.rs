@@ -36,7 +36,7 @@ async fn seed_owner_account(valence: &valence::Valence) -> (RecordId, RecordId, 
         now,
     )
     .expect("user");
-    let user = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create");
+    let user = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create");
     let user_id = user.id().cloned().expect("id");
     let bare = bare_id_from_record(&user_id);
 
@@ -51,7 +51,7 @@ async fn seed_owner_account(valence: &valence::Valence) -> (RecordId, RecordId, 
         now,
     )
     .expect("account");
-    let account = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("account");
+    let account = Account::create_used(account, valence, valence::use_!(r#"**Test:** Fixture **Account** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("account");
     let account_id = account.id().cloned().expect("id");
 
     AccountMembership::create_used(
@@ -64,7 +64,7 @@ async fn seed_owner_account(valence: &valence::Valence) -> (RecordId, RecordId, 
         )
         .expect("m"),
         valence,
-        valence::use_!("create AccountMembership in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness."),
+        valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#),
     )
     .await
     .expect("membership");
@@ -79,7 +79,7 @@ async fn account_delete_owner_valence_happy() {
     let (_user, account, bare) = seed_owner_account(&sys).await;
     let owner_v = user_valence(&sys, &bare);
 
-    Account::delete_used(&bare_id_from_record(&account), &owner_v, valence::use_!("delete Account in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    Account::delete_used(&bare_id_from_record(&account), &owner_v, valence::use_!(r#"**Test:** Fixture **Account** remove for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("founding user may delete");
 }
@@ -104,7 +104,7 @@ async fn account_delete_peer_denied_sad() {
         now,
     )
     .expect("peer");
-    let peer = User::create_used(peer, &sys, valence::use_!("create User in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create");
+    let peer = User::create_used(peer, &sys, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create");
     let peer_bare = bare_id_from_record(peer.id().expect("id"));
 
     AccountMembership::create_used(
@@ -117,16 +117,16 @@ async fn account_delete_peer_denied_sad() {
         )
         .expect("m"),
         &sys,
-        valence::use_!("create AccountMembership in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness."),
+        valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#),
     )
     .await
     .expect("membership");
 
     let peer_v = user_valence(&sys, &peer_bare);
-    Account::delete_used(&bare_id_from_record(&account), &peer_v, valence::use_!("delete Account in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    Account::delete_used(&bare_id_from_record(&account), &peer_v, valence::use_!(r#"**Test:** Fixture **Account** remove for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect_err("peer cannot delete");
-    assert!(Account::get_used(&bare_id_from_record(&account), &sys, valence::use_!("get Account in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    assert!(Account::get_used(&bare_id_from_record(&account), &sys, valence::use_!(r#"**Test:** Fixture **Account** remove for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .is_some());
@@ -139,10 +139,10 @@ async fn account_delete_unauth_denied_sad() {
     let (_user, account, _) = seed_owner_account(&sys).await;
     let anon_v = sys.with_actor(Actor::Anonymous);
 
-    Account::delete_used(&bare_id_from_record(&account), &anon_v, valence::use_!("delete Account in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    Account::delete_used(&bare_id_from_record(&account), &anon_v, valence::use_!(r#"**Test:** Fixture **Account** remove for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect_err("anonymous cannot delete");
-    assert!(Account::get_used(&bare_id_from_record(&account), &sys, valence::use_!("get Account in lepton-auth/tests/account_delete_privacy.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    assert!(Account::get_used(&bare_id_from_record(&account), &sys, valence::use_!(r#"**Test:** Fixture **Account** remove for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .is_some());

@@ -23,7 +23,7 @@ impl FileScanAdapter for ProfilePhotoScanAdapter {
         valence: &Valence,
         file_id: &str,
     ) -> Result<FileScanSnapshot, FileScanAdapterError> {
-        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!("get ProfilePhoto in src/files/scan_adapter.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!(r#"In **profile files and photos**, we **load Profile Photo** so the application can decide what to do next in this workflow. The result is used by **profile files and photos** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
             .await?
             .ok_or(FileScanAdapterError::NotFound)?;
         Ok(FileScanSnapshot {
@@ -39,10 +39,10 @@ impl FileScanAdapter for ProfilePhotoScanAdapter {
         file_id: &str,
         storage_path: String,
     ) -> Result<(), FileScanAdapterError> {
-        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!("get ProfilePhoto in src/files/scan_adapter.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!(r#"In **profile files and photos**, we **load Profile Photo** so the application can decide what to do next in this workflow. The result is used by **profile files and photos** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
             .await?
             .ok_or(FileScanAdapterError::NotFound)?;
-        row.get_mutable_used(valence, valence::use_!("get_mutable via scan_adapter.rs; mutable handle for in-place update; typed store; session/service path."))
+        row.get_mutable_used(valence, valence::use_!(r#"In **files**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **files** use the updated data; this is not a public export of unrelated fields."#))
             .set_storage_path(storage_path)
             .map_err(FileScanAdapterError::Valence)?
             .set_file_status(FileFileStatus::Available)
@@ -58,10 +58,10 @@ impl FileScanAdapter for ProfilePhotoScanAdapter {
         valence: &Valence,
         file_id: &str,
     ) -> Result<(), FileScanAdapterError> {
-        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!("get ProfilePhoto in src/files/scan_adapter.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+        let row = ProfilePhoto::get_used(file_id, valence, valence::use_!(r#"In **profile files and photos**, we **load Profile Photo** so the application can decide what to do next in this workflow. The result is used by **profile files and photos** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
             .await?
             .ok_or(FileScanAdapterError::NotFound)?;
-        row.get_mutable_used(valence, valence::use_!("get_mutable via scan_adapter.rs; mutable handle for in-place update; typed store; session/service path."))
+        row.get_mutable_used(valence, valence::use_!(r#"In **files**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **files** use the updated data; this is not a public export of unrelated fields."#))
             .set_file_status(FileFileStatus::Quarantined)
             .map_err(FileScanAdapterError::Valence)?
             .commit()

@@ -163,7 +163,7 @@ pub async fn try_consume_email_verification_token(
     token_id: &str,
     valence: &Valence,
 ) -> Result<bool, ServerFnError> {
-    let token = EmailVerificationToken::get_used(token_id, valence, valence::use_!("get EmailVerificationToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let token = EmailVerificationToken::get_used(token_id, valence, valence::use_!(r#"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -176,7 +176,7 @@ pub async fn try_consume_email_verification_token(
 
     let consume_marker = new_consume_marker();
     token
-        .get_mutable_used(valence, valence::use_!("get_mutable via mod.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(valence, valence::use_!(r#"In **token helpers**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **token helpers** use the updated data; this is not a public export of unrelated fields."#))
         .set_used_at(Utc::now())
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
@@ -185,7 +185,7 @@ pub async fn try_consume_email_verification_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = EmailVerificationToken::get_used(token_id, valence, valence::use_!("get EmailVerificationToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let latest = EmailVerificationToken::get_used(token_id, valence, valence::use_!(r#"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
@@ -206,7 +206,7 @@ pub async fn try_consume_password_reset_token(
 ) -> Result<Option<lepton_host_adapter::generated::PasswordResetToken>, ServerFnError> {
     use lepton_host_adapter::generated::PasswordResetToken;
 
-    let token = PasswordResetToken::get_used(token_id, valence, valence::use_!("get PasswordResetToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let token = PasswordResetToken::get_used(token_id, valence, valence::use_!(r#"In **token_helpers**, we **load Password Reset Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -219,7 +219,7 @@ pub async fn try_consume_password_reset_token(
 
     let consume_marker = new_consume_marker();
     token
-        .get_mutable_used(valence, valence::use_!("get_mutable via mod.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(valence, valence::use_!(r#"In **token helpers**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **token helpers** use the updated data; this is not a public export of unrelated fields."#))
         .set_used_at(Utc::now())
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
@@ -228,7 +228,7 @@ pub async fn try_consume_password_reset_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = PasswordResetToken::get_used(token_id, valence, valence::use_!("get PasswordResetToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let latest = PasswordResetToken::get_used(token_id, valence, valence::use_!(r#"In **token_helpers**, we **load Password Reset Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
@@ -264,7 +264,7 @@ pub async fn issue_email_verification_token(
     )
     .map_err(|_| token_store_error("build"))?;
 
-    EmailVerificationToken::upsert_used(&token_id, token, valence, valence::use_!("upsert EmailVerificationToken in src/token_helpers/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    EmailVerificationToken::upsert_used(&token_id, token, valence, valence::use_!(r#"When **token_helpers** needs to persist work, we **save Email Verification Token** so the next step in that feature can continue with the latest values. People and services allowed for **token_helpers** use this data for that workflow—not as a general export of unrelated personal fields."#))
         .await
         .map_err(|_| token_store_error("persist"))?;
 

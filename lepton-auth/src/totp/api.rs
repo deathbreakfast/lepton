@@ -58,7 +58,7 @@ pub async fn begin_totp_enroll(
     use totp_rs::{Algorithm, Secret, TOTP};
 
     let uid = bare_id(user);
-    if User::get_used(&uid, valence, valence::use_!("get User in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    if User::get_used(&uid, valence, valence::use_!(r#"Before we begin **enrollment** on setting up your **authenticator**, we first verify the user account **exists** by **loading it with the provided id**. **No other information** is required, so we discard it immediately."#))
         .await
         .map_err(|_| TotpEnrollError::Store)?
         .is_none()
@@ -116,7 +116,7 @@ pub async fn begin_totp_enroll(
         now,
     )
     .map_err(|_| TotpEnrollError::Store)?;
-    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!("upsert TotpFactor in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!(r#"While you set up your **authenticator app**, we **save your not-yet-confirmed authenticator setup** for your account—including a **sealed copy of the authenticator secret**—so the next step can check the code from your app and finish turning **two-factor** on. After the QR or setup link at enroll time, the product does not show that secret again; it only keeps the sealed copy to complete **enrollment**."#))
         .await
         .map_err(|_| TotpEnrollError::Store)?;
 
@@ -143,7 +143,7 @@ pub async fn confirm_totp_enroll(
     factor_id: &str,
     code: &str,
 ) -> Result<(), TotpEnrollError> {
-    let factor = match TotpFactor::get_used(factor_id, valence, valence::use_!("get TotpFactor in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path.")).await {
+    let factor = match TotpFactor::get_used(factor_id, valence, valence::use_!(r#"When you **confirm authenticator enrollment** with a code from your app, we **load your not-yet-confirmed authenticator setup**—including the **sealed authenticator secret**—so we can check the code and finish turning **two-factor** on. The sealed secret is used only for this verification step; it is not shown again as plaintext in the product."#)).await {
         Ok(Some(f)) => f,
         Ok(None) => {
             #[cfg(feature = "spectra")]
@@ -184,7 +184,7 @@ pub async fn confirm_totp_enroll(
     }
     let now = Utc::now();
     factor
-        .get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(valence, valence::use_!(r#"While finishing **authenticator enrollment** or a login challenge, we **update your authenticator setup row** (for example confirmation timestamps or recovery-code state) so the next check uses the latest status. The application uses this for two-factor security—not as a display of the secret."#))
         .set_confirmed_at(now)
         .map_err(|_| TotpEnrollError::Store)?
         .set_enabled_at(now)
@@ -236,7 +236,7 @@ pub async fn disable_totp(valence: &Valence, user: &RecordId) -> Result<(), Totp
         .map_err(|_| TotpEnrollError::Store)?;
     for code in recovery {
         if code.used_at().is_none() {
-            code.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
+            code.get_mutable_used(valence, valence::use_!(r#"While finishing **authenticator enrollment** or a login challenge, we **update your authenticator setup row** (for example confirmation timestamps or recovery-code state) so the next check uses the latest status. The application uses this for two-factor security—not as a display of the secret."#))
                 .set_used_at(now)
                 .map_err(|_| TotpEnrollError::Store)?
                 .commit()
@@ -334,7 +334,7 @@ pub async fn consume_totp_recovery_code(
     };
 
     let now = Utc::now();
-    row.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
+    row.get_mutable_used(valence, valence::use_!(r#"While finishing **authenticator enrollment** or a login challenge, we **update your authenticator setup row** (for example confirmation timestamps or recovery-code state) so the next check uses the latest status. The application uses this for two-factor security—not as a display of the secret."#))
         .set_used_at(now)
         .map_err(|_| TotpEnrollError::Store)?
         .commit()
@@ -370,7 +370,7 @@ pub async fn regenerate_totp_recovery_codes(
         .map_err(|_| TotpEnrollError::Store)?;
     let now = Utc::now();
     for code in existing {
-        code.get_mutable_used(valence, valence::use_!("get_mutable via api.rs; mutable handle for in-place update; typed store; session/service path."))
+        code.get_mutable_used(valence, valence::use_!(r#"While finishing **authenticator enrollment** or a login challenge, we **update your authenticator setup row** (for example confirmation timestamps or recovery-code state) so the next check uses the latest status. The application uses this for two-factor security—not as a display of the secret."#))
             .set_used_at(now)
             .map_err(|_| TotpEnrollError::Store)?
             .commit()
@@ -385,7 +385,7 @@ pub async fn regenerate_totp_recovery_codes(
         let row = TotpRecoveryCode::new(user.clone(), hash, None, now)
             .map_err(|_| TotpEnrollError::Store)?;
         let id = random_token_part(12);
-        TotpRecoveryCode::upsert_used(&id, row, valence, valence::use_!("upsert TotpRecoveryCode in src/totp/api.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+        TotpRecoveryCode::upsert_used(&id, row, valence, valence::use_!(r#"When you finish **authenticator enrollment**, we **save one-time recovery codes** for your account in sealed form so you can regain access if you lose your authenticator app. Codes are shown once at enrollment; afterward the product only keeps sealed material to verify a recovery attempt."#))
             .await
             .map_err(|_| TotpEnrollError::Store)?;
         plain.push(code);

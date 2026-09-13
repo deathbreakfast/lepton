@@ -34,7 +34,7 @@ async fn seed_owner(valence: &valence::Valence, email: &str) -> (RecordId, Recor
         now,
     )
     .expect("user");
-    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create");
+    let created = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create");
     let user_id = created.id().cloned().expect("id");
 
     let account = Account::new(
@@ -48,7 +48,7 @@ async fn seed_owner(valence: &valence::Valence, email: &str) -> (RecordId, Recor
         now,
     )
     .expect("account");
-    let account = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("account");
+    let account = Account::create_used(account, valence, valence::use_!(r#"**Test:** Fixture **Account** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("account");
     let account_id = account.id().cloned().expect("id");
 
     let membership = AccountMembership::new(
@@ -59,20 +59,20 @@ async fn seed_owner(valence: &valence::Valence, email: &str) -> (RecordId, Recor
         now,
     )
     .expect("membership");
-    AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    AccountMembership::create_used(membership, valence, valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("membership");
 
     let primary =
         AccountEmail::new(account_id.clone(), email.into(), Some(now), now, now).expect("email");
-    let primary = AccountEmail::create_used(primary, valence, valence::use_!("create AccountEmail in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("email");
+    let primary = AccountEmail::create_used(primary, valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("email");
     let primary_id = primary.id().cloned().expect("id");
 
-    Account::get_used(&bare_id_from_record(&account_id), valence, valence::use_!("get Account in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    Account::get_used(&bare_id_from_record(&account_id), valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account")
-        .get_mutable_used(valence, valence::use_!("get_mutable via email_change_account_primary.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(valence, valence::use_!(r#"**Test:** Fixture **this data** access in `email_change_account_primary` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(primary_id.clone())
         .expect("acct primary")
         .set_updated_at(now)
@@ -81,11 +81,11 @@ async fn seed_owner(valence: &valence::Valence, email: &str) -> (RecordId, Recor
         .await
         .expect("commit");
 
-    User::get_used(&bare_id_from_record(&user_id), valence, valence::use_!("get User in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    User::get_used(&bare_id_from_record(&user_id), valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("user")
-        .get_mutable_used(valence, valence::use_!("get_mutable via email_change_account_primary.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(valence, valence::use_!(r#"**Test:** Fixture **this data** access in `email_change_account_primary` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(primary_id.clone())
         .expect("login")
         .set_updated_at(now)
@@ -127,11 +127,11 @@ async fn verify_email_sets_account_primary_happy() {
     promote_verified_email_as_primaries(&valence, &user, &account, &new_email).await;
     let new_id = new_email.id().cloned().expect("id");
 
-    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!("get Account in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");
-    let user_row = User::get_used(&bare_id_from_record(&user), &valence, valence::use_!("get User in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let user_row = User::get_used(&bare_id_from_record(&user), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("user");
@@ -166,7 +166,7 @@ async fn verify_signup_email_sets_account_primary_happy() {
         now,
     )
     .expect("user");
-    let user = User::create_used(user, &valence, valence::use_!("create User in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create");
+    let user = User::create_used(user, &valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create");
     let user_id = user.id().cloned().expect("id");
 
     let account = Account::new(
@@ -180,7 +180,7 @@ async fn verify_signup_email_sets_account_primary_happy() {
         now,
     )
     .expect("account");
-    let account = Account::create_used(account, &valence, valence::use_!("create Account in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("account");
+    let account = Account::create_used(account, &valence, valence::use_!(r#"**Test:** Fixture **Account** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("account");
     let account_id = account.id().cloned().expect("id");
 
     AccountMembership::create_used(
@@ -193,7 +193,7 @@ async fn verify_signup_email_sets_account_primary_happy() {
         )
         .expect("m"),
         &valence,
-        valence::use_!("create AccountMembership in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."),
+        valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#),
     )
     .await
     .expect("membership");
@@ -205,11 +205,11 @@ async fn verify_signup_email_sets_account_primary_happy() {
     promote_verified_email_as_primaries(&valence, &user_id, &account_id, &email).await;
     let email_id = email.id().cloned().expect("id");
 
-    let acct = Account::get_used(&bare_id_from_record(&account_id), &valence, valence::use_!("get Account in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let acct = Account::get_used(&bare_id_from_record(&account_id), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");
-    let user_row = User::get_used(&bare_id_from_record(&user_id), &valence, valence::use_!("get User in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let user_row = User::get_used(&bare_id_from_record(&user_id), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("user");
@@ -238,7 +238,7 @@ async fn change_email_unverified_not_account_primary_sad() {
         .expect_err("unverified");
     assert!(matches!(err, ContactError::Unverified));
 
-    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!("get Account in lepton-auth/tests/email_change_account_primary.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");

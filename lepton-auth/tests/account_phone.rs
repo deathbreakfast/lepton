@@ -35,7 +35,7 @@ async fn seed_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/account_phone.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create user");
     created.id().cloned().expect("user id")
 }
 
@@ -52,7 +52,7 @@ async fn seed_account(valence: &valence::Valence, name: &str, user: &RecordId) -
         now,
     )
     .expect("account");
-    let created = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/account_phone.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let created = Account::create_used(account, valence, valence::use_!(r#"**Test:** Fixture **Account** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create account");
     created.id().cloned().expect("account id")
@@ -72,7 +72,7 @@ async fn seed_membership(
         now,
     )
     .expect("membership");
-    let created = AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in lepton-auth/tests/account_phone.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let created = AccountMembership::create_used(membership, valence, valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create membership");
     created.id().cloned().expect("membership id")
@@ -91,7 +91,7 @@ async fn account_phone_erase_cascades_happy() {
     let phone_id = phone.id().cloned().expect("id");
 
     erase_account(&valence, &account).await.expect("erase");
-    assert!(AccountPhone::get_used(&bare_id_from_record(&phone_id), &valence, valence::use_!("get AccountPhone in lepton-auth/tests/account_phone.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    assert!(AccountPhone::get_used(&bare_id_from_record(&phone_id), &valence, valence::use_!(r#"**Test:** Fixture **Account Phone** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .is_none());
@@ -124,7 +124,7 @@ async fn account_primary_phone_restrict_happy() {
         .await
         .expect("delete backup");
     assert!(
-        AccountPhone::get_used(&bare_id_from_record(&backup_id), &valence, valence::use_!("get AccountPhone in lepton-auth/tests/account_phone.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+        AccountPhone::get_used(&bare_id_from_record(&backup_id), &valence, valence::use_!(r#"**Test:** Fixture **Account Phone** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
             .await
             .expect("get")
             .is_none()
@@ -203,7 +203,7 @@ async fn set_account_primary_phone_happy() {
         .await
         .expect("set");
 
-    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!("get Account in lepton-auth/tests/account_phone.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");
@@ -276,7 +276,7 @@ async fn set_primary_phone_happy() {
         .await
         .expect("set login");
 
-    let row = User::get_used(&bare_id_from_record(&user), &valence, valence::use_!("get User in lepton-auth/tests/account_phone.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let row = User::get_used(&bare_id_from_record(&user), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("user");

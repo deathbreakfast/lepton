@@ -35,7 +35,7 @@ async fn seed_person(valence: &valence::Valence, password: &str) -> (AuthUser, S
         now,
     )
     .expect("user");
-    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/change_password.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create user");
     let bare = bare_id_from_record(created.id().expect("id"));
     let auth_user = AuthUser::from_generated(
         &created,
@@ -66,7 +66,7 @@ async fn change_password_owner_valence_happy_path() {
     .await
     .expect("change password");
 
-    let reloaded = User::get_used(&bare, &sys, valence::use_!("get User in lepton-auth/tests/change_password.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("get").expect("user");
+    let reloaded = User::get_used(&bare, &sys, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("get").expect("user");
     let new_phc = reloaded.password_hash().expect("new hash");
 
     let parsed = PasswordHash::new(new_phc).expect("parse");
@@ -84,7 +84,7 @@ async fn change_password_wrong_current_sad() {
     let (auth_user, bare) = seed_person(&sys, CURRENT_PASSWORD).await;
     let owner_v = user_valence(&sys, &bare);
 
-    let before = User::get_used(&bare, &sys, valence::use_!("get User in lepton-auth/tests/change_password.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let before = User::get_used(&bare, &sys, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("user")
@@ -114,7 +114,7 @@ async fn change_password_wrong_current_sad() {
         other => panic!("expected Args, got {other:?}"),
     }
 
-    let after = User::get_used(&bare, &sys, valence::use_!("get User in lepton-auth/tests/change_password.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let after = User::get_used(&bare, &sys, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("user")

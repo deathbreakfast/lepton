@@ -190,7 +190,7 @@ pub async fn finish_webauthn_registration(
         now,
     )
     .map_err(|_| DeviceError::Store)?;
-    AuthDevice::upsert_used(&device_id, row, valence, valence::use_!("upsert AuthDevice in src/devices/webauthn.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    AuthDevice::upsert_used(&device_id, row, valence, valence::use_!(r#"When **trusted devices** needs to persist work, we **save Auth Device** so the next step in that feature can continue with the latest values. People and services allowed for **trusted devices** use this data for that workflow—not as a general export of unrelated personal fields."#))
         .await
         .map_err(|_| DeviceError::Store)?;
     tracing::info!(
@@ -301,7 +301,7 @@ pub async fn finish_webauthn_assertion(
     let updated_json = passkey_to_json(&passkey)?;
     let device_id = device.id().map(bare_id).ok_or(DeviceError::Store)?;
     device
-        .get_mutable_used(valence, valence::use_!("get_mutable via webauthn.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(valence, valence::use_!(r#"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."#))
         .set_passkey_json(updated_json)
         .map_err(|_| DeviceError::Store)?
         .set_sign_count(sign_count)

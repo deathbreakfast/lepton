@@ -103,7 +103,7 @@ async fn seed_user(router: Arc<DatabaseRouter>, default_backend_key: &str) -> an
         now,
         now,
     )?;
-    let created = IdentityUser::create_used(user, &valence, valence::use_!("create IdentityUser in lepton-host-adapter/examples/axum_session_snapshot.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await?;
+    let created = IdentityUser::create_used(user, &valence, valence::use_!(r#"When **examples** needs to persist work, we **save Identity User** so the next step in that feature can continue with the latest values. People and services allowed for **examples** use this data for that workflow—not as a general export of unrelated personal fields."#)).await?;
     let user_id = created
         .id()
         .cloned()
@@ -119,7 +119,7 @@ async fn seed_user(router: Arc<DatabaseRouter>, default_backend_key: &str) -> an
         now,
         now,
     )?;
-    let account_created = Account::create_used(account, &valence, valence::use_!("create Account in lepton-host-adapter/examples/axum_session_snapshot.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await?;
+    let account_created = Account::create_used(account, &valence, valence::use_!(r#"When **examples** needs to persist work, we **save Account** so the next step in that feature can continue with the latest values. People and services allowed for **examples** use this data for that workflow—not as a general export of unrelated personal fields."#)).await?;
     let account_id = account_created
         .id()
         .cloned()
@@ -132,7 +132,7 @@ async fn seed_user(router: Arc<DatabaseRouter>, default_backend_key: &str) -> an
         now,
         now,
     )?;
-    AccountMembership::create_used(membership, &valence, valence::use_!("create AccountMembership in lepton-host-adapter/examples/axum_session_snapshot.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await?;
+    AccountMembership::create_used(membership, &valence, valence::use_!(r#"When **examples** needs to persist work, we **save Account Membership** so the next step in that feature can continue with the latest values. People and services allowed for **examples** use this data for that workflow—not as a general export of unrelated personal fields."#)).await?;
 
     let email_row = AccountEmail::new(
         account_id.clone(),
@@ -141,14 +141,14 @@ async fn seed_user(router: Arc<DatabaseRouter>, default_backend_key: &str) -> an
         now,
         now,
     )?;
-    let email_created = AccountEmail::create_used(email_row, &valence, valence::use_!("create AccountEmail in lepton-host-adapter/examples/axum_session_snapshot.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await?;
+    let email_created = AccountEmail::create_used(email_row, &valence, valence::use_!(r#"When **examples** needs to persist work, we **save Account Email** so the next step in that feature can continue with the latest values. People and services allowed for **examples** use this data for that workflow—not as a general export of unrelated personal fields."#)).await?;
     let email_id = email_created
         .id()
         .cloned()
         .ok_or_else(|| anyhow::anyhow!("email missing id"))?;
 
     account_created
-        .get_mutable_used(&valence, valence::use_!("get_mutable via axum_session_snapshot.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(&valence, valence::use_!(r#"In **examples**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **examples** use the updated data; this is not a public export of unrelated fields."#))
         .set_primary_email(email_id.clone())
         .map_err(|e| anyhow::anyhow!("{e}"))?
         .set_updated_at(now)
@@ -157,7 +157,7 @@ async fn seed_user(router: Arc<DatabaseRouter>, default_backend_key: &str) -> an
         .await?;
 
     created
-        .get_mutable_used(&valence, valence::use_!("get_mutable via axum_session_snapshot.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(&valence, valence::use_!(r#"In **examples**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **examples** use the updated data; this is not a public export of unrelated fields."#))
         .set_primary_email(email_id)
         .map_err(|e| anyhow::anyhow!("{e}"))?
         .set_updated_at(now)
@@ -167,7 +167,7 @@ async fn seed_user(router: Arc<DatabaseRouter>, default_backend_key: &str) -> an
     let created = IdentityUser::get_used(
         &valence::extract_id_from_record(&user_id).unwrap_or_else(|_| user_id.id().to_string()),
         &valence,
-        valence::use_!("get IdentityUser in lepton-host-adapter/examples/axum_session_snapshot.rs; Valence persistence for this feature path; typed store; visible to test harness."),
+        valence::use_!(r#"In **examples**, we **load Identity User** so the application can decide what to do next in this workflow. The result is used by **examples** logic—not necessarily displayed on a page unless that feature’s UI shows it."#),
     )
     .await?
     .ok_or_else(|| anyhow::anyhow!("reload user"))?;

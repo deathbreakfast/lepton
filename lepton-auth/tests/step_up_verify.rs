@@ -31,7 +31,7 @@ async fn seed_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    let created = User::create_used(user, valence, valence::use_!("create User in lepton-auth/tests/step_up_verify.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create user");
     created.id().cloned().expect("user id")
 }
 
@@ -64,10 +64,10 @@ async fn seed_enabled_factor(
         now,
     )
     .expect("totp factor");
-    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!("upsert TotpFactor in lepton-auth/tests/step_up_verify.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!(r#"**Test:** Fixture **Totp Factor** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("upsert");
-    let loaded = TotpFactor::get_used(&factor_id, valence, valence::use_!("get TotpFactor in lepton-auth/tests/step_up_verify.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let loaded = TotpFactor::get_used(&factor_id, valence, valence::use_!(r#"**Test:** Fixture **Totp Factor** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("present");
@@ -90,7 +90,7 @@ async fn same_step_code_replay_denied_sad() {
         .await
         .expect("first verify in step");
 
-    let factor_after = TotpFactor::get_used(&factor_id, &valence, valence::use_!("get TotpFactor in lepton-auth/tests/step_up_verify.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let factor_after = TotpFactor::get_used(&factor_id, &valence, valence::use_!(r#"**Test:** Fixture **Totp Factor** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("present");
@@ -170,7 +170,7 @@ async fn legacy_plaintext_verify_reseals_v1_happy() {
         .await
         .expect("legacy verify");
 
-    let migrated = TotpFactor::get_used(&factor_id, &valence, valence::use_!("get TotpFactor in lepton-auth/tests/step_up_verify.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let migrated = TotpFactor::get_used(&factor_id, &valence, valence::use_!(r#"**Test:** Fixture **Totp Factor** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("present");

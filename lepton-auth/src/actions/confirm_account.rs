@@ -208,7 +208,7 @@ async fn load_masked_primary_phone(
     use valence::Model;
 
     let uid = valence::extract_id_from_record(user).unwrap_or_else(|_| user.id().to_string());
-    let Some(row) = User::get_used(&uid, valence, valence::use_!("get User in src/actions/confirm_account.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let Some(row) = User::get_used(&uid, valence, valence::use_!(r#"In **actions**, we **load User** so the application can decide what to do next in this workflow. The result is used by **actions** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| ServerFnError::new("reason_class=store: user load failed"))?
     else {
@@ -219,7 +219,7 @@ async fn load_masked_primary_phone(
     };
     let phone_id =
         valence::extract_id_from_record(primary).unwrap_or_else(|_| primary.id().to_string());
-    let Some(phone) = AccountPhone::get_used(&phone_id, valence, valence::use_!("get AccountPhone in src/actions/confirm_account.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let Some(phone) = AccountPhone::get_used(&phone_id, valence, valence::use_!(r#"In **actions**, we **load Account Phone** so the application can decide what to do next in this workflow. The result is used by **actions** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| ServerFnError::new("reason_class=store: phone load failed"))?
     else {

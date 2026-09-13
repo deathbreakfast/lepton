@@ -41,7 +41,7 @@ async fn seed_user(
         now,
     )
     .expect("user");
-    let created = IdentityUser::create_used(user, valence, valence::use_!("create IdentityUser in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness.")).await.expect("create");
+    let created = IdentityUser::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **Identity User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create");
     let user_id = created.id().cloned().expect("id");
 
     let account = Account::new(
@@ -55,7 +55,7 @@ async fn seed_user(
         now,
     )
     .expect("account");
-    let account_created = Account::create_used(account, valence, valence::use_!("create Account in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let account_created = Account::create_used(account, valence, valence::use_!(r#"**Test:** Fixture **Account** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create account");
     let account_id = account_created.id().cloned().expect("account id");
@@ -68,7 +68,7 @@ async fn seed_user(
         now,
     )
     .expect("membership");
-    AccountMembership::create_used(membership, valence, valence::use_!("create AccountMembership in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    AccountMembership::create_used(membership, valence, valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create membership");
 
@@ -80,7 +80,7 @@ async fn seed_user(
         now,
     )
     .expect("email");
-    let email_created = AccountEmail::create_used(email, valence, valence::use_!("create AccountEmail in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let email_created = AccountEmail::create_used(email, valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("email create");
     let email_id = email_created.id().cloned().expect("email id");
@@ -120,7 +120,7 @@ async fn seed_user_with_phone(
     let now = Utc::now();
     let phone =
         AccountPhone::new(account_id, "+15551234567".to_string(), None, now, now).expect("phone");
-    let created = AccountPhone::create_used(phone, valence, valence::use_!("create AccountPhone in lepton-auth/tests/verification_tokens.rs; Valence persistence for this feature path; typed store; visible to test harness."))
+    let created = AccountPhone::create_used(phone, valence, valence::use_!(r#"**Test:** Fixture **Account Phone** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("phone create");
     let phone_id = created.id().cloned().expect("phone id");

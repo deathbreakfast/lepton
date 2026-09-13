@@ -278,7 +278,7 @@ async fn load_or_create_session_profile(
     user: &User,
 ) -> Result<UserProfile, HttpErr> {
     let user_thing = user.id.clone();
-    let profile = UserProfile::query_used(session_v, valence::use_!("query UserProfile in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let profile = UserProfile::query_used(session_v, valence::use_!(r#"In **profile files and photos**, we **list User Profile** so the product can show or process the matching set for this workflow. Callers allowed for **profile files and photos** use the list; it is not a public dump of every field to anonymous visitors."#))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .first()
         .await
@@ -302,7 +302,7 @@ async fn load_or_create_session_profile(
                 "Failed to build profile".to_string(),
             )
         })?;
-    UserProfile::create_used(new_profile, session_v, valence::use_!("create UserProfile in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    UserProfile::create_used(new_profile, session_v, valence::use_!(r#"When **profile files and photos** needs to persist work, we **save User Profile** so the next step in that feature can continue with the latest values. People and services allowed for **profile files and photos** use this data for that workflow—not as a general export of unrelated personal fields."#))
         .await
         .map_err(|_| {
             (
@@ -402,7 +402,7 @@ async fn create_photo_and_set_active(
     }
 
     let session_v = user_valence(valence_router, backend_key, user)?;
-    let profile = UserProfile::query_used(&session_v, valence::use_!("query UserProfile in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path."))
+    let profile = UserProfile::query_used(&session_v, valence::use_!(r#"In **profile files and photos**, we **list User Profile** so the product can show or process the matching set for this workflow. Callers allowed for **profile files and photos** use the list; it is not a public dump of every field to anonymous visitors."#))
         .where_user(RecordPredicate::Equals(user.id.clone()))
         .first()
         .await
@@ -420,7 +420,7 @@ async fn create_photo_and_set_active(
         })?;
 
     profile
-        .get_mutable_used(&session_v, valence::use_!("get_mutable via mod.rs; mutable handle for in-place update; typed store; session/service path."))
+        .get_mutable_used(&session_v, valence::use_!(r#"In **files**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **files** use the updated data; this is not a public export of unrelated fields."#))
         .set_active_photo(photo_id.clone())
         .map_err(|_| {
             (
@@ -524,7 +524,7 @@ pub async fn serve_handler(
         let session_v = user_valence(Arc::clone(&valence_router), backend_key, &user)?;
         // Privacy denial is Err(Error::Privacy); treat the same as missing —
         // never elevate to System to re-fetch (uf-no-actor-elevation).
-        let Ok(Some(photo)) = ProfilePhoto::get_used(&id, &session_v, valence::use_!("get ProfilePhoto in src/files/mod.rs; Valence persistence for this feature path; typed store; visible to session actor / service path.")).await else {
+        let Ok(Some(photo)) = ProfilePhoto::get_used(&id, &session_v, valence::use_!(r#"In **profile files and photos**, we **load Profile Photo** so the application can decide what to do next in this workflow. The result is used by **profile files and photos** logic—not necessarily displayed on a page unless that feature’s UI shows it."#)).await else {
             return Err((StatusCode::NOT_FOUND, "File not found".to_string()));
         };
 
