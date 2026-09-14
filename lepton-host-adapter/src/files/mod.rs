@@ -1,8 +1,8 @@
 //! Profile photo upload / serve over Axum (`/api/files/*`).
 //!
 //! Authenticates the caller and checks ownership before creating System Valence
-//! `ProfilePhoto` records. Byte I/O runs through Meson dual stores (quarantine
-//! when virus scan is on; available after a clean scan).
+//! `ProfilePhoto` records. Byte I/O runs through [`crate::files::FileByteBackend`]
+//! (default [`crate::files::LocalDiskBlobStore`]).
 //!
 //! # Concern → API
 //!
@@ -11,7 +11,7 @@
 //! | Mount routes | [`crate::files::files_routes`] |
 //! | Upload | [`crate::files::upload_handler`] |
 //! | Serve | [`crate::files::serve_handler`] |
-//! | Bytes | [`crate::files::FileByteBackend`], [`crate::files::BlobStoreLayout`], [`crate::files::blob_stores_from_env`] |
+//! | Bytes | [`crate::files::FileByteBackend`], [`crate::files::LocalDiskBlobStore`] |
 //!
 //! # Examples
 //!
@@ -19,30 +19,19 @@
 //!
 //! ```rust,ignore
 //! use std::sync::Arc;
-//! use lepton_host_adapter::files::{
-//!     blob_stores_from_env, files_routes, FilesConfig, LocalDiskBlobStore,
-//! };
-//! use meson::BlobStoreLayout;
+//! use lepton_host_adapter::files::{files_routes, FilesConfig, LocalDiskBlobStore};
 //!
-//! let layout = blob_stores_from_env().unwrap_or_else(|_| BlobStoreLayout {
-//!     available: Arc::new(LocalDiskBlobStore::default_uploads()),
-//!     quarantine: Arc::new(LocalDiskBlobStore::new("uploads-quarantine")),
-//! });
+//! let store = Arc::new(LocalDiskBlobStore::default_uploads());
 //! let app = Router::new()
-//!     .merge(files_routes(layout, FilesConfig::new(default_backend_key)))
+//!     .merge(files_routes(store, FilesConfig::new(default_backend_key)))
 //!     .layer(session_snapshot_middleware)
 //!     .layer(auth_layer)
 //!     .layer(Extension(valence_router));
 //! ```
 
 mod backend;
-mod scan_adapter;
 
-pub use backend::{
-    blob_store_from_env, blob_stores_from_env, BlobStoreConfigError, BlobStoreLayout,
-    FileByteBackend, FileStoreError, LocalDiskBlobStore,
-};
-pub use scan_adapter::ProfilePhotoScanAdapter;
+pub use backend::{FileByteBackend, FileStoreError, LocalDiskBlobStore};
 
 use crate::auth::{Backend, User};
 use axum::body::Body;
@@ -54,34 +43,13 @@ use axum::{Json, Router};
 use axum_login::AuthSession;
 use chrono::Utc;
 use lepton_identity::generated::{FileFileStatus, ProfilePhoto, UserProfile};
-use meson::events::publish_file_updated;
-use meson::{
-    create_with_put, enqueue_virus_scan, get_installed_object, install_blob_store,
-    install_quarantine_store, install_virus_scanner, register_file_scan_adapter,
-    AlwaysCleanScanner, AlwaysInfectedScanner, FileCreateMeta, FileFileStatus as MesonFileStatus,
-    FileUploadError,
-};
-use std::sync::{Arc, Once};
+use std::sync::Arc;
 use tracing::{info_span, Instrument};
+use uuid::Uuid;
 use valence::{Actor, DatabaseRouter, Model, RecordId, RecordPredicate, Valence};
 
 const MAX_FILE_SIZE: usize = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpeg", "jpg", "gif", "webp"];
-
-static PROFILE_PHOTO_SCAN_ADAPTER: Once = Once::new();
-
-fn ensure_profile_photo_scan_adapter() {
-    PROFILE_PHOTO_SCAN_ADAPTER.call_once(|| {
-        register_file_scan_adapter(
-            "profile_photo",
-            Arc::new(ProfilePhotoScanAdapter::default()),
-        );
-    });
-}
-
-fn lepton_status_from_meson(status: &MesonFileStatus) -> FileFileStatus {
-    FileFileStatus::from_str(status.as_str()).unwrap_or(FileFileStatus::PendingVirusScan)
-}
 
 /// Host-supplied Valence routing key for [`files_routes`].
 #[derive(Clone, Debug)]
@@ -203,29 +171,14 @@ fn user_valence(
 /// Merge inside the auth / session layer stack. Hosts must also layer
 /// `Extension(Arc<DatabaseRouter>)` (already common) and pass the same
 /// `default_backend_key` used for Higgs.
-///
-/// Installs both stores from `layout`, registers the profile-photo scan adapter,
-/// and installs [`AlwaysCleanScanner`] as the default virus scanner.
-///
-/// When `MESON_E2E_INFECTED=1`, installs [`AlwaysInfectedScanner`] instead so
-/// embedded Playwright can assert the Quarantined sad path.
-pub fn files_routes<S>(layout: BlobStoreLayout, config: FilesConfig) -> Router<S>
+pub fn files_routes<S>(backend: Arc<dyn FileByteBackend>, config: FilesConfig) -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
 {
-    ensure_profile_photo_scan_adapter();
-    let _ = install_blob_store(Arc::clone(&layout.available));
-    let _ = install_quarantine_store(Arc::clone(&layout.quarantine));
-    if std::env::var("MESON_E2E_INFECTED").ok().as_deref() == Some("1") {
-        install_virus_scanner(Arc::new(AlwaysInfectedScanner));
-    } else {
-        install_virus_scanner(Arc::new(AlwaysCleanScanner));
-    }
-    let available = Arc::clone(&layout.available);
     Router::<S>::new()
         .route("/api/files/upload", post(upload_handler))
         .route("/api/files/{id}", get(serve_handler))
-        .layer(Extension(available))
+        .layer(Extension(backend))
         .layer(Extension(config))
 }
 
@@ -278,7 +231,7 @@ async fn load_or_create_session_profile(
     user: &User,
 ) -> Result<UserProfile, HttpErr> {
     let user_thing = user.id.clone();
-    let profile = UserProfile::query_used(session_v, valence::use_!(r#"In **profile files and photos**, we **list User Profile** so the product can show or process the matching set for this workflow. Callers allowed for **profile files and photos** use the list; it is not a public dump of every field to anonymous visitors."#))
+    let profile = UserProfile::query(session_v)
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .first()
         .await
@@ -302,7 +255,7 @@ async fn load_or_create_session_profile(
                 "Failed to build profile".to_string(),
             )
         })?;
-    UserProfile::create_used(new_profile, session_v, valence::use_!(r#"When **profile files and photos** needs to persist work, we **save User Profile** so the next step in that feature can continue with the latest values. People and services allowed for **profile files and photos** use this data for that workflow—not as a general export of unrelated personal fields."#))
+    UserProfile::create(new_profile, session_v)
         .await
         .map_err(|_| {
             (
@@ -312,21 +265,21 @@ async fn load_or_create_session_profile(
         })
 }
 
-fn map_upload_err(err: FileUploadError) -> HttpErr {
-    match err {
-        FileUploadError::InvalidExtension => (
-            StatusCode::UNSUPPORTED_MEDIA_TYPE,
-            "Invalid file extension".to_string(),
-        ),
-        FileUploadError::BlobStoreNotInstalled => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Storage not configured".to_string(),
-        ),
-        FileUploadError::Store(_) | FileUploadError::Valence(_) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Storage error".to_string(),
-        ),
-    }
+fn i64_size_bytes(len: usize) -> Result<i64, HttpErr> {
+    i64::try_from(len).map_err(|_| {
+        (
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "File size does not fit storage metadata".to_string(),
+        )
+    })
+}
+
+struct StoredUpload {
+    original_name: String,
+    extension: String,
+    mime: &'static str,
+    size_bytes: i64,
+    storage_key: String,
 }
 
 async fn create_photo_and_set_active(
@@ -334,11 +287,8 @@ async fn create_photo_and_set_active(
     backend_key: &str,
     user: &User,
     profile: &UserProfile,
-    original_name: String,
-    extension: String,
-    mime: &'static str,
-    file_bytes: &[u8],
-) -> Result<(RecordId, i64), HttpErr> {
+    stored: &StoredUpload,
+) -> Result<RecordId, HttpErr> {
     let profile_ref = profile.id().cloned().ok_or_else(|| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -347,38 +297,33 @@ async fn create_photo_and_set_active(
     })?;
 
     let system_v = system_valence(Arc::clone(&valence_router), backend_key, "file_upload")?;
-    let meta = FileCreateMeta {
-        file_name: original_name,
-        file_extension: extension,
-        mime_type: mime.to_string(),
-        uploaded_by: user.id.clone(),
-    };
-
-    let created = create_with_put(
-        &system_v,
-        meta,
-        file_bytes,
-        |meta, storage_path, size_bytes, file_status, uploaded_at| async move {
-            ProfilePhoto::new(
-                profile_ref,
-                None,
-                None,
-                meta.file_name,
-                meta.file_extension,
-                meta.mime_type,
-                size_bytes,
-                storage_path,
-                lepton_status_from_meson(&file_status),
-                meta.uploaded_by,
-                uploaded_at,
-            )
-            .map_err(FileUploadError::Valence)
-        },
+    let photo = ProfilePhoto::new(
+        profile_ref,
+        None,
+        None,
+        stored.original_name.clone(),
+        stored.extension.clone(),
+        stored.mime.to_string(),
+        stored.size_bytes,
+        stored.storage_key.clone(),
+        FileFileStatus::Available,
+        user.id.clone(),
+        Utc::now(),
     )
-    .await
-    .map_err(map_upload_err)?;
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to build photo".to_string(),
+        )
+    })?;
 
-    let size_bytes = *created.size_bytes();
+    let created = ProfilePhoto::create(photo, &system_v).await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to create photo".to_string(),
+        )
+    })?;
+
     let photo_id = created.id().cloned().ok_or_else(|| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -386,23 +331,8 @@ async fn create_photo_and_set_active(
         )
     })?;
 
-    if matches!(created.file_status(), FileFileStatus::PendingVirusScan) {
-        let bare = bare_id(&photo_id);
-        // Photon auth = "user" keys match AuthUser::id (`user:<uuid>`), not bare ids.
-        let user_key = user.id.to_string();
-        publish_file_updated(&user_key, &bare, MesonFileStatus::PendingVirusScan.as_str()).await;
-        if let Err(e) = enqueue_virus_scan("profile_photo", &bare).await {
-            tracing::warn!(
-                target: "lepton.files.upload",
-                outcome = "enqueue_virus_scan_failed",
-                error = %e,
-                "profile photo uploaded but virus scan enqueue failed"
-            );
-        }
-    }
-
     let session_v = user_valence(valence_router, backend_key, user)?;
-    let profile = UserProfile::query_used(&session_v, valence::use_!(r#"In **profile files and photos**, we **list User Profile** so the product can show or process the matching set for this workflow. Callers allowed for **profile files and photos** use the list; it is not a public dump of every field to anonymous visitors."#))
+    let profile = UserProfile::query(&session_v)
         .where_user(RecordPredicate::Equals(user.id.clone()))
         .first()
         .await
@@ -420,7 +350,7 @@ async fn create_photo_and_set_active(
         })?;
 
     profile
-        .get_mutable_used(&session_v, valence::use_!(r#"In **files**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **files** use the updated data; this is not a public export of unrelated fields."#))
+        .get_mutable(&session_v)
         .set_active_photo(photo_id.clone())
         .map_err(|_| {
             (
@@ -437,14 +367,14 @@ async fn create_photo_and_set_active(
             )
         })?;
 
-    Ok((photo_id, size_bytes))
+    Ok(photo_id)
 }
 
 /// POST `/api/files/upload` — multipart `file` + optional `profile_id`.
 pub async fn upload_handler(
     auth: AuthSession<Backend>,
     Extension(valence_router): Extension<Arc<DatabaseRouter>>,
-    Extension(_backend): Extension<Arc<dyn FileByteBackend>>,
+    Extension(backend): Extension<Arc<dyn FileByteBackend>>,
     Extension(files_config): Extension<FilesConfig>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -457,6 +387,7 @@ pub async fn upload_handler(
         let (file_bytes, original_name, form_profile_id) =
             read_upload_multipart(&mut multipart).await?;
         let (extension, mime) = validate_upload_meta(&original_name, file_bytes.len())?;
+        let size_bytes = i64_size_bytes(file_bytes.len())?;
         let backend_key = files_config.default_backend_key.as_str();
 
         let session_v = user_valence(Arc::clone(&valence_router), backend_key, &user)?;
@@ -470,17 +401,24 @@ pub async fn upload_handler(
         })?;
         assert_profile_id_owned(form_profile_id.as_deref(), &owned_bare)?;
 
-        let (photo_id, size_bytes) = create_photo_and_set_active(
-            valence_router,
-            backend_key,
-            &user,
-            &profile,
-            original_name.clone(),
-            extension.clone(),
+        let storage_key = format!("{}.{}", Uuid::new_v4(), extension);
+        backend.put(&storage_key, &file_bytes).await.map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Storage error".to_string(),
+            )
+        })?;
+
+        let stored = StoredUpload {
+            original_name: original_name.clone(),
+            extension: extension.clone(),
             mime,
-            &file_bytes,
-        )
-        .await?;
+            size_bytes,
+            storage_key,
+        };
+        let photo_id =
+            create_photo_and_set_active(valence_router, backend_key, &user, &profile, &stored)
+                .await?;
 
         tracing::info!(
             outcome = "ok",
@@ -505,12 +443,10 @@ pub async fn upload_handler(
 }
 
 /// GET `/api/files/{id}` — cookie-authenticated same-origin serve.
-///
-/// Refuses non-`Available` rows (403). Never reads the quarantine store.
 pub async fn serve_handler(
     auth: AuthSession<Backend>,
     Extension(valence_router): Extension<Arc<DatabaseRouter>>,
-    Extension(_backend): Extension<Arc<dyn FileByteBackend>>,
+    Extension(backend): Extension<Arc<dyn FileByteBackend>>,
     Extension(files_config): Extension<FilesConfig>,
     Path(id): Path<String>,
 ) -> Result<Response, (StatusCode, String)> {
@@ -524,25 +460,18 @@ pub async fn serve_handler(
         let session_v = user_valence(Arc::clone(&valence_router), backend_key, &user)?;
         // Privacy denial is Err(Error::Privacy); treat the same as missing —
         // never elevate to System to re-fetch (uf-no-actor-elevation).
-        let Ok(Some(photo)) = ProfilePhoto::get_used(&id, &session_v, valence::use_!(r#"In **profile files and photos**, we **load Profile Photo** so the application can decide what to do next in this workflow. The result is used by **profile files and photos** logic—not necessarily displayed on a page unless that feature’s UI shows it."#)).await else {
+        let Ok(Some(photo)) = ProfilePhoto::get(&id, &session_v).await else {
             return Err((StatusCode::NOT_FOUND, "File not found".to_string()));
         };
 
-        if !matches!(photo.file_status(), FileFileStatus::Available) {
-            return Err((StatusCode::FORBIDDEN, "File is not available".to_string()));
-        }
-
-        let bytes = get_installed_object(photo.storage_path())
-            .await
-            .map_err(|e| match e {
-                FileStoreError::NotFound | FileStoreError::NotAvailable { .. } => {
-                    (StatusCode::NOT_FOUND, "File not found".to_string())
-                }
-                _ => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to read file".to_string(),
-                ),
-            })?;
+        let key = photo.storage_path().clone();
+        let bytes = backend.get(&key).await.map_err(|e| match e {
+            FileStoreError::NotFound => (StatusCode::NOT_FOUND, "File not found".to_string()),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to read file".to_string(),
+            ),
+        })?;
 
         let mime = photo.mime_type().clone();
         tracing::info!(outcome = "ok", "profile photo served");
