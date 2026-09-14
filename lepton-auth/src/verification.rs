@@ -114,7 +114,7 @@ pub async fn lookup_status_with_valence(
 
     let store_err = || ServerFnError::new("reason_class=status: lookup failed");
 
-    if let Some(token) = EmailVerificationToken::get(challenge_id, valence)
+    if let Some(token) = EmailVerificationToken::get_used(challenge_id, valence, valence::use_!(r#"In **lepton auth**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| store_err())?
     {
@@ -127,7 +127,7 @@ pub async fn lookup_status_with_valence(
         return Ok(snap);
     }
 
-    if let Some(token) = PhoneVerificationToken::get(challenge_id, valence)
+    if let Some(token) = PhoneVerificationToken::get_used(challenge_id, valence, valence::use_!(r#"In **lepton auth**, we **load Phone Verification Token** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| store_err())?
     {
@@ -140,7 +140,7 @@ pub async fn lookup_status_with_valence(
         return Ok(snap);
     }
 
-    if let Some(factor) = TotpFactor::get(challenge_id, valence)
+    if let Some(factor) = TotpFactor::get_used(challenge_id, valence, valence::use_!(r#"In **lepton auth**, we **load Totp Factor** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| store_err())?
     {

@@ -81,7 +81,7 @@ pub(super) async fn put_state(
         now,
     )
     .map_err(|_| OAuthError::Store)?;
-    OauthPendingState::upsert(&state, row, valence)
+    OauthPendingState::upsert_used(&state, row, valence, valence::use_!(r#"When **OAuth account linking** needs to persist work, we **save Oauth Pending State** so the next step in that feature can continue with the latest values. People and services allowed for **OAuth account linking** use this data for that workflow—not as a general export of unrelated personal fields."#))
         .await
         .map_err(|_| OAuthError::Store)?;
     Ok(state)
@@ -96,7 +96,7 @@ pub(super) async fn take_state(
     if state.is_empty() {
         return Ok(None);
     }
-    let Some(row) = OauthPendingState::get(state, valence)
+    let Some(row) = OauthPendingState::get_used(state, valence, valence::use_!(r#"In **OAuth account linking**, we **load Oauth Pending State** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| OAuthError::Store)?
     else {
@@ -117,7 +117,7 @@ pub async fn peek_provider(valence: &Valence, state: &str) -> Result<OAuthProvid
     if state.is_empty() {
         return Err(OAuthError::State);
     }
-    let Some(row) = OauthPendingState::get(state, valence)
+    let Some(row) = OauthPendingState::get_used(state, valence, valence::use_!(r#"In **OAuth account linking**, we **load Oauth Pending State** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| OAuthError::Store)?
     else {

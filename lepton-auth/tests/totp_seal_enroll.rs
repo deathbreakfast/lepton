@@ -31,7 +31,7 @@ async fn seed_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    let created = User::create(user, valence).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create user");
     created.id().cloned().expect("user id")
 }
 
@@ -45,7 +45,7 @@ async fn enroll_stores_aead_sealed_secret_happy() {
         .await
         .expect("begin enroll");
 
-    let factor = TotpFactor::get(&pending.factor_id, &valence)
+    let factor = TotpFactor::get_used(&pending.factor_id, &valence, valence::use_!(r#"**Test:** While you set up your **authenticator app**, we **save your not-yet-confirmed authenticator setup** for your account—including a **sealed copy of the authenticator secret**—so the next step can check the code from your app and finish turning **two-factor** on. After the QR or setup link at enroll time, the product does not show that secret again; it only keeps the sealed copy to complete **enrollment**."#))
         .await
         .expect("get")
         .expect("factor");
@@ -90,7 +90,7 @@ async fn enroll_confirm_roundtrip_with_sealed_row_happy() {
         .await
         .expect("confirm");
 
-    let factor = TotpFactor::get(&pending.factor_id, &valence)
+    let factor = TotpFactor::get_used(&pending.factor_id, &valence, valence::use_!(r#"**Test:** While you set up your **authenticator app**, we **save your not-yet-confirmed authenticator setup** for your account—including a **sealed copy of the authenticator secret**—so the next step can check the code from your app and finish turning **two-factor** on. After the QR or setup link at enroll time, the product does not show that secret again; it only keeps the sealed copy to complete **enrollment**."#))
         .await
         .expect("get")
         .expect("factor");

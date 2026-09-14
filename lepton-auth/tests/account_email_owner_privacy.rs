@@ -33,7 +33,7 @@ async fn seed_owner_with_email(valence: &valence::Valence) -> (String, String, S
         now,
     )
     .expect("user");
-    let user = User::create(user, valence).await.expect("create user");
+    let user = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create user");
     let user_id = user.id().cloned().expect("user id");
     let owner_bare = bare_id_from_record(&user_id);
 
@@ -48,10 +48,10 @@ async fn seed_owner_with_email(valence: &valence::Valence) -> (String, String, S
         now,
     )
     .expect("account");
-    let account = Account::create(account, valence).await.expect("account");
+    let account = Account::create_used(account, valence, valence::use_!(r#"**Test:** Fixture **Account** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("account");
     let account_id = account.id().cloned().expect("account id");
 
-    AccountMembership::create(
+    AccountMembership::create_used(
         AccountMembership::new(
             account_id.clone(),
             user_id.clone(),
@@ -61,13 +61,14 @@ async fn seed_owner_with_email(valence: &valence::Valence) -> (String, String, S
         )
         .expect("m"),
         valence,
+        valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#),
     )
     .await
     .expect("membership");
 
     let email = AccountEmail::new(account_id, "owner@example.test".into(), Some(now), now, now)
         .expect("email");
-    let email = AccountEmail::create(email, valence).await.expect("email");
+    let email = AccountEmail::create_used(email, valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("email");
     let email_bare = bare_id_from_record(email.id().expect("email id"));
 
     (owner_bare, email_bare, "owner@example.test".into())
@@ -78,7 +79,7 @@ async fn account_email_system_can_read_address_happy() {
     let sys = system_valence("email_system_read").await;
     let (_owner_bare, email_bare, address) = seed_owner_with_email(&sys).await;
 
-    let row = AccountEmail::get(&email_bare, &sys)
+    let row = AccountEmail::get_used(&email_bare, &sys, valence::use_!(r#"**Test:** Fixture **Account Email** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("System always_allow may read email");
@@ -91,7 +92,7 @@ async fn account_email_owner_can_read_address_happy() {
     let (owner_bare, email_bare, address) = seed_owner_with_email(&sys).await;
     let owner_v = user_valence(&sys, &owner_bare);
 
-    let row = AccountEmail::get(&email_bare, &owner_v)
+    let row = AccountEmail::get_used(&email_bare, &owner_v, valence::use_!(r#"**Test:** Fixture **Account Email** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("owner must read own email after entity defer");
@@ -117,11 +118,11 @@ async fn account_email_peer_cannot_read_address_sad() {
         now,
     )
     .expect("peer");
-    let peer = User::create(peer, &sys).await.expect("create peer");
+    let peer = User::create_used(peer, &sys, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create peer");
     let peer_bare = bare_id_from_record(peer.id().expect("id"));
     let peer_v = user_valence(&sys, &peer_bare);
 
-    let denied = AccountEmail::get(&email_bare, &peer_v).await;
+    let denied = AccountEmail::get_used(&email_bare, &peer_v, valence::use_!(r#"**Test:** Fixture **Account Email** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await;
     match denied {
         Ok(None) | Err(_) => {}
         Ok(Some(row)) => panic!(

@@ -33,7 +33,7 @@ async fn seed_user_with_password(valence: &valence::Valence, password: &str) -> 
         now,
     )
     .expect("user");
-    let created = User::create(user, valence).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#)).await.expect("create user");
     let id = created.id().cloned().expect("user id");
     let bare = bare_id_from_record(&id);
     SeededUser { bare, phc }
@@ -46,7 +46,7 @@ async fn password_hash_owner_read_happy_path() {
     let bob = seed_user_with_password(&sys, "BobPassword1!!").await;
 
     let alice_v = user_valence(&sys, &alice.bare);
-    let loaded = User::get(&alice.bare, &alice_v)
+    let loaded = User::get_used(&alice.bare, &alice_v, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("alice row");
@@ -54,7 +54,7 @@ async fn password_hash_owner_read_happy_path() {
 
     // Harness sanity: peer can still read their own PHC.
     let bob_v = user_valence(&sys, &bob.bare);
-    let bob_self = User::get(&bob.bare, &bob_v)
+    let bob_self = User::get_used(&bob.bare, &bob_v, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get bob")
         .expect("bob row");
@@ -68,7 +68,7 @@ async fn password_hash_cross_user_redacted_sad() {
     let bob = seed_user_with_password(&sys, "BobPassword1!!").await;
 
     let bob_v = user_valence(&sys, &bob.bare);
-    let alice_as_bob = User::get(&alice.bare, &bob_v)
+    let alice_as_bob = User::get_used(&alice.bare, &bob_v, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get alice as bob")
         .expect("entity still readable");
@@ -78,7 +78,7 @@ async fn password_hash_cross_user_redacted_sad() {
     );
 
     let alice_v = user_valence(&sys, &alice.bare);
-    let bob_as_alice = User::get(&bob.bare, &alice_v)
+    let bob_as_alice = User::get_used(&bob.bare, &alice_v, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get bob as alice")
         .expect("entity still readable");
@@ -88,7 +88,7 @@ async fn password_hash_cross_user_redacted_sad() {
     );
 
     // Peer still sees own PHC (actor wiring works).
-    let bob_self = User::get(&bob.bare, &bob_v)
+    let bob_self = User::get_used(&bob.bare, &bob_v, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get bob self")
         .expect("bob row");
@@ -101,13 +101,13 @@ async fn password_hash_system_read_happy_path() {
     let alice = seed_user_with_password(&sys, "AlicePassword1!").await;
     let bob = seed_user_with_password(&sys, "BobPassword1!!").await;
 
-    let alice_row = User::get(&alice.bare, &sys)
+    let alice_row = User::get_used(&alice.bare, &sys, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get alice")
         .expect("alice");
     assert_eq!(alice_row.password_hash(), Some(&alice.phc));
 
-    let bob_row = User::get(&bob.bare, &sys)
+    let bob_row = User::get_used(&bob.bare, &sys, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get bob")
         .expect("bob");

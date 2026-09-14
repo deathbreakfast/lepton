@@ -154,10 +154,6 @@ pub mod ssr {
                 VerificationEmailFlow::Signup,
             )
             .await;
-            leptos::logging::log!(
-                "[email-verification] signup token delivered for {}",
-                pending.email
-            );
         }
 
         let auth_user = AuthUser::from_generated(
@@ -262,7 +258,7 @@ pub mod ssr {
         valence: &Valence,
         email: &str,
     ) -> Result<(), ServerFnError> {
-        let existing = AccountEmail::query(valence)
+        let existing = AccountEmail::query_used(valence, valence::use_!(r#"In **account signup**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **account signup** use the list; it is not a public dump of every field to anonymous visitors."#))
             .where_address(StringPredicate::Equals(email.to_string()))
             .first()
             .await
@@ -305,7 +301,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create user: {e}")))?;
 
-        let user_created = User::create(user, valence)
+        let user_created = User::create_used(user, valence, valence::use_!(r#"When **account signup** needs to persist work, we **save User** so the next step in that feature can continue with the latest values. People and services allowed for **account signup** use this data for that workflow—not as a general export of unrelated personal fields."#))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create user: {e}")))?;
         let user_thing = user_created
@@ -325,7 +321,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create account: {e}")))?;
 
-        let account_created = Account::create(account, valence)
+        let account_created = Account::create_used(account, valence, valence::use_!(r#"When **account signup** needs to persist work, we **save Account** so the next step in that feature can continue with the latest values. People and services allowed for **account signup** use this data for that workflow—not as a general export of unrelated personal fields."#))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create account: {e}")))?;
 
@@ -336,7 +332,7 @@ pub mod ssr {
 
         let email_row = AccountEmail::new(account_thing.clone(), email.to_string(), None, now, now)
             .map_err(|e| ServerFnError::new(format!("Failed to create account email: {e}")))?;
-        let email_created = AccountEmail::create(email_row, valence)
+        let email_created = AccountEmail::create_used(email_row, valence, valence::use_!(r#"When **account signup** needs to persist work, we **save Account Email** so the next step in that feature can continue with the latest values. People and services allowed for **account signup** use this data for that workflow—not as a general export of unrelated personal fields."#))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create account email: {e}")))?;
         let email_thing = email_created
@@ -345,7 +341,7 @@ pub mod ssr {
             .ok_or_else(|| ServerFnError::new("Account email missing id after create"))?;
 
         account_created
-            .get_mutable(valence)
+            .get_mutable_used(valence, valence::use_!(r#"In **lepton auth**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **lepton auth** use the updated data; this is not a public export of unrelated fields."#))
             .set_primary_email(email_thing.clone())
             .map_err(|e| ServerFnError::new(format!("Failed to set account primary email: {e}")))?
             .set_updated_at(now)
@@ -357,7 +353,7 @@ pub mod ssr {
             })?;
 
         user_created
-            .get_mutable(valence)
+            .get_mutable_used(valence, valence::use_!(r#"In **lepton auth**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **lepton auth** use the updated data; this is not a public export of unrelated fields."#))
             .set_primary_email(email_thing.clone())
             .map_err(|e| ServerFnError::new(format!("Failed to set primary email: {e}")))?
             .set_updated_at(now)
@@ -366,7 +362,7 @@ pub mod ssr {
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to persist primary email: {e}")))?;
 
-        let user_created = User::get(&bare_id_from_record(&user_thing), valence)
+        let user_created = User::get_used(&bare_id_from_record(&user_thing), valence, valence::use_!(r#"In **account signup**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account signup** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to reload user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User missing after create"))?;
@@ -385,7 +381,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create user profile: {e}")))?;
 
-        let created_profile = UserProfile::create(profile, valence)
+        let created_profile = UserProfile::create_used(profile, valence, valence::use_!(r#"When **account signup** needs to persist work, we **save User Profile** so the next step in that feature can continue with the latest values. People and services allowed for **account signup** use this data for that workflow—not as a general export of unrelated personal fields."#))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create user profile: {e}")))?;
         let profile_bare = bare_id_from_record(
@@ -403,7 +399,7 @@ pub mod ssr {
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create account membership: {e}")))?;
 
-        let created_membership = AccountMembership::create(membership, valence)
+        let created_membership = AccountMembership::create_used(membership, valence, valence::use_!(r#"When **account signup** needs to persist work, we **save Account Membership** so the next step in that feature can continue with the latest values. People and services allowed for **account signup** use this data for that workflow—not as a general export of unrelated personal fields."#))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to create account membership: {e}")))?;
         let membership_bare = bare_id_from_record(

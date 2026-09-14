@@ -31,7 +31,7 @@ pub(super) async fn seed_enabled_totp(
     .map_err(|_| SeedError::Persistence {
         operation: "totp_new",
     })?;
-    TotpFactor::upsert(&factor_id, factor, valence)
+    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!(r#"While you set up your **authenticator app**, we **save your not-yet-confirmed authenticator setup** for your account—including a **sealed copy of the authenticator secret**—so the next step can check the code from your app and finish turning **two-factor** on. After the QR or setup link at enroll time, the product does not show that secret again; it only keeps the sealed copy to complete **enrollment**."#))
         .await
         .map_err(|_| SeedError::Persistence {
             operation: "totp_upsert",

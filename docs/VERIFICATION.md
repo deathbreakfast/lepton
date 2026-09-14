@@ -10,10 +10,27 @@ own them (`lepton-auth-ui-e2e`, `lepton-e2e`).
 
 ## Environment
 
+Match [`.github/workflows/ci.yml`](../.github/workflows/ci.yml):
+
 ```bash
 export CARGO_BUILD_JOBS=1
 export CARGO_TARGET_DIR=target-lepton
+export RUSTFLAGS="-D warnings"
 ```
+
+Toolchain: nightly (Leptos `nightly` feature + Orbital UI). Install `lld` for
+link reliability on the quality test step (`-C link-arg=-fuse-ld=lld`).
+
+## PR CI parity
+
+Required PR jobs — do not skip any of these when claiming local CI parity:
+
+| CI job | Local command / notes |
+|--------|------------------------|
+| `quality` | `cargo fmt --check` with the package list from ci.yml; `cargo clippy --workspace --all-targets --features ssr,full -- -D warnings`; `cargo test --workspace --features ssr,full --exclude lepton-auth-ui --exclude lepton-auth-ui-e2e` (with lld RUSTFLAGS); Twilio clippy/test + SMS/SMTP check without twilio; `cargo check -p lepton-auth --features ssr`; rustdoc deny-warnings for workspace `ssr,full` and Twilio adapters |
+| `leptos-lints` | dylint 6.0.1 + `nightly-2025-05-14`; `cargo dylint --all -p lepton-auth-ui --no-deps -- --features hydrate` and same for `lepton-auth-ui-e2e` |
+| `wasm-hydrate` | nightly + `wasm32-unknown-unknown`; `cargo check -p lepton-auth-ui --target wasm32-unknown-unknown --features hydrate` |
+| `e2e` | Mailpit via `docker compose -f infra/mailpit/docker-compose.yml up -d`; Node 20 + Playwright; `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1 cargo leptos end-to-end --project lepton-auth-ui-e2e` |
 
 ## Default CI gates
 
@@ -22,18 +39,19 @@ Run from the repository root. Same shape as `.github/workflows/ci.yml`:
 ```bash
 cargo fmt --check \
   -p lepton-auth -p lepton-auth-ui -p lepton-auth-ui-e2e -p lepton-identity \
-  -p lepton-smtp -p lepton-sms -p lepton-spectra-telemetry \
-  -p lepton-host-adapter -p lepton
+  -p lepton-smtp -p lepton-sms -p lepton-host-adapter -p lepton
 cargo clippy --workspace --all-targets --features ssr,full -- -D warnings
-cargo test --workspace --features ssr,full
-cargo test -p lepton-spectra-telemetry
-cargo test -p lepton-smtp --features spectra
-cargo test -p lepton-sms --features spectra
-cargo check -p lepton-auth --features ssr,full,spectra
-cargo check -p lepton-auth-ui --features ssr
+# Match CI: exclude Leptos UI crates (e2e job covers them); prefer lld when linking fails.
+RUSTFLAGS="-D warnings -C link-arg=-fuse-ld=lld" CARGO_PROFILE_TEST_DEBUG=line-tables-only \
+  cargo test --workspace --features ssr,full --exclude lepton-auth-ui --exclude lepton-auth-ui-e2e
+cargo clippy -p lepton-sms -p lepton-smtp --all-targets --features twilio -- -D warnings
+cargo test -p lepton-sms --features twilio
+cargo test -p lepton-smtp --features twilio
+cargo check -p lepton-sms -p lepton-smtp
 cargo check -p lepton-auth --features ssr
 cargo check -p lepton-auth-ui --target wasm32-unknown-unknown --features hydrate
-cargo leptos end-to-end --project lepton-auth-ui-e2e
+docker compose -f infra/mailpit/docker-compose.yml up -d
+LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1 cargo leptos end-to-end --project lepton-auth-ui-e2e
 ```
 
 ### rustdoc (CI job `quality`, deny warnings)
@@ -54,7 +72,7 @@ RUSTDOCFLAGS="-D warnings" cargo doc -p lepton-host-adapter --features ssr --no-
 RUSTDOCFLAGS="-D warnings" cargo doc -p lepton-test-support --all-features --no-deps
 ```
 
-### leptos-lints (CI job `leptos-lints`)
+### leptos-lints (required PR job `leptos-lints`)
 
 Needs `cargo-dylint` / `dylint-link` 6.0.1 and toolchain `nightly-2025-05-14`
 (see `.github/workflows/ci.yml`). Hydrate UI only (`--no-deps`):

@@ -100,7 +100,7 @@ pub async fn user_has_password(
     use valence::Model;
 
     let bare = valence::extract_id_from_record(user).unwrap_or_else(|_| user.id().to_string());
-    let row = User::get(&bare, valence)
+    let row = User::get_used(&bare, valence, valence::use_!(r#"In **OAuth account linking**, we **load User** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."#))
         .await
         .map_err(|_| crate::oauth::OAuthError::Store)?
         .ok_or(crate::oauth::OAuthError::UserMissing)?;
