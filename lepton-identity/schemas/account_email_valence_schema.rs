@@ -3,6 +3,7 @@ use valence::privacy_policies::common::SYSTEM_ONLY;
 
 valence_schema! {
     AccountEmail {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "account_email",
         version: "0.4.2",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,

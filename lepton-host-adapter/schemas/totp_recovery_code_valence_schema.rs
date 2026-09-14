@@ -3,6 +3,7 @@ use valence::privacy_policies::common::SYSTEM_ONLY;
 
 valence_schema! {
     TotpRecoveryCode {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "totp_recovery_code",
         version: "0.1.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,

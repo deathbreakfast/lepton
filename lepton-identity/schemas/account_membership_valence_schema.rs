@@ -6,6 +6,7 @@ use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
 valence_schema! {
     AccountMembership {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "account_membership",
         version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,

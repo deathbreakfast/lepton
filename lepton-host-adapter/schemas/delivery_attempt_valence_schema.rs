@@ -3,6 +3,7 @@ use valence::privacy_policies::common::SYSTEM_ONLY;
 
 valence_schema! {
     DeliveryAttempt {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "delivery_attempt",
         version: "0.1.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
