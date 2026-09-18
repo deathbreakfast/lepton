@@ -54,7 +54,7 @@ async fn ci_e2e_signup_email_phone_confirm_happy() {
         use lepton_host_adapter::generated::{
             DeliveryAttempt, DeliveryAttemptChannel, DeliveryAttemptOutcome,
         };
-        let rows = DeliveryAttempt::query(&lab.valence)
+        let rows = DeliveryAttempt::query_used(&lab.valence, valence::use_!(r#"**Test:** Fixture **Delivery Attempt** list for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
             .await
             .expect("delivery attempts");
         assert!(
@@ -88,7 +88,7 @@ async fn ci_e2e_signup_persists_legal_and_display_name() {
     assert_eq!(pending.legal_name, legal_name);
     assert_eq!(pending.display_name, display_name);
 
-    let profile = UserProfile::query(&valence)
+    let profile = UserProfile::query_used(&valence, valence::use_!(r#"**Test:** Fixture **User Profile** list for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .first()
         .await
         .expect("profile query")
@@ -122,7 +122,7 @@ async fn ci_e2e_signup_rejects_invalid_legal_name() {
         Err(e) => e,
     };
     assert!(err.to_string().contains("invalid characters"));
-    assert!(UserProfile::query(&valence)
+    assert!(UserProfile::query_used(&valence, valence::use_!(r#"**Test:** Fixture **User Profile** list for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .first()
         .await
         .expect("query")

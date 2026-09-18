@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 lepton-identity = { path = "../lepton-identity", default-features = false }
+meson = { workspace = true, optional = true }
 higgs-identity = { workspace = true }
 higgs-core = { workspace = true, optional = true }
 higgs-host = { workspace = true, features = ["ssr"] }
@@ -62,6 +63,7 @@ ssr = [
     "dep:uuid",
     "dep:thiserror",
     "dep:tracing",
+    "dep:meson",
     "leptos/ssr",
     "higgs-host/ssr"]
 

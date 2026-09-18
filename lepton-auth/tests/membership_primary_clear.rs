@@ -35,7 +35,7 @@ async fn seed_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    User::create(user, valence)
+    User::create_used(user, valence, valence::use_!(r#"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create")
         .id()
@@ -56,7 +56,7 @@ async fn seed_account(valence: &valence::Valence, name: &str, user: &RecordId) -
         now,
     )
     .expect("account");
-    Account::create(account, valence)
+    Account::create_used(account, valence, valence::use_!(r#"**Test:** Fixture **Account** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create")
         .id()
@@ -78,7 +78,7 @@ async fn seed_membership(
         now,
     )
     .expect("m");
-    AccountMembership::create(m, valence)
+    AccountMembership::create_used(m, valence, valence::use_!(r#"**Test:** Fixture **Account Membership** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create")
         .id()
@@ -104,7 +104,7 @@ async fn membership_delete_clears_matching_email_primary_happy() {
         now,
     )
     .expect("email");
-    let owner_email = AccountEmail::create(owner_email, &valence)
+    let owner_email = AccountEmail::create_used(owner_email, &valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create");
     let owner_email_id = owner_email.id().cloned().expect("id");
@@ -117,17 +117,17 @@ async fn membership_delete_clears_matching_email_primary_happy() {
         now,
     )
     .expect("email");
-    let persona_email = AccountEmail::create(persona_email, &valence)
+    let persona_email = AccountEmail::create_used(persona_email, &valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create");
     let persona_email_id = persona_email.id().cloned().expect("id");
 
     // Account legal primary matches persona login — removing persona clears it.
-    Account::get(&bare_id_from_record(&account), &valence)
+    Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("a")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(persona_email_id.clone())
         .expect("p")
         .set_updated_at(now)
@@ -136,11 +136,11 @@ async fn membership_delete_clears_matching_email_primary_happy() {
         .await
         .expect("c");
 
-    User::get(&bare_id_from_record(&persona), &valence)
+    User::get_used(&bare_id_from_record(&persona), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("u")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(persona_email_id)
         .expect("p")
         .set_updated_at(now)
@@ -149,11 +149,11 @@ async fn membership_delete_clears_matching_email_primary_happy() {
         .await
         .expect("c");
 
-    User::get(&bare_id_from_record(&owner), &valence)
+    User::get_used(&bare_id_from_record(&owner), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("u")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(owner_email_id)
         .expect("p")
         .set_updated_at(now)
@@ -166,7 +166,7 @@ async fn membership_delete_clears_matching_email_primary_happy() {
         .await
         .expect("delete membership");
 
-    let acct = Account::get(&bare_id_from_record(&account), &valence)
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");
@@ -191,7 +191,7 @@ async fn membership_delete_unrelated_login_leaves_primary_happy() {
         now,
     )
     .expect("email");
-    let owner_email = AccountEmail::create(owner_email, &valence)
+    let owner_email = AccountEmail::create_used(owner_email, &valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create");
     let owner_email_id = owner_email.id().cloned().expect("id");
@@ -204,16 +204,16 @@ async fn membership_delete_unrelated_login_leaves_primary_happy() {
         now,
     )
     .expect("email");
-    let persona_email = AccountEmail::create(persona_email, &valence)
+    let persona_email = AccountEmail::create_used(persona_email, &valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create");
     let persona_email_id = persona_email.id().cloned().expect("id");
 
-    Account::get(&bare_id_from_record(&account), &valence)
+    Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("a")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(owner_email_id.clone())
         .expect("p")
         .set_updated_at(now)
@@ -222,11 +222,11 @@ async fn membership_delete_unrelated_login_leaves_primary_happy() {
         .await
         .expect("c");
 
-    User::get(&bare_id_from_record(&owner), &valence)
+    User::get_used(&bare_id_from_record(&owner), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("u")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(owner_email_id.clone())
         .expect("p")
         .set_updated_at(now)
@@ -235,11 +235,11 @@ async fn membership_delete_unrelated_login_leaves_primary_happy() {
         .await
         .expect("c");
 
-    User::get(&bare_id_from_record(&persona), &valence)
+    User::get_used(&bare_id_from_record(&persona), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("u")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(persona_email_id)
         .expect("p")
         .set_updated_at(now)
@@ -252,7 +252,7 @@ async fn membership_delete_unrelated_login_leaves_primary_happy() {
         .await
         .expect("delete");
 
-    let acct = Account::get(&bare_id_from_record(&account), &valence)
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");
@@ -289,7 +289,7 @@ async fn membership_delete_phone_primary_clears_when_match_happy() {
         .await
         .expect("delete");
 
-    let acct = Account::get(&bare_id_from_record(&account), &valence)
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");
@@ -334,7 +334,7 @@ async fn membership_delete_phone_primary_leaves_when_no_match_happy() {
         .await
         .expect("delete");
 
-    let acct = Account::get(&bare_id_from_record(&account), &valence)
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");
@@ -362,16 +362,16 @@ async fn membership_delete_se_failure_still_deletes() {
         now,
     )
     .expect("email");
-    let persona_email = AccountEmail::create(persona_email, &valence)
+    let persona_email = AccountEmail::create_used(persona_email, &valence, valence::use_!(r#"**Test:** Fixture **Account Email** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("create");
     let persona_email_id = persona_email.id().cloned().expect("id");
 
-    Account::get(&bare_id_from_record(&account), &valence)
+    Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("a")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(persona_email_id.clone())
         .expect("p")
         .set_updated_at(now)
@@ -380,11 +380,11 @@ async fn membership_delete_se_failure_still_deletes() {
         .await
         .expect("c");
 
-    User::get(&bare_id_from_record(&persona), &valence)
+    User::get_used(&bare_id_from_record(&persona), &valence, valence::use_!(r#"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("u")
-        .get_mutable(&valence)
+        .get_mutable_used(&valence, valence::use_!(r#"**Test:** Fixture **this data** access in `membership_primary_clear` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_primary_email(persona_email_id.clone())
         .expect("p")
         .set_updated_at(now)
@@ -399,13 +399,13 @@ async fn membership_delete_se_failure_still_deletes() {
     result.expect("membership delete must succeed even if clear fails");
 
     assert!(
-        AccountMembership::get(&bare_id_from_record(&persona_m), &valence)
+        AccountMembership::get_used(&bare_id_from_record(&persona_m), &valence, valence::use_!(r#"**Test:** Fixture **Account Membership** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
             .await
             .expect("get")
             .is_none()
     );
     // Clear failed → primary still set (log-only SE contract).
-    let acct = Account::get(&bare_id_from_record(&account), &valence)
+    let acct = Account::get_used(&bare_id_from_record(&account), &valence, valence::use_!(r#"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .expect("get")
         .expect("account");

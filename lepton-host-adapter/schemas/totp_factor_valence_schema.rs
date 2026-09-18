@@ -3,6 +3,7 @@ use valence::privacy_policies::common::SYSTEM_ONLY;
 
 valence_schema! {
     TotpFactor {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "totp_factor",
         version: "0.1.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,

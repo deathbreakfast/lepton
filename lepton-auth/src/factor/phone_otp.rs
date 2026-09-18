@@ -23,13 +23,13 @@ pub(super) async fn issue(
     target: &str,
 ) -> Result<String, FactorChallengeError> {
     let e164 = normalize_phone_to_e164(target).map_err(|_| FactorChallengeError::InvalidPhone)?;
-    let phone = if let Some(existing) = AccountPhone::query(valence)
+    let phone = if let Some(existing) = AccountPhone::query_used(valence, valence::use_!(r"In **factor**, we **list Account Phone** so the product can show or process the matching set for this workflow. Callers allowed for **factor** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_e164(valence::StringPredicate::Equals(e164.clone()))
         .first()
         .await
         .map_err(|_| FactorChallengeError::Token)?
     {
-        let memberships = lepton_host_adapter::generated::AccountMembership::query(valence)
+        let memberships = lepton_host_adapter::generated::AccountMembership::query_used(valence, valence::use_!(r"In **factor**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **factor** use the list; it is not a public dump of every field to anonymous visitors."))
             .where_user(valence::RecordPredicate::Equals(user.clone()))
             .await
             .map_err(|_| FactorChallengeError::Token)?;
@@ -98,7 +98,7 @@ pub(super) async fn verify(
     };
 
     let phone_bare = bare_id(token.user_phone());
-    let phone = AccountPhone::get(&phone_bare, valence)
+    let phone = AccountPhone::get_used(&phone_bare, valence, valence::use_!(r"In **factor**, we **load Account Phone** so the application can decide what to do next in this workflow. The result is used by **factor** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| FactorChallengeError::Token)?
         .ok_or(FactorChallengeError::UserMissing)?;

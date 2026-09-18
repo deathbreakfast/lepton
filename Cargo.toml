@@ -96,6 +96,7 @@ higgs-macros = { package = "higgs-macros", git = "https://github.com/unified-fie
 photon = { package = "uf-photon", git = "https://github.com/unified-field-dev/photon", branch = "main", default-features = false }
 photon-leptos = { git = "https://github.com/unified-field-dev/photon-leptos", branch = "main", default-features = false }
 photon-axum = { git = "https://github.com/unified-field-dev/photon-leptos", branch = "main", default-features = false }
+meson = { git = "https://github.com/unified-field-dev/meson", branch = "main", default-features = false, features = ["db-sqlite", "backend-local"] }
 spectra = { package = "uf-spectra", git = "https://github.com/unified-field-dev/Spectra", branch = "main", default-features = false }
 spectra-core = { package = "uf-spectra-core", git = "https://github.com/unified-field-dev/Spectra", branch = "main" }
 totp-rs = { version = "5.7", default-features = false }
@@ -152,6 +153,23 @@ rand_core = { version = "0.6", features = ["std"] }
 uuid = { version = "1", features = ["serde", "v4", "v5"] }
 chrono = { version = "0.4", features = ["serde"] }
 webauthn-rs = { version = "0.5.5", default-features = false, features = ["danger-allow-state-serialisation"] }
+
+# meson (unified-field-dev/meson) still pins its own valence on the
+# deathbreakfast fork's main branch upstream; redirect it onto this kit's
+# unified-field-dev/valence pin so the whole graph shares one `Valence` /
+# `Model` / `RecordId` type instead of two incompatible ones. The fix is
+# already committed on deathbreakfast/meson (commit 7e1d5ea) — drop this
+# patch once that lands on unified-field-dev/meson main.
+[patch."https://github.com/deathbreakfast/valence"]
+uf-valence = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-core = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-codegen = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-macros = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-telemetry = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-mem = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-sqlite = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-backend-sql = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
+uf-valence-schema-dsl = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
 
 # Transitive crates.io pins (if any) get forced onto uf-dev Valence main.
 # Git tag vs branch diamonds (boson-valence-identity still on tag=v0.1.2) are

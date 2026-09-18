@@ -69,7 +69,7 @@ async fn apply_failure(
 ) -> Result<StepUpError, StepUpError> {
     let (next, locked_until) = record_failure(failed_attempts, now);
     let mut mutable = factor
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!(r"When an **authenticator step-up code fails**, we **record the failed attempt** on your factor and set a lockout if you've failed too many times, so repeated wrong guesses get rate-limited."))
         .set_failed_attempts(next)
         .map_err(|_| StepUpError::Store)?;
     mutable = if let Some(until) = locked_until {
@@ -104,7 +104,7 @@ async fn apply_success(
         sealed = seal_totp_secret(&sealed).map_err(|_| StepUpError::TotpSecret)?;
     }
     factor
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!(r"When an **authenticator step-up code succeeds**, we **update your factor** with the step it matched and clear any lockout, so the same code can't be replayed and your next attempt starts fresh."))
         .set_secret_sealed(sealed)
         .map_err(|_| StepUpError::Store)?
         .set_last_used_step(step)

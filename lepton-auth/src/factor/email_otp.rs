@@ -20,7 +20,7 @@ pub(super) async fn issue(
     email_flow: VerificationEmailFlow,
 ) -> Result<String, FactorChallengeError> {
     let address = target.trim().to_string();
-    let email = if let Some(existing) = AccountEmail::query(valence)
+    let email = if let Some(existing) = AccountEmail::query_used(valence, valence::use_!(r"In **factor**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **factor** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_address(StringPredicate::Equals(address.clone()))
         .first()
         .await
@@ -28,7 +28,7 @@ pub(super) async fn issue(
     {
         // Email belongs to an account; caller must be a member (checked via add path /
         // later verify). Reject addresses already registered to another account.
-        let memberships = lepton_host_adapter::generated::AccountMembership::query(valence)
+        let memberships = lepton_host_adapter::generated::AccountMembership::query_used(valence, valence::use_!(r"In **factor**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **factor** use the list; it is not a public dump of every field to anonymous visitors."))
             .where_user(valence::RecordPredicate::Equals(user.clone()))
             .await
             .map_err(|_| FactorChallengeError::Token)?;

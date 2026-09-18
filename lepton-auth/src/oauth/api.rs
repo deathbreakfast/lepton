@@ -451,7 +451,7 @@ pub async fn complete_oauth(
         }
         OAuthIntent::Signup => {
             if let Some(ref email) = email_hint {
-                let taken = AccountEmail::query(valence)
+                let taken = AccountEmail::query_used(valence, valence::use_!(r"In **OAuth account linking**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **OAuth account linking** use the list; it is not a public dump of every field to anonymous visitors."))
                     .where_address(StringPredicate::Equals(email.clone()))
                     .first()
                     .await
@@ -557,7 +557,7 @@ async fn find_link(
     subject: &str,
 ) -> Result<Option<LinkedIdentity>, OAuthError> {
     let gen = provider.to_generated();
-    let rows = LinkedIdentity::query(valence)
+    let rows = LinkedIdentity::query_used(valence, valence::use_!(r"In **OAuth account linking**, we **list Linked Identity** so the product can show or process the matching set for this workflow. Callers allowed for **OAuth account linking** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_provider_subject(StringPredicate::Equals(subject.to_string()))
         .await
         .map_err(|_| OAuthError::Store)?;
@@ -586,7 +586,7 @@ async fn insert_link(
     )
     .map_err(|_| OAuthError::Store)?;
     let id = random_token_part(12);
-    LinkedIdentity::upsert(&id, row, valence)
+    LinkedIdentity::upsert_used(&id, row, valence, valence::use_!(r"When **OAuth account linking** needs to persist work, we **save Linked Identity** so the next step in that feature can continue with the latest values. People and services allowed for **OAuth account linking** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| OAuthError::Store)?;
     Ok(())
@@ -626,7 +626,7 @@ pub async fn unlink_oauth_identity(
     linked_id: &RecordId,
 ) -> Result<(), OAuthError> {
     let id = bare_id(linked_id);
-    let row = LinkedIdentity::get(&id, valence)
+    let row = LinkedIdentity::get_used(&id, valence, valence::use_!(r"In **OAuth account linking**, we **load Linked Identity** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| OAuthError::Store)?
         .ok_or(OAuthError::LinkMissing)?;

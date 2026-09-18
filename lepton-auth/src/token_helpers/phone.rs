@@ -38,7 +38,7 @@ pub async fn try_consume_phone_verification_token(
     otp_code: &str,
     valence: &Valence,
 ) -> Result<Option<PhoneVerificationToken>, ServerFnError> {
-    let token = PhoneVerificationToken::get(challenge_id, valence)
+    let token = PhoneVerificationToken::get_used(challenge_id, valence, valence::use_!(r"In **token_helpers**, we **load Phone Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -51,7 +51,7 @@ pub async fn try_consume_phone_verification_token(
 
     let consume_marker = new_consume_marker();
     token
-        .get_mutable(valence)
+        .get_mutable_used(valence, valence::use_!(r"In **token helpers**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **token helpers** use the updated data; this is not a public export of unrelated fields."))
         .set_used_at(Utc::now())
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
@@ -60,7 +60,7 @@ pub async fn try_consume_phone_verification_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = PhoneVerificationToken::get(challenge_id, valence)
+    let latest = PhoneVerificationToken::get_used(challenge_id, valence, valence::use_!(r"In **token_helpers**, we **load Phone Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
@@ -97,7 +97,7 @@ pub async fn issue_phone_verification_token(
     )
     .map_err(|_| token_store_error("build"))?;
 
-    PhoneVerificationToken::upsert(&challenge_id, token, valence)
+    PhoneVerificationToken::upsert_used(&challenge_id, token, valence, valence::use_!(r"When **token_helpers** needs to persist work, we **save Phone Verification Token** so the next step in that feature can continue with the latest values. People and services allowed for **token_helpers** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| token_store_error("persist"))?;
 

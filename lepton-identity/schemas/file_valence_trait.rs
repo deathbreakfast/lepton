@@ -2,6 +2,7 @@ use valence::prelude::*;
 
 valence_trait_schema! {
     File {
+        repository: "https://github.com/unified-field-dev/lepton",
         fields: [
             file_name: { r#type: FieldType::String, required: true },
             file_extension: { r#type: FieldType::String, required: true },

@@ -53,7 +53,7 @@ async fn seed_password_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    let created = User::create(user, valence).await.expect("create user");
+    let created = User::create_used(user, valence, valence::use_!(r"**Test:** Fixture **User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only.")).await.expect("create user");
     created.id().cloned().expect("user id")
 }
 

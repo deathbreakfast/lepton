@@ -3,6 +3,7 @@ use valence::privacy_policies::common::{AUTHENTICATED, SYSTEM_ONLY};
 
 valence_schema! {
     AccountPhone {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "account_phone",
         version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,

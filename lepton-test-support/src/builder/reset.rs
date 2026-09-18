@@ -25,7 +25,7 @@ pub(super) async fn seed_reset_token(
     .map_err(|_| SeedError::Persistence {
         operation: "reset_token_new",
     })?;
-    PasswordResetToken::upsert(&token_id, token, valence)
+    PasswordResetToken::upsert_used(&token_id, token, valence, valence::use_!(r"When **builder** needs to persist work, we **save Password Reset Token** so the next step in that feature can continue with the latest values. People and services allowed for **builder** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| SeedError::Persistence {
             operation: "reset_token_upsert",

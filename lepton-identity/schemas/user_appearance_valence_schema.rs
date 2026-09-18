@@ -6,6 +6,7 @@ use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
 valence_schema! {
     UserAppearance {
+        repository: "https://github.com/unified-field-dev/lepton",
         table: "user_appearance",
         version: "0.1.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
