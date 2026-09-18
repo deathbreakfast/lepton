@@ -154,23 +154,6 @@ uuid = { version = "1", features = ["serde", "v4", "v5"] }
 chrono = { version = "0.4", features = ["serde"] }
 webauthn-rs = { version = "0.5.5", default-features = false, features = ["danger-allow-state-serialisation"] }
 
-# meson (unified-field-dev/meson) still pins its own valence on the
-# deathbreakfast fork's main branch upstream; redirect it onto this kit's
-# unified-field-dev/valence pin so the whole graph shares one `Valence` /
-# `Model` / `RecordId` type instead of two incompatible ones. The fix is
-# already committed on deathbreakfast/meson (commit 7e1d5ea) — drop this
-# patch once that lands on unified-field-dev/meson main.
-[patch."https://github.com/deathbreakfast/valence"]
-uf-valence = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-core = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-codegen = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-macros = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-telemetry = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-backend-mem = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-backend-sqlite = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-backend-sql = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-uf-valence-schema-dsl = { git = "https://github.com/unified-field-dev/valence", branch = "main" }
-
 # Transitive crates.io pins (if any) get forced onto uf-dev Valence main.
 # Git tag vs branch diamonds (boson-valence-identity still on tag=v0.1.2) are
 # fixed by landing that kit's branch=main tip, then `cargo update` here.

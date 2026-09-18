@@ -41,8 +41,7 @@ pub fn PasswordResetConfirmContent(
                                     .value()
                                     .get()
                                     .and_then(Result::err)
-                                    .map(|e| e.to_string())
-                                    .unwrap_or_default()
+                                    .map_or_else(String::new, |e| e.to_string())
                             }}
                         </MessageBar>
                     </div>

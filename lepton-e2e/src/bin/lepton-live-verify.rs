@@ -87,7 +87,7 @@ fn mask_email(raw: &str) -> String {
     let email = raw.trim();
     match email.split_once('@') {
         Some((local, domain)) => {
-            let first = local.chars().next().map(String::from).unwrap_or_default();
+            let first = local.chars().next().map_or_else(String::new, String::from);
             let tld = domain.rsplit_once('.').map(|(_, t)| t).unwrap_or("");
             if tld.is_empty() {
                 format!("{first}***@***")

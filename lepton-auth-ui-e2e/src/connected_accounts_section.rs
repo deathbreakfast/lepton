@@ -227,8 +227,7 @@ mod enabled {
                                                                                         <Body1>
                                                                                             {label}
                                                                                             {hint
-                                                                                                .map(|h| format!(" · {h}"))
-                                                                                                .unwrap_or_default()}
+                                                                                                .map_or_else(String::new, |h| format!(" · {h}"))}
                                                                                         </Body1>
                                                                                         <Button
                                                                                             appearance=ButtonAppearance::Secondary

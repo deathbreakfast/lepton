@@ -253,8 +253,7 @@ fn query_param(search: &str, key: &str) -> String {
     let trimmed = search.trim_start_matches('?');
     url::form_urlencoded::parse(trimmed.as_bytes())
         .find(|(k, _)| k == key)
-        .map(|(_, v)| v.into_owned())
-        .unwrap_or_default()
+        .map_or_else(String::new, |(_, v)| v.into_owned())
 }
 
 #[component]

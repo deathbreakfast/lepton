@@ -18,9 +18,7 @@ pub(super) fn map_twilio_http_error(
     twilio_code: Option<i64>,
     message: Option<&str>,
 ) -> SmsDeliveryError {
-    let code_suffix = twilio_code
-        .map(|c| format!(", code {c}"))
-        .unwrap_or_default();
+    let code_suffix = twilio_code.map_or_else(String::new, |c| format!(", code {c}"));
     let msg_l = message.unwrap_or("").to_ascii_lowercase();
     if msg_l.contains("compliance") || msg_l.contains("trust hub") || msg_l.contains("kyc") {
         return SmsDeliveryError::rejected(

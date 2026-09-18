@@ -78,8 +78,7 @@ pub fn totp_manual_entry_from_otpauth_uri(uri: &str) -> Option<TotpManualEntry> 
     let issuer_q = url
         .query_pairs()
         .find(|(key, _)| key == "issuer")
-        .map(|(_, value)| value.into_owned())
-        .unwrap_or_default();
+        .map_or_else(String::new, |(_, value)| value.into_owned());
 
     // Path is typically `totp/Issuer:account` (issuer/account may be percent-encoded).
     let path = url.path().trim_start_matches('/');

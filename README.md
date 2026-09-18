@@ -49,15 +49,12 @@ lepton-smtp = { git = "https://github.com/unified-field-dev/lepton", tag = "v0.1
 lepton-sms = { git = "https://github.com/unified-field-dev/lepton", tag = "v0.1.0", package = "lepton-sms" }
 lepton-identity = { git = "https://github.com/unified-field-dev/lepton", tag = "v0.1.0", package = "lepton-identity" }
 lepton-host-adapter = { git = "https://github.com/unified-field-dev/lepton", tag = "v0.1.0", package = "lepton-host-adapter" }
-# Shell / app UI: path or git pin from lepton-uf-app
-#   https://github.com/unified-field-dev/lepton-uf-app (or your fork) — crates
-#   lepton-shell, lepton-app, lepton-auth-app. Auth channels: lepton-auth features
-#   = ["ssr", "email"] or ["ssr", "full"]
+# Shell / app UI is a separate consuming layer built on top of these crates.
+# Auth channels: lepton-auth features = ["ssr", "email"] or ["ssr", "full"]
 ```
 
-SMS uses `lepton-sms` (Noop/Test; optional `twilio`). Mount shell/app UI from
-[`lepton-uf-app`](https://github.com/unified-field-dev/lepton-uf-app) (`lepton-shell`,
-`lepton-app`, `lepton-auth-app`).
+SMS uses `lepton-sms` (Noop/Test; optional `twilio`). Shell and app UI mount
+on top of these crates as a separate consuming layer.
 
 ## Features
 
@@ -74,11 +71,11 @@ SMS uses `lepton-sms` (Noop/Test; optional `twilio`). Mount shell/app UI from
 | Spectra | Optional `lepton-spectra-telemetry` delivery + auth funnel counters (`spectra` on smtp/sms/auth) |
 | Live status | Photon `VerificationCompleted` + `verification_status` refetch |
 
-TOTP enroll UI and OAuth link/unlink ship on the host Account Settings surface
-(`lepton-app` in lepton-uf-app). Per-op re-auth ships as
-`lepton_auth_ui::StepUpDialog` (library verify in `lepton-auth::factor`). The product
-shell mounts the dialog for future host apps (for example Gluon); Account Settings
-does not drive step-up today. Wipe keeps its own password (+ TOTP) ladder.
+TOTP enroll UI and OAuth link/unlink ship on the host's Account Settings
+surface. Per-op re-auth ships as `lepton_auth_ui::StepUpDialog` (library
+verify in `lepton-auth::factor`). The product shell mounts the dialog for
+future host apps; Account Settings does not drive step-up today. Wipe keeps
+its own password (+ TOTP) ladder.
 
 ## Crates
 
@@ -91,7 +88,6 @@ does not drive step-up today. Wipe keeps its own password (+ TOTP) ladder.
 - [`lepton-auth-ui-e2e`](lepton-auth-ui-e2e/README.md) — library Playwright host (`publish = false`)
 - [`lepton-e2e`](lepton-e2e/README.md) — CI e2e signup/verify + device/TOTP + OAuth; live Twilio / TOTP / OAuth CLIs (`publish = false`)
 - [`lepton-test-support`](lepton-test-support/README.md) — test-only user builders + seed scenarios / HTTP (`publish = false`)
-- Shell / app UI: [`lepton-uf-app`](https://github.com/unified-field-dev/lepton-uf-app) (`lepton-shell`, `lepton-app`, `lepton-auth-app`)
 
 ## Examples
 
