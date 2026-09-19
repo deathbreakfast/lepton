@@ -435,12 +435,10 @@ pub async fn upload_handler(
             "profile photo uploaded"
         );
 
-        let photo_url = format!("/api/files/{}", photo_id.id());
         Ok((
             StatusCode::OK,
             Json(serde_json::json!({
                 "id": photo_id.to_string(),
-                "url": photo_url,
                 "file_name": original_name,
                 "size_bytes": size_bytes,
             })),
