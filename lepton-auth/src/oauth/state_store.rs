@@ -133,10 +133,14 @@ async fn delete_pending(valence: &Valence, state: &str) -> Result<(), OAuthError
     let backend = valence
         .backend_for_table("oauth_pending_state")
         .map_err(|_| OAuthError::Store)?;
-    backend
-        .delete_record("oauth_pending_state", state)
-        .await
-        .map_err(|_| OAuthError::Store)?;
+    valence::delete_record_used(
+        backend.as_ref(),
+        "oauth_pending_state",
+        state,
+        valence::use_!(r"After an **OAuth link** finishes or expires, we **discard the pending state** so the one-time handshake token cannot be reused. Only the link flow uses this cleanup."),
+    )
+    .await
+    .map_err(|_| OAuthError::Store)?;
     valence::read_cache::invalidate("oauth_pending_state", state);
     Ok(())
 }

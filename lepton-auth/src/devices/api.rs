@@ -148,9 +148,13 @@ pub async fn list_auth_devices(
     user: &RecordId,
 ) -> Result<Vec<AuthDeviceView>, DeviceError> {
     let uid = bare_id(user);
-    let rows = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let rows = AuthDevice::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"On your **trusted devices** settings, we **list the browsers and security keys** tied to your account so you can review or revoke them. Only you see this list; secret material is never included."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     Ok(rows
         .into_iter()
         .filter_map(|d| {

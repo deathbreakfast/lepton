@@ -54,9 +54,13 @@ async fn consume_recovery_happy() {
         .expect("consume");
 
     let uid = bare_id_from_record(&user);
-    let rows = TotpRecoveryCode::get_from_user_id(&uid, &valence)
-        .await
-        .expect("list");
+    let rows = TotpRecoveryCode::get_from_user_id_used(
+        &uid,
+        &valence,
+        valence::use_!(r"**Test:** Fixture **Totp Recovery Code** list for `totp_recovery` so the suite can assert one code was marked used after consume. CI and developers running the suite only."),
+    )
+    .await
+    .expect("list");
     let used_count = rows.iter().filter(|r| r.used_at().is_some()).count();
     assert_eq!(used_count, 1);
 }
@@ -122,17 +126,25 @@ async fn disable_totp_after_enroll_happy() {
 
     disable_totp(&valence, &user).await.expect("disable");
     let uid = bare_id_from_record(&user);
-    let left = TotpFactor::get_from_user_id(&uid, &valence)
-        .await
-        .expect("list");
+    let left = TotpFactor::get_from_user_id_used(
+        &uid,
+        &valence,
+        valence::use_!(r"**Test:** Fixture **Totp Factor** list for `totp_recovery` so the suite can assert disable removed every factor. CI and developers running the suite only."),
+    )
+    .await
+    .expect("list");
     assert!(
         left.is_empty(),
         "factors should be gone, got {}",
         left.len()
     );
-    let recovery = TotpRecoveryCode::get_from_user_id(&uid, &valence)
-        .await
-        .expect("recovery list");
+    let recovery = TotpRecoveryCode::get_from_user_id_used(
+        &uid,
+        &valence,
+        valence::use_!(r"**Test:** Fixture **Totp Recovery Code** list for `totp_recovery` so the suite can assert disable removed every recovery code. CI and developers running the suite only."),
+    )
+    .await
+    .expect("recovery list");
     assert!(
         recovery.is_empty(),
         "recovery codes should be gone, got {}",

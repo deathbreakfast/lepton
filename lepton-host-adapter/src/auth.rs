@@ -204,7 +204,10 @@ async fn resolve_session_fields(
     let email_verified = primary.as_ref().is_some_and(|e| e.verified_at().is_some());
 
     let display_name = generated_user
-        .get_profile(valence)
+        .get_profile_used(
+            valence,
+            valence::use_!(r"When you **sign in**, we **follow the profile link** on your account so your session can carry your **display name**. Only your signed-in session uses that name."),
+        )
         .await
         .unwrap_or_default()
         .into_iter()
@@ -212,7 +215,10 @@ async fn resolve_session_fields(
         .map(|p| p.display_name().clone());
 
     let memberships = generated_user
-        .get_memberships(valence)
+        .get_memberships_used(
+            valence,
+            valence::use_!(r"When you **sign in**, we **load your account memberships** so the session knows which account you belong to and which **roles** apply. Only your signed-in session uses those memberships."),
+        )
         .await
         .unwrap_or_default();
     let account_id = memberships.first().map(|m| m.account().to_string());

@@ -553,9 +553,13 @@ pub mod ssr {
             use crate::factor::verify_totp_against_sealed;
 
             let uid = user_bare_id(auth_user);
-            let factors = TotpFactor::get_from_user_id(&uid, valence)
-                .await
-                .map_err(|e| ServerFnError::new(format!("Failed to load TOTP factors: {e}")))?;
+            let factors = TotpFactor::get_from_user_id_used(
+                &uid,
+                valence,
+                valence::use_!(r"Before you **wipe this account**, we **list your authenticators** so we can require a step-up code when one is enabled. Only this wipe confirmation uses that check."),
+            )
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to load TOTP factors: {e}")))?;
             if let Some(factor) = factors.into_iter().find(|f| f.enabled_at().is_some()) {
                 let Some(code) = req
                     .totp_code

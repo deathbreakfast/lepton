@@ -14,9 +14,13 @@ pub(super) async fn verify_for_user(
     code: &str,
 ) -> Result<(), FactorChallengeError> {
     let user_bare = bare_id(user);
-    let factors = TotpFactor::get_from_user_id(&user_bare, valence)
-        .await
-        .map_err(|_| FactorChallengeError::Token)?;
+    let factors = TotpFactor::get_from_user_id_used(
+        &user_bare,
+        valence,
+        valence::use_!(r"When you **verify with your authenticator**, we **list your factors** so we can check the code against the enabled secret. Only this verification step uses that match."),
+    )
+    .await
+    .map_err(|_| FactorChallengeError::Token)?;
     let Some(factor) = factors.into_iter().find(|f| f.enabled_at().is_some()) else {
         return Err(FactorChallengeError::TotpUnavailable);
     };

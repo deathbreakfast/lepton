@@ -88,8 +88,8 @@
 //! pattern host-adapter token schemas use). After codegen, hop with the instance method
 //! `get_user(&valence)` (and `user_thing()` for the raw [`RecordId`](valence::RecordId)).
 //!
-//! Prerequisites: product schema codegen that emits the `get_user` hop; a loaded product
-//! row and Valence handle. Errors: Valence load failures bubble from `get_user`.
+//! Prerequisites: product schema codegen that emits the `get_user_used` hop; a loaded product
+//! row and Valence handle. Errors: Valence load failures bubble from `get_user_used`.
 //! Next: apply `OWNER_BY_USER_FIELD` when the product row is owned by that user (privacy
 //! choice, separate from the hop API).
 //!
@@ -99,7 +99,12 @@
 //! use valence::Valence;
 //!
 //! async fn load_owner(order: &Order, valence: &Valence) -> valence::Result<()> {
-//!     let user = order.get_user(valence).await?;
+//!     let user = order
+//!         .get_user_used(
+//!             valence,
+//!             valence::use_!(r#"In this **docs example**, we **follow the order’s user link** so the sample can show how product rows load their owner. Readers of the crate docs only."#),
+//!         )
+//!         .await?;
 //!     let expected = "user:demo";
 //!     assert_eq!(user.id().to_string(), expected);
 //!     Ok(())

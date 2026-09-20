@@ -52,9 +52,13 @@ async fn load_enabled_factor(
     user: &RecordId,
 ) -> Result<TotpFactor, StepUpError> {
     let uid = valence::extract_id_from_record(user).unwrap_or_else(|_| user.id().to_string());
-    let factors = TotpFactor::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| StepUpError::Store)?;
+    let factors = TotpFactor::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"Before we check an **authenticator step-up code**, we **list your authenticators** so we can find the one that is enabled. Only this step-up check uses that factor."),
+    )
+    .await
+    .map_err(|_| StepUpError::Store)?;
     factors
         .into_iter()
         .find(|f| f.enabled_at().is_some())

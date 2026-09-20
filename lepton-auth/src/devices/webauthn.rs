@@ -42,9 +42,13 @@ async fn load_user_passkeys(
     user: &RecordId,
 ) -> Result<Vec<(String, Passkey)>, DeviceError> {
     let uid = bare_id(user);
-    let rows = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let rows = AuthDevice::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"When you **sign in with a security key or passkey**, we **list your trusted devices** so we can build the challenge from credentials you already registered. Only this assertion flow uses that list."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     let mut out = Vec::new();
     for d in rows {
         if *d.kind() != GeneratedKind::Webauthn {
@@ -157,9 +161,13 @@ pub async fn finish_webauthn_registration(
     let credential_id = credential_id_string(&passkey)?;
     // Reject duplicate credential ids for this user.
     let uid = bare_id(user);
-    let existing = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let existing = AuthDevice::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"When you **finish registering a security key**, we **list your existing devices** so we can reject a duplicate credential before saving the new one. Only you use the updated device list afterward."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     if existing
         .iter()
         .any(|d| d.credential_id().is_some_and(|c| c == &credential_id) && d.revoked_at().is_none())
@@ -276,9 +284,13 @@ pub async fn finish_webauthn_assertion(
         })?;
     let matched_cred = credential_id_from_result(&result)?;
     let uid = bare_id(user);
-    let rows = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let rows = AuthDevice::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"After a **passkey assertion** succeeds, we **list your devices** so we can find the credential that matched and update when it was last seen. Only your account uses that device record."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     let device = rows
         .into_iter()
         .find(|d| {

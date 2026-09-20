@@ -72,9 +72,13 @@ pub async fn begin_totp_enroll(
         return Err(TotpEnrollError::UserMissing);
     }
 
-    let existing = TotpFactor::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| TotpEnrollError::Store)?;
+    let existing = TotpFactor::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"Before we begin **enrollment** on setting up your **authenticator**, we **list existing authenticators** for this account so we know whether setup is already complete. You see the result on the setup screen."),
+    )
+    .await
+    .map_err(|_| TotpEnrollError::Store)?;
     if existing.iter().any(|f| f.enabled_at().is_some()) {
         #[cfg(feature = "spectra")]
         crate::spectra_emit::totp(
@@ -212,10 +216,14 @@ async fn physical_delete(
     let backend = valence
         .backend_for_table(table)
         .map_err(|_| TotpEnrollError::Store)?;
-    backend
-        .delete_record(table, bare)
-        .await
-        .map_err(|_| TotpEnrollError::Store)?;
+    valence::delete_record_used(
+        backend.as_ref(),
+        table,
+        bare,
+        valence::use_!(r"When you **turn off authenticator sign-in**, we **remove the authenticator or recovery-code row** from storage so it cannot be used again. Only your account feels this cleanup."),
+    )
+    .await
+    .map_err(|_| TotpEnrollError::Store)?;
     valence::read_cache::invalidate(table, bare);
     Ok(())
 }
@@ -231,9 +239,13 @@ async fn physical_delete(
 pub async fn disable_totp(valence: &Valence, user: &RecordId) -> Result<(), TotpEnrollError> {
     let uid = bare_id(user);
     let now = Utc::now();
-    let recovery = TotpRecoveryCode::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| TotpEnrollError::Store)?;
+    let recovery = TotpRecoveryCode::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"When you **turn off authenticator sign-in**, we **list your recovery codes** so we can mark and remove them before the authenticator is gone. Only this disable path uses that list."),
+    )
+    .await
+    .map_err(|_| TotpEnrollError::Store)?;
     for code in recovery {
         if code.used_at().is_none() {
             code.get_mutable_used(valence, valence::use_!(r"When you **turn off authenticator sign-in**, we **mark your remaining recovery codes as used** before removing them, so a code copied earlier can never be replayed."))
@@ -248,9 +260,13 @@ pub async fn disable_totp(valence: &Valence, user: &RecordId) -> Result<(), Totp
         }
     }
 
-    let factors = TotpFactor::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| TotpEnrollError::Store)?;
+    let factors = TotpFactor::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"When you **turn off authenticator sign-in**, we **list your authenticators** so each one can be removed. Only this disable path uses that list."),
+    )
+    .await
+    .map_err(|_| TotpEnrollError::Store)?;
     for factor in factors {
         let Some(id) = factor.id().map(bare_id) else {
             continue;
@@ -303,9 +319,13 @@ pub async fn consume_totp_recovery_code(
     }
 
     let uid = bare_id(user);
-    let rows = TotpRecoveryCode::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| TotpEnrollError::Store)?;
+    let rows = TotpRecoveryCode::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"When you **use an authenticator recovery code** to sign in, we **list your unused recovery codes** so we can match the one you typed without showing the hashes. Only this sign-in step uses that match."),
+    )
+    .await
+    .map_err(|_| TotpEnrollError::Store)?;
 
     let mut matched = None;
     for row in rows {
@@ -365,9 +385,13 @@ pub async fn regenerate_totp_recovery_codes(
     user: &RecordId,
 ) -> Result<Vec<String>, TotpEnrollError> {
     let uid = bare_id(user);
-    let existing = TotpRecoveryCode::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| TotpEnrollError::Store)?;
+    let existing = TotpRecoveryCode::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"When you **generate new authenticator recovery codes**, we **list your old codes** so we can retire them before saving the new set. Only you see the new plaintext codes once."),
+    )
+    .await
+    .map_err(|_| TotpEnrollError::Store)?;
     let now = Utc::now();
     for code in existing {
         code.get_mutable_used(valence, valence::use_!(r"When you **generate new authenticator recovery codes**, we first **mark your old codes as used** before replacing them, so a previously saved code stops working once the new set is issued."))

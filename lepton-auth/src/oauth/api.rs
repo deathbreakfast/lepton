@@ -636,10 +636,14 @@ pub async fn unlink_oauth_identity(
     let backend = valence
         .backend_for_table("linked_identity")
         .map_err(|_| OAuthError::Store)?;
-    backend
-        .delete_record("linked_identity", &id)
-        .await
-        .map_err(|_| OAuthError::Store)?;
+    valence::delete_record_used(
+        backend.as_ref(),
+        "linked_identity",
+        &id,
+        valence::use_!(r"When you **unlink a social login**, we **remove that linked identity** so it can no longer sign you in. Only your account feels this change on the linked-accounts list."),
+    )
+    .await
+    .map_err(|_| OAuthError::Store)?;
     valence::read_cache::invalidate("linked_identity", &id);
     Ok(())
 }
@@ -654,9 +658,13 @@ pub async fn list_linked_identities(
     user: &RecordId,
 ) -> Result<Vec<LinkedIdentity>, OAuthError> {
     let uid = bare_id(user);
-    LinkedIdentity::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| OAuthError::Store)
+    LinkedIdentity::get_from_user_id_used(
+        &uid,
+        valence,
+        valence::use_!(r"On your **linked accounts** settings, we **list the social logins** tied to your user so you can see what is connected. Only you see this list for your account."),
+    )
+    .await
+    .map_err(|_| OAuthError::Store)
 }
 
 #[cfg(all(test, not(feature = "oauth-github")))]

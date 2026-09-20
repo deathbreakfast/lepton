@@ -28,10 +28,14 @@ async fn physical_delete(
     let backend = valence
         .backend_for_table(table)
         .map_err(|_| IdentityDeleteError::Store)?;
-    backend
-        .delete_record(table, bare)
-        .await
-        .map_err(|_| IdentityDeleteError::Store)?;
+    valence::delete_record_used(
+        backend.as_ref(),
+        table,
+        bare,
+        valence::use_!(r"During **account erasure**, we **remove a leftover identity row** from storage so user-related data does not remain after wipe. Only the erasure path uses this cleanup."),
+    )
+    .await
+    .map_err(|_| IdentityDeleteError::Store)?;
     valence::read_cache::invalidate(table, bare);
     Ok(())
 }
@@ -255,17 +259,25 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
             physical_delete(valence, "linked_identity", &bare_id(id)).await?;
         }
     }
-    for factor in TotpFactor::get_from_user_id(uid, valence)
-        .await
-        .map_err(|_| IdentityDeleteError::Store)?
+    for factor in TotpFactor::get_from_user_id_used(
+        uid,
+        valence,
+        valence::use_!(r"During **account erasure**, we **list authenticator factors** for this user so each one can be removed with the rest of the account. Only the erasure path uses this list."),
+    )
+    .await
+    .map_err(|_| IdentityDeleteError::Store)?
     {
         if let Some(id) = factor.id() {
             physical_delete(valence, "totp_factor", &bare_id(id)).await?;
         }
     }
-    for code in TotpRecoveryCode::get_from_user_id(uid, valence)
-        .await
-        .map_err(|_| IdentityDeleteError::Store)?
+    for code in TotpRecoveryCode::get_from_user_id_used(
+        uid,
+        valence,
+        valence::use_!(r"During **account erasure**, we **list recovery codes** for this user so each one can be removed with the rest of the account. Only the erasure path uses this list."),
+    )
+    .await
+    .map_err(|_| IdentityDeleteError::Store)?
     {
         if let Some(id) = code.id() {
             physical_delete(valence, "totp_recovery_code", &bare_id(id)).await?;
