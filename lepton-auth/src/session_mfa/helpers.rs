@@ -33,9 +33,13 @@ pub(super) async fn user_has_enabled_totp(
     #[cfg(feature = "totp")]
     {
         let uid = bare_id(user);
-        let factors = TotpFactor::get_from_user_id(&uid, valence)
-            .await
-            .map_err(|_| SessionMfaError::Store)?;
+        let factors = TotpFactor::get_from_user_id(
+            &uid,
+            valence,
+            valence::use_!(r"After password **sign-in**, we **check whether an authenticator is enabled** so we know if a second factor is required before the session is fully signed in. Only this MFA gate uses that answer."),
+        )
+        .await
+        .map_err(|_| SessionMfaError::Store)?;
         Ok(factors.iter().any(|f| f.enabled_at().is_some()))
     }
 }
@@ -46,9 +50,13 @@ pub(super) async fn user_has_webauthn(
     user: &RecordId,
 ) -> Result<bool, SessionMfaError> {
     let uid = bare_id(user);
-    let devices = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| SessionMfaError::Store)?;
+    let devices = AuthDevice::get_from_user_id(
+        &uid,
+        valence,
+        valence::use_!(r"After password **sign-in**, we **check whether a security key is registered** so we know if a passkey challenge is required before the session is fully signed in. Only this MFA gate uses that answer."),
+    )
+    .await
+    .map_err(|_| SessionMfaError::Store)?;
     Ok(devices.iter().any(|d| {
         *d.kind() == GeneratedKind::Webauthn && d.revoked_at().is_none() && d.trusted_at().is_some()
     }))

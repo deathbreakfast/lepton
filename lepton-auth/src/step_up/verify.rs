@@ -43,7 +43,7 @@ const fn current_step(now_secs: i64) -> i64 {
 
 /// Whether this TOTP time-step was already accepted (same-step replay).
 #[must_use]
-fn step_already_used(last_used_step: Option<i64>, now_secs: i64) -> bool {
+fn step_already(last_used_step: Option<i64>, now_secs: i64) -> bool {
     last_used_step == Some(current_step(now_secs))
 }
 
@@ -52,9 +52,13 @@ async fn load_enabled_factor(
     user: &RecordId,
 ) -> Result<TotpFactor, StepUpError> {
     let uid = valence::extract_id_from_record(user).unwrap_or_else(|_| user.id().to_string());
-    let factors = TotpFactor::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| StepUpError::Store)?;
+    let factors = TotpFactor::get_from_user_id(
+        &uid,
+        valence,
+        valence::use_!(r"Before we check an **authenticator step-up code**, we **list your authenticators** so we can find the one that is enabled. Only this step-up check uses that factor."),
+    )
+    .await
+    .map_err(|_| StepUpError::Store)?;
     factors
         .into_iter()
         .find(|f| f.enabled_at().is_some())
@@ -69,7 +73,7 @@ async fn apply_failure(
 ) -> Result<StepUpError, StepUpError> {
     let (next, locked_until) = record_failure(failed_attempts, now);
     let mut mutable = factor
-        .get_mutable_used(valence, valence::use_!(r"When an **authenticator step-up code fails**, we **record the failed attempt** on your factor and set a lockout if you've failed too many times, so repeated wrong guesses get rate-limited."))
+        .get_mutable(valence, valence::use_!(r"When an **authenticator step-up code fails**, we **record the failed attempt** on your factor and set a lockout if you've failed too many times, so repeated wrong guesses get rate-limited."))
         .set_failed_attempts(next)
         .map_err(|_| StepUpError::Store)?;
     mutable = if let Some(until) = locked_until {
@@ -104,7 +108,7 @@ async fn apply_success(
         sealed = seal_totp_secret(&sealed).map_err(|_| StepUpError::TotpSecret)?;
     }
     factor
-        .get_mutable_used(valence, valence::use_!(r"When an **authenticator step-up code succeeds**, we **update your factor** with the step it matched and clear any lockout, so the same code can't be replayed and your next attempt starts fresh."))
+        .get_mutable(valence, valence::use_!(r"When an **authenticator step-up code succeeds**, we **update your factor** with the step it matched and clear any lockout, so the same code can't be replayed and your next attempt starts fresh."))
         .set_secret_sealed(sealed)
         .map_err(|_| StepUpError::Store)?
         .set_last_used_step(step)
@@ -140,7 +144,7 @@ pub async fn verify_code_against_factor(
     }
     let failed = factor.failed_attempts().copied().unwrap_or(0);
     let step = current_step(now.timestamp());
-    if step_already_used(factor.last_used_step().copied(), now.timestamp()) {
+    if step_already(factor.last_used_step().copied(), now.timestamp()) {
         return Err(apply_failure(valence, factor, failed, now).await?);
     }
     let open = unseal_totp_secret(factor.secret_sealed()).map_err(|e| match e {
@@ -282,9 +286,9 @@ mod tests {
     fn same_step_replay_denied() {
         let now = 1_700_000_030_i64;
         let step = current_step(now);
-        assert!(step_already_used(Some(step), now));
-        assert!(!step_already_used(Some(step - 1), now));
-        assert!(!step_already_used(None, now));
+        assert!(step_already(Some(step), now));
+        assert!(!step_already(Some(step - 1), now));
+        assert!(!step_already(None, now));
     }
 
     #[test]

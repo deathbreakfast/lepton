@@ -33,7 +33,7 @@ pub async fn register_auth_device(
 ) -> Result<PendingAuthDevice, DeviceError> {
     let gen_kind = kind_to_generated(kind)?;
     let uid = bare_id(user);
-    if User::get_used(&uid, valence, valence::use_!(r"In **trusted devices**, we **load User** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    if User::get(&uid, valence, valence::use_!(r"In **trusted devices**, we **load User** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| DeviceError::Store)?
         .is_none()
@@ -61,7 +61,7 @@ pub async fn register_auth_device(
         now,
     )
     .map_err(|_| DeviceError::Store)?;
-    AuthDevice::upsert_used(&device_id, row, valence, valence::use_!(r"When **trusted devices** needs to persist work, we **save Auth Device** so the next step in that feature can continue with the latest values. People and services allowed for **trusted devices** use this data for that workflow—not as a general export of unrelated personal fields."))
+    AuthDevice::upsert(&device_id, row, valence, valence::use_!(r"When **trusted devices** needs to persist work, we **save Auth Device** so the next step in that feature can continue with the latest values. People and services allowed for **trusted devices** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| DeviceError::Store)?;
     #[cfg(feature = "spectra")]
@@ -93,7 +93,7 @@ pub async fn confirm_auth_device(
 ) -> Result<(), DeviceError> {
     use argon2::{password_hash::PasswordHash, PasswordVerifier};
 
-    let device = AuthDevice::get_used(device_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let device = AuthDevice::get(device_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::DeviceMissing)?;
@@ -118,7 +118,7 @@ pub async fn confirm_auth_device(
     }
     let now = Utc::now();
     device
-        .get_mutable_used(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
         .set_trusted_at(now)
         .map_err(|_| DeviceError::Store)?
         .set_last_seen_at(now)
@@ -148,9 +148,13 @@ pub async fn list_auth_devices(
     user: &RecordId,
 ) -> Result<Vec<AuthDeviceView>, DeviceError> {
     let uid = bare_id(user);
-    let rows = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let rows = AuthDevice::get_from_user_id(
+        &uid,
+        valence,
+        valence::use_!(r"On your **trusted devices** settings, we **list the browsers and security keys** tied to your account so you can review or revoke them. Only you see this list; secret material is never included."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     Ok(rows
         .into_iter()
         .filter_map(|d| {
@@ -183,7 +187,7 @@ pub async fn revoke_auth_device(
     user: &RecordId,
     device_id: &str,
 ) -> Result<(), DeviceError> {
-    let device = AuthDevice::get_used(device_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let device = AuthDevice::get(device_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::DeviceMissing)?;
@@ -192,7 +196,7 @@ pub async fn revoke_auth_device(
     }
     let now = Utc::now();
     device
-        .get_mutable_used(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
         .set_revoked_at(now)
         .map_err(|_| DeviceError::Store)?
         .clear_binding_secret_hash()
@@ -221,7 +225,7 @@ pub async fn touch_auth_device(
     user: &RecordId,
     device_id: &str,
 ) -> Result<(), DeviceError> {
-    let device = AuthDevice::get_used(device_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let device = AuthDevice::get(device_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::DeviceMissing)?;
@@ -236,7 +240,7 @@ pub async fn touch_auth_device(
     }
     let now = Utc::now();
     device
-        .get_mutable_used(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
         .set_last_seen_at(now)
         .map_err(|_| DeviceError::Store)?
         .set_updated_at(now)

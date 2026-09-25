@@ -189,7 +189,7 @@ async fn resolve_session_fields(
 ) -> Result<(String, bool, Option<String>, Option<String>, Vec<String>), std::io::Error> {
     let primary = if let Some(pid) = generated_user.primary_email() {
         let bare = bare_user_id(pid);
-        AccountEmail::get_used(&bare, valence, valence::use_!(r"In **lepton host adapter**, we **load Account Email** so the application can decide what to do next in this workflow. The result is used by **lepton host adapter** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        AccountEmail::get(&bare, valence, valence::use_!(r"In **lepton host adapter**, we **load Account Email** so the application can decide what to do next in this workflow. The result is used by **lepton host adapter** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| std::io::Error::other(format!("Get primary email: {e}")))?
     } else {
@@ -204,7 +204,10 @@ async fn resolve_session_fields(
     let email_verified = primary.as_ref().is_some_and(|e| e.verified_at().is_some());
 
     let display_name = generated_user
-        .get_profile(valence)
+        .get_profile(
+            valence,
+            valence::use_!(r"When you **sign in**, we **follow the profile link** on your account so your session can carry your **display name**. Only your signed-in session uses that name."),
+        )
         .await
         .unwrap_or_default()
         .into_iter()
@@ -212,7 +215,10 @@ async fn resolve_session_fields(
         .map(|p| p.display_name().clone());
 
     let memberships = generated_user
-        .get_memberships(valence)
+        .get_memberships(
+            valence,
+            valence::use_!(r"When you **sign in**, we **load your account memberships** so the session knows which account you belong to and which **roles** apply. Only your signed-in session uses those memberships."),
+        )
         .await
         .unwrap_or_default();
     let account_id = memberships.first().map(|m| m.account().to_string());
@@ -237,7 +243,7 @@ impl AuthnBackend for Backend {
         let valence = valence_from_factory(self.valence_factory.as_ref(), "authenticate")?;
 
         let email = creds.email.trim().to_string();
-        let email_row = AccountEmail::query_used(&valence, valence::use_!(r"In **lepton host adapter**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **lepton host adapter** use the list; it is not a public dump of every field to anonymous visitors."))
+        let email_row = AccountEmail::query(&valence, valence::use_!(r"In **lepton host adapter**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **lepton host adapter** use the list; it is not a public dump of every field to anonymous visitors."))
             .where_address(StringPredicate::Equals(email.clone()))
             .first()
             .await
@@ -247,7 +253,7 @@ impl AuthnBackend for Backend {
             let Some(email_id) = row.id().cloned() else {
                 return Ok(None);
             };
-            GeneratedUser::query_used(&valence, valence::use_!(r"In **lepton host adapter**, we **list Generated User** so the product can show or process the matching set for this workflow. Callers allowed for **lepton host adapter** use the list; it is not a public dump of every field to anonymous visitors."))
+            GeneratedUser::query(&valence, valence::use_!(r"In **lepton host adapter**, we **list Generated User** so the product can show or process the matching set for this workflow. Callers allowed for **lepton host adapter** use the list; it is not a public dump of every field to anonymous visitors."))
                 .where_primary_email(RecordPredicate::Equals(email_id))
                 .first()
                 .await
@@ -291,7 +297,7 @@ impl AuthnBackend for Backend {
         let valence = valence_from_factory(self.valence_factory.as_ref(), "get_user")?;
 
         let record_id = user_id.split(':').next_back().unwrap_or(user_id.as_str());
-        let generated_user = GeneratedUser::get_used(record_id, &valence, valence::use_!(r"In **lepton host adapter**, we **load Generated User** so the application can decide what to do next in this workflow. The result is used by **lepton host adapter** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        let generated_user = GeneratedUser::get(record_id, &valence, valence::use_!(r"In **lepton host adapter**, we **load Generated User** so the application can decide what to do next in this workflow. The result is used by **lepton host adapter** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| std::io::Error::other(format!("Get user error: {e}")))?;
 

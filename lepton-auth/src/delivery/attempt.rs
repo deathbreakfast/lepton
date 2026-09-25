@@ -59,7 +59,7 @@ pub async fn record_delivery_attempt(
         Utc::now(),
     )
     .map_err(|_| DeliveryAttemptWriteError::Store)?;
-    DeliveryAttempt::upsert_used(&id, row, valence, valence::use_!(r"When **delivery** needs to persist work, we **save Delivery Attempt** so the next step in that feature can continue with the latest values. People and services allowed for **delivery** use this data for that workflow—not as a general export of unrelated personal fields."))
+    DeliveryAttempt::upsert(&id, row, valence, valence::use_!(r"When **delivery** needs to persist work, we **save Delivery Attempt** so the next step in that feature can continue with the latest values. People and services allowed for **delivery** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| DeliveryAttemptWriteError::Store)
 }

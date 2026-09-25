@@ -26,7 +26,7 @@ pub async fn request_password_reset(
         .unsafe_system_valence()
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    let maybe_email = AccountEmail::query_used(&valence, valence::use_!(r"In **password reset**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **password reset** use the list; it is not a public dump of every field to anonymous visitors."))
+    let maybe_email = AccountEmail::query(&valence, valence::use_!(r"In **password reset**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **password reset** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_address(StringPredicate::Equals(email.clone()))
         .first()
         .await
@@ -34,7 +34,7 @@ pub async fn request_password_reset(
 
     let maybe_user = if let Some(row) = maybe_email {
         match row.id().cloned() {
-            Some(email_id) => User::query_used(&valence, valence::use_!(r"In **password reset**, we **list User** so the product can show or process the matching set for this workflow. Callers allowed for **password reset** use the list; it is not a public dump of every field to anonymous visitors."))
+            Some(email_id) => User::query(&valence, valence::use_!(r"In **password reset**, we **list User** so the product can show or process the matching set for this workflow. Callers allowed for **password reset** use the list; it is not a public dump of every field to anonymous visitors."))
                 .where_primary_email(valence::RecordPredicate::Equals(email_id))
                 .first()
                 .await
@@ -64,7 +64,7 @@ pub async fn request_password_reset(
             )
             .map_err(|e| ServerFnError::new(format!("Failed to build reset token: {e}")))?;
 
-            PasswordResetToken::upsert_used(&token_id, token, &valence, valence::use_!(r"When **password reset** needs to persist work, we **save Password Reset Token** so the next step in that feature can continue with the latest values. People and services allowed for **password reset** use this data for that workflow—not as a general export of unrelated personal fields."))
+            PasswordResetToken::upsert(&token_id, token, &valence, valence::use_!(r"When **password reset** needs to persist work, we **save Password Reset Token** so the next step in that feature can continue with the latest values. People and services allowed for **password reset** use this data for that workflow—not as a general export of unrelated personal fields."))
                 .await
                 .map_err(|e| ServerFnError::new(format!("Failed to save reset token: {e}")))?;
 
@@ -160,7 +160,7 @@ pub async fn reset_password(
 
     let user_id = extract_id_from_record(reset_record.user())
         .map_err(|e| ServerFnError::new(format!("Invalid user ref on reset token: {e}")))?;
-    let user = User::get_used(&user_id, &valence, valence::use_!(r"In **password reset**, we **load User** so the application can decide what to do next in this workflow. The result is used by **password reset** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let user = User::get(&user_id, &valence, valence::use_!(r"In **password reset**, we **load User** so the application can decide what to do next in this workflow. The result is used by **password reset** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?;
     let Some(user) = user else {
@@ -170,7 +170,7 @@ pub async fn reset_password(
     let new_hash = lepton_host_adapter::auth::hash_password(&new_password)
         .map_err(|e| ServerFnError::new(format!("Failed to hash password: {e}")))?;
 
-    user.get_mutable_used(&valence, valence::use_!(r"In **actions**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **actions** use the updated data; this is not a public export of unrelated fields."))
+    user.get_mutable(&valence, valence::use_!(r"In **actions**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **actions** use the updated data; this is not a public export of unrelated fields."))
         .set_password_hash(new_hash)
         .map_err(|e| ServerFnError::new(format!("Failed to set new hash: {e}")))?
         .set_updated_at(Utc::now())

@@ -184,7 +184,7 @@ pub async fn step_up_demo_password_and_totp(
         .split_once(':')
         .map(|(_, rest)| rest.to_string())
         .unwrap_or(record_id);
-    let user = User::get_used(&bare, &valence, valence::use_!(r"**Test:** Fixture **User** load for `step_up_demo` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+    let user = User::get(&bare, &valence, valence::use_!(r"**Test:** Fixture **User** load for `step_up_demo` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .await
         .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
         .ok_or_else(|| ServerFnError::new("User not found"))?;

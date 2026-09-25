@@ -46,7 +46,7 @@ async fn seed_user(valence: &valence::Valence) -> valence::RecordId {
         now,
     )
     .expect("user");
-    let created = IdentityUser::create_used(user, valence, valence::use_!(r"**Test:** Fixture **Identity User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only.")).await.expect("create");
+    let created = IdentityUser::create(user, valence, valence::use_!(r"**Test:** Fixture **Identity User** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only.")).await.expect("create");
     created.id().cloned().expect("id")
 }
 
@@ -162,13 +162,13 @@ async fn webauthn_ceremony_expired_sad() {
     let pending = begin_webauthn_registration(&valence, &rp, &user, "SoftKey")
         .await
         .expect("begin");
-    let ceremony = AuthDeviceCeremony::get_used(&pending.ceremony_id, &valence, valence::use_!(r"**Test:** Fixture **Auth Device Ceremony** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+    let ceremony = AuthDeviceCeremony::get(&pending.ceremony_id, &valence, valence::use_!(r"**Test:** Fixture **Auth Device Ceremony** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .await
         .expect("get")
         .expect("row");
     let past = Utc::now() - Duration::hours(1);
     ceremony
-        .get_mutable_used(&valence, valence::use_!(r"**Test:** Fixture **this data** access in `webauthn_devices` so the suite can arrange and assert persistence. CI and developers running the suite only."))
+        .get_mutable(&valence, valence::use_!(r"**Test:** Fixture **this data** access in `webauthn_devices` so the suite can arrange and assert persistence. CI and developers running the suite only."))
         .set_expires_at(past)
         .expect("set")
         .set_updated_at(Utc::now())

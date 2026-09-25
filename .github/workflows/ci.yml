@@ -17,7 +17,7 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Leptos `nightly` feature + Orbital UI need a nightly toolchain (stable
       # cannot satisfy Signal-as-Fn / reactive style bounds).
       - uses: dtolnay/rust-toolchain@nightly
@@ -63,11 +63,19 @@ jobs:
         run: cargo doc -p lepton-sms -p lepton-smtp --no-deps --features twilio
         env:
           RUSTDOCFLAGS: "-D warnings"
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+      - name: cargo deny
+        run: cargo deny check
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: cargo audit
+        run: cargo audit
 
   leptos-lints:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -95,11 +103,12 @@ jobs:
 
       - name: cargo dylint (leptos-lints)
         # zerocopy on this pinned nightly needs AVX512 on the host triple (same as orbital).
+        # crc32fast 1.5+ also needs avx512_target_feature when those crate attrs are set.
         # Lint hydrate on the host; wasm32 compile is covered by the wasm-hydrate job
         # (stdarch_x86_avx512 is unknown on wasm32).
         env:
           CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
-          RUSTFLAGS: "-D warnings -Zcrate-attr=feature(stdarch_x86_avx512)"
+          RUSTFLAGS: "-D warnings -Zcrate-attr=feature(stdarch_x86_avx512) -Zcrate-attr=feature(avx512_target_feature)"
         run: |
           cargo dylint --all -p lepton-auth-ui --no-deps -- --features hydrate
           cargo dylint --all -p lepton-auth-ui-e2e --no-deps -- --features hydrate
@@ -107,7 +116,7 @@ jobs:
   wasm-hydrate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
@@ -123,7 +132,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
@@ -137,7 +146,7 @@ jobs:
       - name: Install cargo-leptos
         run: cargo install cargo-leptos --locked --version 0.3.6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: npm
@@ -152,7 +161,7 @@ jobs:
         working-directory: lepton-auth-ui-e2e/end2end
         run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -191,7 +200,7 @@ jobs:
 
       - name: Upload Playwright artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-artifacts-${{ github.run_id }}
           path: |

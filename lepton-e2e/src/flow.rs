@@ -450,7 +450,7 @@ pub async fn verify_email_token(valence: &Valence, token_id: &str) -> Result<(),
     if token_id.is_empty() {
         return Err(LiveVerifyError::CodeRejected);
     }
-    let token_record = EmailVerificationToken::get_used(token_id, valence, valence::use_!(r#"**Test:** Fixture **Email Verification Token** load for `flow` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+    let token_record = EmailVerificationToken::get(token_id, valence, valence::use_!(r#"**Test:** Fixture **Email Verification Token** load for `flow` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .map_err(|_| LiveVerifyError::Token)?
         .ok_or(LiveVerifyError::CodeRejected)?;
@@ -468,7 +468,7 @@ pub async fn verify_email_token(valence: &Valence, token_id: &str) -> Result<(),
 
     let email_bare = valence::extract_id_from_record(token_record.user_email())
         .map_err(|_| LiveVerifyError::UserMissing)?;
-    let email_row = AccountEmail::get_used(&email_bare, valence, valence::use_!(r#"**Test:** Fixture **Account Email** load for `flow` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+    let email_row = AccountEmail::get(&email_bare, valence, valence::use_!(r#"**Test:** Fixture **Account Email** load for `flow` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .map_err(|_| LiveVerifyError::Token)?
         .ok_or(LiveVerifyError::UserMissing)?;
@@ -482,11 +482,11 @@ pub async fn verify_email_token(valence: &Valence, token_id: &str) -> Result<(),
 
     let user_bare = valence::extract_id_from_record(token_record.user())
         .map_err(|_| LiveVerifyError::UserMissing)?;
-    let user = User::get_used(&user_bare, valence, valence::use_!(r#"**Test:** Fixture **User** load for `flow` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+    let user = User::get(&user_bare, valence, valence::use_!(r#"**Test:** Fixture **User** load for `flow` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
         .await
         .map_err(|_| LiveVerifyError::Token)?
         .ok_or(LiveVerifyError::UserMissing)?;
-    user.get_mutable_used(valence, valence::use_!(r#"**Test:** Fixture **this data** access in `flow` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
+    user.get_mutable(valence, valence::use_!(r#"**Test:** Fixture **this data** access in `flow` so the suite can arrange and assert persistence. CI and developers running the suite only."#))
         .set_status(UserStatus::Active)
         .map_err(|_| LiveVerifyError::Token)?
         .set_updated_at(Utc::now())

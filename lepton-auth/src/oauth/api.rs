@@ -451,7 +451,7 @@ pub async fn complete_oauth(
         }
         OAuthIntent::Signup => {
             if let Some(ref email) = email_hint {
-                let taken = AccountEmail::query_used(valence, valence::use_!(r"In **OAuth account linking**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **OAuth account linking** use the list; it is not a public dump of every field to anonymous visitors."))
+                let taken = AccountEmail::query(valence, valence::use_!(r"In **OAuth account linking**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **OAuth account linking** use the list; it is not a public dump of every field to anonymous visitors."))
                     .where_address(StringPredicate::Equals(email.clone()))
                     .first()
                     .await
@@ -557,7 +557,7 @@ async fn find_link(
     subject: &str,
 ) -> Result<Option<LinkedIdentity>, OAuthError> {
     let gen = provider.to_generated();
-    let rows = LinkedIdentity::query_used(valence, valence::use_!(r"In **OAuth account linking**, we **list Linked Identity** so the product can show or process the matching set for this workflow. Callers allowed for **OAuth account linking** use the list; it is not a public dump of every field to anonymous visitors."))
+    let rows = LinkedIdentity::query(valence, valence::use_!(r"In **OAuth account linking**, we **list Linked Identity** so the product can show or process the matching set for this workflow. Callers allowed for **OAuth account linking** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_provider_subject(StringPredicate::Equals(subject.to_string()))
         .await
         .map_err(|_| OAuthError::Store)?;
@@ -586,7 +586,7 @@ async fn insert_link(
     )
     .map_err(|_| OAuthError::Store)?;
     let id = random_token_part(12);
-    LinkedIdentity::upsert_used(&id, row, valence, valence::use_!(r"When **OAuth account linking** needs to persist work, we **save Linked Identity** so the next step in that feature can continue with the latest values. People and services allowed for **OAuth account linking** use this data for that workflow—not as a general export of unrelated personal fields."))
+    LinkedIdentity::upsert(&id, row, valence, valence::use_!(r"When **OAuth account linking** needs to persist work, we **save Linked Identity** so the next step in that feature can continue with the latest values. People and services allowed for **OAuth account linking** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| OAuthError::Store)?;
     Ok(())
@@ -626,7 +626,7 @@ pub async fn unlink_oauth_identity(
     linked_id: &RecordId,
 ) -> Result<(), OAuthError> {
     let id = bare_id(linked_id);
-    let row = LinkedIdentity::get_used(&id, valence, valence::use_!(r"In **OAuth account linking**, we **load Linked Identity** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let row = LinkedIdentity::get(&id, valence, valence::use_!(r"In **OAuth account linking**, we **load Linked Identity** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| OAuthError::Store)?
         .ok_or(OAuthError::LinkMissing)?;
@@ -636,10 +636,14 @@ pub async fn unlink_oauth_identity(
     let backend = valence
         .backend_for_table("linked_identity")
         .map_err(|_| OAuthError::Store)?;
-    backend
-        .delete_record("linked_identity", &id)
-        .await
-        .map_err(|_| OAuthError::Store)?;
+    valence::delete_record(
+        backend.as_ref(),
+        "linked_identity",
+        &id,
+        valence::use_!(r"When you **unlink a social login**, we **remove that linked identity** so it can no longer sign you in. Only your account feels this change on the linked-accounts list."),
+    )
+    .await
+    .map_err(|_| OAuthError::Store)?;
     valence::read_cache::invalidate("linked_identity", &id);
     Ok(())
 }
@@ -654,9 +658,13 @@ pub async fn list_linked_identities(
     user: &RecordId,
 ) -> Result<Vec<LinkedIdentity>, OAuthError> {
     let uid = bare_id(user);
-    LinkedIdentity::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| OAuthError::Store)
+    LinkedIdentity::get_from_user_id(
+        &uid,
+        valence,
+        valence::use_!(r"On your **linked accounts** settings, we **list the social logins** tied to your user so you can see what is connected. Only you see this list for your account."),
+    )
+    .await
+    .map_err(|_| OAuthError::Store)
 }
 
 #[cfg(all(test, not(feature = "oauth-github")))]

@@ -17,7 +17,7 @@ pub async fn account_for_user(
     valence: &Valence,
     user: &RecordId,
 ) -> Result<RecordId, ContactError> {
-    let memberships = AccountMembership::query_used(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
+    let memberships = AccountMembership::query(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_user(RecordPredicate::Equals(user.clone()))
         .await
         .map_err(|_| ContactError::Store)?;
@@ -33,7 +33,7 @@ async fn user_is_account_member(
     account: &RecordId,
     user: &RecordId,
 ) -> Result<bool, ContactError> {
-    let memberships = AccountMembership::query_used(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
+    let memberships = AccountMembership::query(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_account(RecordPredicate::Equals(account.clone()))
         .await
         .map_err(|_| ContactError::Store)?;
@@ -50,7 +50,7 @@ pub async fn find_account_email_by_address(
     valence: &Valence,
     address: &str,
 ) -> Result<Option<AccountEmail>, ContactError> {
-    AccountEmail::query_used(valence, valence::use_!(r"In **account contacts**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
+    AccountEmail::query(valence, valence::use_!(r"In **account contacts**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_address(StringPredicate::Equals(address.trim().to_string()))
         .first()
         .await
@@ -83,7 +83,7 @@ pub async fn add_account_email(
         return Err(ContactError::Conflict);
     }
     let account_bare = bare_id(account);
-    if Account::get_used(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    if Account::get(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .is_none()
@@ -93,7 +93,7 @@ pub async fn add_account_email(
     let now = Utc::now();
     let row = AccountEmail::new(account.clone(), address, None, now, now)
         .map_err(|_| ContactError::Store)?;
-    let result = AccountEmail::create_used(row, valence, valence::use_!(r"When **account contacts** needs to persist work, we **save Account Email** so the next step in that feature can continue with the latest values. People and services allowed for **account contacts** use this data for that workflow—not as a general export of unrelated personal fields."))
+    let result = AccountEmail::create(row, valence, valence::use_!(r"When **account contacts** needs to persist work, we **save Account Email** so the next step in that feature can continue with the latest values. People and services allowed for **account contacts** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| ContactError::Store);
     #[cfg(feature = "spectra")]
@@ -126,7 +126,7 @@ pub async fn add_account_phone(
     e164: &str,
 ) -> Result<AccountPhone, ContactError> {
     let e164 = e164.trim().to_string();
-    let existing = AccountPhone::query_used(valence, valence::use_!(r"In **account contacts**, we **list Account Phone** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
+    let existing = AccountPhone::query(valence, valence::use_!(r"In **account contacts**, we **list Account Phone** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_e164(StringPredicate::Equals(e164.clone()))
         .first()
         .await
@@ -142,7 +142,7 @@ pub async fn add_account_phone(
         return Err(ContactError::Conflict);
     }
     let account_bare = bare_id(account);
-    if Account::get_used(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    if Account::get(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .is_none()
@@ -152,7 +152,7 @@ pub async fn add_account_phone(
     let now = Utc::now();
     let row = AccountPhone::new(account.clone(), e164, None, now, now)
         .map_err(|_| ContactError::Store)?;
-    let result = AccountPhone::create_used(row, valence, valence::use_!(r"When **account contacts** needs to persist work, we **save Account Phone** so the next step in that feature can continue with the latest values. People and services allowed for **account contacts** use this data for that workflow—not as a general export of unrelated personal fields."))
+    let result = AccountPhone::create(row, valence, valence::use_!(r"When **account contacts** needs to persist work, we **save Account Phone** so the next step in that feature can continue with the latest values. People and services allowed for **account contacts** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| ContactError::Store);
     #[cfg(feature = "spectra")]
@@ -180,7 +180,7 @@ pub async fn set_primary_email(
     account_email: &RecordId,
 ) -> Result<(), ContactError> {
     let email_bare = bare_id(account_email);
-    let email = AccountEmail::get_used(&email_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Email** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let email = AccountEmail::get(&email_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Email** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -191,12 +191,12 @@ pub async fn set_primary_email(
         return Err(ContactError::Unverified);
     }
     let uid = bare_id(user);
-    let user_row = User::get_used(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let user_row = User::get(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::UserMissing)?;
     user_row
-        .get_mutable_used(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
         .set_primary_email(account_email.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -221,7 +221,7 @@ pub async fn set_account_primary_email(
     account_email: &RecordId,
 ) -> Result<(), ContactError> {
     let email_bare = bare_id(account_email);
-    let email = AccountEmail::get_used(&email_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Email** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let email = AccountEmail::get(&email_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Email** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -230,7 +230,7 @@ pub async fn set_account_primary_email(
     }
 
     let account_bare = bare_id(account);
-    let account_row = Account::get_used(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let account_row = Account::get(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::AccountMissing)?;
@@ -240,7 +240,7 @@ pub async fn set_account_primary_email(
     }
 
     account_row
-        .get_mutable_used(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
         .set_primary_email(account_email.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -258,7 +258,7 @@ pub async fn set_primary_phone(
     account_phone: &RecordId,
 ) -> Result<(), ContactError> {
     let phone_bare = bare_id(account_phone);
-    let phone = AccountPhone::get_used(&phone_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Phone** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let phone = AccountPhone::get(&phone_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Phone** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -269,12 +269,12 @@ pub async fn set_primary_phone(
         return Err(ContactError::Unverified);
     }
     let uid = bare_id(user);
-    let user_row = User::get_used(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let user_row = User::get(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::UserMissing)?;
     user_row
-        .get_mutable_used(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
         .set_primary_phone(account_phone.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -292,7 +292,7 @@ pub async fn set_account_primary_phone(
     account_phone: &RecordId,
 ) -> Result<(), ContactError> {
     let phone_bare = bare_id(account_phone);
-    let phone = AccountPhone::get_used(&phone_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Phone** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let phone = AccountPhone::get(&phone_bare, valence, valence::use_!(r"In **account contacts**, we **load Account Phone** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::ContactMissing)?;
@@ -301,7 +301,7 @@ pub async fn set_account_primary_phone(
     }
 
     let account_bare = bare_id(account);
-    let account_row = Account::get_used(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let account_row = Account::get(&account_bare, valence, valence::use_!(r"In **account contacts**, we **load Account** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| ContactError::Store)?
         .ok_or(ContactError::AccountMissing)?;
@@ -311,7 +311,7 @@ pub async fn set_account_primary_phone(
     }
 
     account_row
-        .get_mutable_used(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
         .set_primary_phone(account_phone.clone())
         .map_err(|_| ContactError::Store)?
         .set_updated_at(Utc::now())
@@ -333,7 +333,7 @@ pub async fn mark_account_email_verified(
         .cloned()
         .ok_or(ContactError::ContactMissing)?;
     account_email
-        .get_mutable_used(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
         .set_verified_at(now)
         .map_err(|_| ContactError::Store)?
         .set_updated_at(now)
@@ -342,13 +342,13 @@ pub async fn mark_account_email_verified(
         .await
         .map_err(|_| ContactError::Store)?;
 
-    let memberships = AccountMembership::query_used(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
+    let memberships = AccountMembership::query(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_account(RecordPredicate::Equals(account_email.account().clone()))
         .await
         .map_err(|_| ContactError::Store)?;
     for membership in memberships {
         let uid = bare_id(membership.user());
-        let Some(user) = User::get_used(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        let Some(user) = User::get(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|_| ContactError::Store)?
         else {
@@ -379,7 +379,7 @@ pub async fn mark_account_phone_verified(
         .cloned()
         .ok_or(ContactError::ContactMissing)?;
     account_phone
-        .get_mutable_used(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **contacts**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **contacts** use the updated data; this is not a public export of unrelated fields."))
         .set_verified_at(now)
         .map_err(|_| ContactError::Store)?
         .set_updated_at(now)
@@ -388,13 +388,13 @@ pub async fn mark_account_phone_verified(
         .await
         .map_err(|_| ContactError::Store)?;
 
-    let memberships = AccountMembership::query_used(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
+    let memberships = AccountMembership::query(valence, valence::use_!(r"In **account contacts**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **account contacts** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_account(RecordPredicate::Equals(account_phone.account().clone()))
         .await
         .map_err(|_| ContactError::Store)?;
     for membership in memberships {
         let uid = bare_id(membership.user());
-        let Some(user) = User::get_used(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        let Some(user) = User::get(&uid, valence, valence::use_!(r"In **account contacts**, we **load User** so the application can decide what to do next in this workflow. The result is used by **account contacts** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|_| ContactError::Store)?
         else {

@@ -42,9 +42,13 @@ async fn load_user_passkeys(
     user: &RecordId,
 ) -> Result<Vec<(String, Passkey)>, DeviceError> {
     let uid = bare_id(user);
-    let rows = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let rows = AuthDevice::get_from_user_id(
+        &uid,
+        valence,
+        valence::use_!(r"When you **sign in with a security key or passkey**, we **list your trusted devices** so we can build the challenge from credentials you already registered. Only this assertion flow uses that list."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     let mut out = Vec::new();
     for d in rows {
         if *d.kind() != GeneratedKind::Webauthn {
@@ -157,9 +161,13 @@ pub async fn finish_webauthn_registration(
     let credential_id = credential_id_string(&passkey)?;
     // Reject duplicate credential ids for this user.
     let uid = bare_id(user);
-    let existing = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let existing = AuthDevice::get_from_user_id(
+        &uid,
+        valence,
+        valence::use_!(r"When you **finish registering a security key**, we **list your existing devices** so we can reject a duplicate credential before saving the new one. Only you use the updated device list afterward."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     if existing
         .iter()
         .any(|d| d.credential_id().is_some_and(|c| c == &credential_id) && d.revoked_at().is_none())
@@ -190,7 +198,7 @@ pub async fn finish_webauthn_registration(
         now,
     )
     .map_err(|_| DeviceError::Store)?;
-    AuthDevice::upsert_used(&device_id, row, valence, valence::use_!(r"When **trusted devices** needs to persist work, we **save Auth Device** so the next step in that feature can continue with the latest values. People and services allowed for **trusted devices** use this data for that workflow—not as a general export of unrelated personal fields."))
+    AuthDevice::upsert(&device_id, row, valence, valence::use_!(r"When **trusted devices** needs to persist work, we **save Auth Device** so the next step in that feature can continue with the latest values. People and services allowed for **trusted devices** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| DeviceError::Store)?;
     tracing::info!(
@@ -276,9 +284,13 @@ pub async fn finish_webauthn_assertion(
         })?;
     let matched_cred = credential_id_from_result(&result)?;
     let uid = bare_id(user);
-    let rows = AuthDevice::get_from_user_id(&uid, valence)
-        .await
-        .map_err(|_| DeviceError::Store)?;
+    let rows = AuthDevice::get_from_user_id(
+        &uid,
+        valence,
+        valence::use_!(r"After a **passkey assertion** succeeds, we **list your devices** so we can find the credential that matched and update when it was last seen. Only your account uses that device record."),
+    )
+    .await
+    .map_err(|_| DeviceError::Store)?;
     let device = rows
         .into_iter()
         .find(|d| {
@@ -301,7 +313,7 @@ pub async fn finish_webauthn_assertion(
     let updated_json = passkey_to_json(&passkey)?;
     let device_id = device.id().map(bare_id).ok_or(DeviceError::Store)?;
     device
-        .get_mutable_used(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
         .set_passkey_json(updated_json)
         .map_err(|_| DeviceError::Store)?
         .set_sign_count(sign_count)

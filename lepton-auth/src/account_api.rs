@@ -196,7 +196,7 @@ pub mod ssr {
 
         let user_id = auth_user.id.to_string();
         let record_id = user_id.split(':').next_back().unwrap_or(&user_id);
-        let user = User::get_used(record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        let user = User::get(record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?;
         let Some(user) = user else {
@@ -230,7 +230,7 @@ pub mod ssr {
         let new_hash = lepton_host_adapter::auth::hash_password(&req.new_password)
             .map_err(|e| ServerFnError::new(format!("Failed to hash password: {e}")))?;
 
-        user.get_mutable_used(valence, valence::use_!(r"In **lepton auth**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **lepton auth** use the updated data; this is not a public export of unrelated fields."))
+        user.get_mutable(valence, valence::use_!(r"In **lepton auth**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **lepton auth** use the updated data; this is not a public export of unrelated fields."))
             .set_password_hash(new_hash)
             .map_err(|e| ServerFnError::new(format!("Failed to set new hash: {e}")))?
             .set_updated_at(Utc::now())
@@ -283,7 +283,7 @@ pub mod ssr {
 
         let user_id = auth_user.id.to_string();
         let record_id = user_id.split(':').next_back().unwrap_or(&user_id);
-        let user = User::get_used(record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        let user = User::get(record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found"))?;
@@ -300,7 +300,7 @@ pub mod ssr {
             return Err(ServerFnError::Args("Current password is incorrect".into()));
         }
 
-        if AccountEmail::query_used(valence, valence::use_!(r"In **lepton auth**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **lepton auth** use the list; it is not a public dump of every field to anonymous visitors."))
+        if AccountEmail::query(valence, valence::use_!(r"In **lepton auth**, we **list Account Email** so the product can show or process the matching set for this workflow. Callers allowed for **lepton auth** use the list; it is not a public dump of every field to anonymous visitors."))
             .where_address(StringPredicate::Equals(candidate.clone()))
             .first()
             .await
@@ -403,7 +403,7 @@ pub mod ssr {
     ) -> Result<User, ServerFnError> {
         let user_id = valence::extract_id_from_record(user_record)
             .map_err(|e| ServerFnError::new(e.to_string()))?;
-        User::get_used(&user_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        User::get(&user_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found for verification token"))
@@ -425,7 +425,7 @@ pub mod ssr {
         audit_flow: &str,
     ) -> Result<(), ServerFnError> {
         let record_id = user_bare_id(auth_user);
-        let user = User::get_used(&record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        let user = User::get(&record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found"))?;
@@ -518,7 +518,7 @@ pub mod ssr {
 
         verify_current_password(valence, auth_user, &req.current_password, "account_wipe").await?;
 
-        let memberships = AccountMembership::query_used(valence, valence::use_!(r"In **lepton auth**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **lepton auth** use the list; it is not a public dump of every field to anonymous visitors."))
+        let memberships = AccountMembership::query(valence, valence::use_!(r"In **lepton auth**, we **list Account Membership** so the product can show or process the matching set for this workflow. Callers allowed for **lepton auth** use the list; it is not a public dump of every field to anonymous visitors."))
             .where_user(RecordPredicate::Equals(auth_user.id.clone()))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load memberships: {e}")))?;
@@ -553,9 +553,13 @@ pub mod ssr {
             use crate::factor::verify_totp_against_sealed;
 
             let uid = user_bare_id(auth_user);
-            let factors = TotpFactor::get_from_user_id(&uid, valence)
-                .await
-                .map_err(|e| ServerFnError::new(format!("Failed to load TOTP factors: {e}")))?;
+            let factors = TotpFactor::get_from_user_id(
+                &uid,
+                valence,
+                valence::use_!(r"Before you **wipe this account**, we **list your authenticators** so we can require a step-up code when one is enabled. Only this wipe confirmation uses that check."),
+            )
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to load TOTP factors: {e}")))?;
             if let Some(factor) = factors.into_iter().find(|f| f.enabled_at().is_some()) {
                 let Some(code) = req
                     .totp_code

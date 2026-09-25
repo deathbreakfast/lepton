@@ -237,7 +237,7 @@ async fn load_or_create_session_profile(
     user: &User,
 ) -> Result<UserProfile, HttpErr> {
     let user_thing = user.id.clone();
-    let profile = UserProfile::query_used(session_v, valence::use_!(r"When you **upload a profile photo**, we **load your account profile** first so we know which profile the new photo belongs to. If you have never opened your profile before, we create one next from your account email."))
+    let profile = UserProfile::query(session_v, valence::use_!(r"When you **upload a profile photo**, we **load your account profile** first so we know which profile the new photo belongs to. If you have never opened your profile before, we create one next from your account email."))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .first()
         .await
@@ -261,7 +261,7 @@ async fn load_or_create_session_profile(
                 "Failed to build profile".to_string(),
             )
         })?;
-    UserProfile::create_used(new_profile, session_v, valence::use_!(r"When you **upload a profile photo** and have never opened your **account profile** before, we **create a profile** from your account email so the photo has somewhere to attach. Only you use this profile record afterward."))
+    UserProfile::create(new_profile, session_v, valence::use_!(r"When you **upload a profile photo** and have never opened your **account profile** before, we **create a profile** from your account email so the photo has somewhere to attach. Only you use this profile record afterward."))
         .await
         .map_err(|_| {
             (
@@ -323,7 +323,7 @@ async fn create_photo_and_set_active(
         )
     })?;
 
-    let created = ProfilePhoto::create_used(photo, &system_v, valence::use_!(r"When you **upload a profile photo**, we **create a photo record** pointing at the file we just stored, so your profile can reference it. Only your account uses this record to show or replace your photo."))
+    let created = ProfilePhoto::create(photo, &system_v, valence::use_!(r"When you **upload a profile photo**, we **create a photo record** pointing at the file we just stored, so your profile can reference it. Only your account uses this record to show or replace your photo."))
         .await
         .map_err(|_| {
             (
@@ -340,7 +340,7 @@ async fn create_photo_and_set_active(
     })?;
 
     let session_v = user_valence(valence_router, backend_key, user)?;
-    let profile = UserProfile::query_used(&session_v, valence::use_!(r"Right after a **profile photo** upload finishes, we **reload your account profile** so we can point it at the photo you just uploaded."))
+    let profile = UserProfile::query(&session_v, valence::use_!(r"Right after a **profile photo** upload finishes, we **reload your account profile** so we can point it at the photo you just uploaded."))
         .where_user(RecordPredicate::Equals(user.id.clone()))
         .first()
         .await
@@ -358,7 +358,7 @@ async fn create_photo_and_set_active(
         })?;
 
     profile
-        .get_mutable_used(&session_v, valence::use_!(r"We then **set your profile's active photo** to the one you just uploaded, so your profile page and anywhere else your photo appears show the new picture. Only you use this change on your profile."))
+        .get_mutable(&session_v, valence::use_!(r"We then **set your profile's active photo** to the one you just uploaded, so your profile page and anywhere else your photo appears show the new picture. Only you use this change on your profile."))
         .set_active_photo(photo_id.clone())
         .map_err(|_| {
             (
@@ -466,7 +466,7 @@ pub async fn serve_handler(
         let session_v = user_valence(Arc::clone(&valence_router), backend_key, &user)?;
         // Privacy denial is Err(Error::Privacy); treat the same as missing —
         // never elevate to System to re-fetch (uf-no-actor-elevation).
-        let Ok(Some(photo)) = ProfilePhoto::get_used(&id, &session_v, valence::use_!(r"When your browser requests a stored **profile photo** to display it, we **look up that photo's record** under your own account privacy so you can only ever be served a photo you're allowed to see. A missing or not-allowed photo comes back the same way, as not found.")).await else {
+        let Ok(Some(photo)) = ProfilePhoto::get(&id, &session_v, valence::use_!(r"When your browser requests a stored **profile photo** to display it, we **look up that photo's record** under your own account privacy so you can only ever be served a photo you're allowed to see. A missing or not-allowed photo comes back the same way, as not found.")).await else {
             return Err((StatusCode::NOT_FOUND, "File not found".to_string()));
         };
 

@@ -16,7 +16,7 @@ pub(super) fn bare_id(record: &RecordId) -> String {
 
 pub(super) async fn ensure_user(valence: &Valence, user: &RecordId) -> Result<(), DeviceError> {
     let uid = bare_id(user);
-    if User::get_used(&uid, valence, valence::use_!(r"In **trusted devices**, we **load User** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    if User::get(&uid, valence, valence::use_!(r"In **trusted devices**, we **load User** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| DeviceError::Store)?
         .is_none()
@@ -40,7 +40,7 @@ pub(super) async fn insert_ceremony(
     let ceremony_id = random_token_part(16);
     let row = AuthDeviceCeremony::new(user.clone(), phase, label, state_json, expires_at, now, now)
         .map_err(|_| DeviceError::Store)?;
-    AuthDeviceCeremony::upsert_used(&ceremony_id, row, valence, valence::use_!(r"When **trusted devices** needs to persist work, we **save Auth Device Ceremony** so the next step in that feature can continue with the latest values. People and services allowed for **trusted devices** use this data for that workflow—not as a general export of unrelated personal fields."))
+    AuthDeviceCeremony::upsert(&ceremony_id, row, valence, valence::use_!(r"When **trusted devices** needs to persist work, we **save Auth Device Ceremony** so the next step in that feature can continue with the latest values. People and services allowed for **trusted devices** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| DeviceError::Store)?;
     Ok(ceremony_id)
@@ -53,7 +53,7 @@ pub(super) async fn load_valid_ceremony(
     ceremony_id: &str,
     phase: AuthDeviceCeremonyPhase,
 ) -> Result<AuthDeviceCeremony, DeviceError> {
-    let ceremony = AuthDeviceCeremony::get_used(ceremony_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device Ceremony** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let ceremony = AuthDeviceCeremony::get(ceremony_id, valence, valence::use_!(r"In **trusted devices**, we **load Auth Device Ceremony** so the application can decide what to do next in this workflow. The result is used by **trusted devices** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| DeviceError::Store)?
         .ok_or(DeviceError::CeremonyInvalid)?;
@@ -80,7 +80,7 @@ pub(super) async fn consume_ceremony(
     let past = Utc::now() - Duration::seconds(1);
     ceremony
         .clone()
-        .get_mutable_used(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"In **devices**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **devices** use the updated data; this is not a public export of unrelated fields."))
         .set_expires_at(past)
         .map_err(|_| DeviceError::Store)?
         .set_updated_at(Utc::now())

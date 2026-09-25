@@ -31,7 +31,7 @@ async fn seed_user(valence: &valence::Valence) -> RecordId {
         now,
     )
     .expect("user");
-    let created = User::create_used(user, valence, valence::use_!(r"**Test:** Fixture **User** save for `tests` so the suite can seed a signed-in user to verify step-up against. CI and developers running the suite only."))
+    let created = User::create(user, valence, valence::use_!(r"**Test:** Fixture **User** save for `tests` so the suite can seed a signed-in user to verify step-up against. CI and developers running the suite only."))
         .await
         .expect("create user");
     created.id().cloned().expect("user id")
@@ -66,10 +66,10 @@ async fn seed_enabled_factor(
         now,
     )
     .expect("totp factor");
-    TotpFactor::upsert_used(&factor_id, factor, valence, valence::use_!(r"**Test:** Fixture **Totp Factor** save for `tests` so the suite can seed an enabled factor to verify step-up against. CI and developers running the suite only."))
+    TotpFactor::upsert(&factor_id, factor, valence, valence::use_!(r"**Test:** Fixture **Totp Factor** save for `tests` so the suite can seed an enabled factor to verify step-up against. CI and developers running the suite only."))
         .await
         .expect("upsert");
-    let loaded = TotpFactor::get_used(&factor_id, valence, valence::use_!(r"**Test:** Fixture **Totp Factor** load for `tests` so the suite can hand the seeded factor back to the caller. CI and developers running the suite only."))
+    let loaded = TotpFactor::get(&factor_id, valence, valence::use_!(r"**Test:** Fixture **Totp Factor** load for `tests` so the suite can hand the seeded factor back to the caller. CI and developers running the suite only."))
         .await
         .expect("get")
         .expect("present");
@@ -92,7 +92,7 @@ async fn same_step_code_replay_denied_sad() {
         .await
         .expect("first verify in step");
 
-    let factor_after = TotpFactor::get_used(&factor_id, &valence, valence::use_!(r"**Test:** Fixture **Totp Factor** reload for `tests` so the suite can assert the replay-denied step-up path. CI and developers running the suite only."))
+    let factor_after = TotpFactor::get(&factor_id, &valence, valence::use_!(r"**Test:** Fixture **Totp Factor** reload for `tests` so the suite can assert the replay-denied step-up path. CI and developers running the suite only."))
         .await
         .expect("get")
         .expect("present");
@@ -172,7 +172,7 @@ async fn legacy_plaintext_verify_reseals_v1_happy() {
         .await
         .expect("legacy verify");
 
-    let migrated = TotpFactor::get_used(&factor_id, &valence, valence::use_!(r"**Test:** Fixture **Totp Factor** reload for `tests` so the suite can assert the legacy-secret re-seal path. CI and developers running the suite only."))
+    let migrated = TotpFactor::get(&factor_id, &valence, valence::use_!(r"**Test:** Fixture **Totp Factor** reload for `tests` so the suite can assert the legacy-secret re-seal path. CI and developers running the suite only."))
         .await
         .expect("get")
         .expect("present");

@@ -27,7 +27,7 @@ Required PR jobs — do not skip any of these when claiming local CI parity:
 
 | CI job | Local command / notes |
 |--------|------------------------|
-| `quality` | `cargo fmt --check` with the package list from ci.yml; `cargo clippy --workspace --all-targets --features ssr,full -- -D warnings`; `cargo test --workspace --features ssr,full --exclude lepton-auth-ui --exclude lepton-auth-ui-e2e` (with lld RUSTFLAGS); Twilio clippy/test + SMS/SMTP check without twilio; `cargo check -p lepton-auth --features ssr`; rustdoc deny-warnings for workspace `ssr,full` and Twilio adapters |
+| `quality` | `cargo fmt --check` with the package list from ci.yml; `cargo clippy --workspace --all-targets --features ssr,full -- -D warnings`; `cargo test --workspace --features ssr,full --exclude lepton-auth-ui --exclude lepton-auth-ui-e2e` (with lld RUSTFLAGS); Twilio clippy/test + SMS/SMTP check without twilio; `cargo check -p lepton-auth --features ssr`; rustdoc deny-warnings for workspace `ssr,full` and Twilio adapters; `cargo deny check`; `cargo audit` |
 | `leptos-lints` | dylint 6.0.1 + `nightly-2025-05-14`; `cargo dylint --all -p lepton-auth-ui --no-deps -- --features hydrate` and same for `lepton-auth-ui-e2e` |
 | `wasm-hydrate` | nightly + `wasm32-unknown-unknown`; `cargo check -p lepton-auth-ui --target wasm32-unknown-unknown --features hydrate` |
 | `e2e` | Mailpit via `docker compose -f infra/mailpit/docker-compose.yml up -d`; Node 20 + Playwright; `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1 cargo leptos end-to-end --project lepton-auth-ui-e2e` |
@@ -50,6 +50,8 @@ cargo test -p lepton-smtp --features twilio
 cargo check -p lepton-sms -p lepton-smtp
 cargo check -p lepton-auth --features ssr
 cargo check -p lepton-auth-ui --target wasm32-unknown-unknown --features hydrate
+cargo deny check
+cargo audit
 docker compose -f infra/mailpit/docker-compose.yml up -d
 LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1 cargo leptos end-to-end --project lepton-auth-ui-e2e
 ```
@@ -83,7 +85,7 @@ Needs `cargo-dylint` / `dylint-link` 6.0.1 and toolchain `nightly-2025-05-14`
 # rustup toolchain install nightly-2025-05-14 --component rustc-dev,llvm-tools-preview
 export CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback
 # zerocopy on this pinned nightly needs AVX512 on the host triple (same as orbital CI)
-export RUSTFLAGS="-D warnings -Zcrate-attr=feature(stdarch_x86_avx512)"
+export RUSTFLAGS="-D warnings -Zcrate-attr=feature(stdarch_x86_avx512) -Zcrate-attr=feature(avx512_target_feature)"
 cargo dylint --all -p lepton-auth-ui --no-deps -- --features hydrate
 cargo dylint --all -p lepton-auth-ui-e2e --no-deps -- --features hydrate
 ```

@@ -20,13 +20,13 @@ async fn builder_verified_email_happy() {
         .await
         .expect("build");
 
-    let email = AccountEmail::get_used(&bare_id_from_record(&user.email_id), &v, valence::use_!(r"**Test:** Fixture **Account Email** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+    let email = AccountEmail::get(&bare_id_from_record(&user.email_id), &v, valence::use_!(r"**Test:** Fixture **Account Email** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .await
         .expect("get email")
         .expect("email row");
     assert!(email.verified_at().is_some());
 
-    let identity = IdentityUser::get_used(&bare_id_from_record(&user.user_id), &v, valence::use_!(r"**Test:** Fixture **Identity User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+    let identity = IdentityUser::get(&bare_id_from_record(&user.user_id), &v, valence::use_!(r"**Test:** Fixture **Identity User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .await
         .expect("get user")
         .expect("user row");
@@ -45,7 +45,7 @@ async fn builder_unverified_email_happy() {
         .build(&v)
         .await
         .expect("build");
-    let email = AccountEmail::get_used(&bare_id_from_record(&user.email_id), &v, valence::use_!(r"**Test:** Fixture **Account Email** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+    let email = AccountEmail::get(&bare_id_from_record(&user.email_id), &v, valence::use_!(r"**Test:** Fixture **Account Email** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .await
         .expect("get email")
         .expect("email row");
