@@ -64,6 +64,7 @@ ssr = [
     "dep:thiserror",
     "dep:tracing",
     "dep:meson",
+    "meson/scan-pipeline",
     "leptos/ssr",
     "higgs-host/ssr"]
 
@@ -81,4 +82,8 @@ valence = { workspace = true }
 
 [[example]]
 name = "axum_session_snapshot"
+required-features = ["ssr"]
+
+[[test]]
+name = "files_quarantine"
 required-features = ["ssr"]

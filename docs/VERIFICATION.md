@@ -99,6 +99,8 @@ cargo test -p lepton-auth --features ssr,full,test-utils
 cargo test -p lepton-e2e --lib --tests
 cargo test -p lepton-e2e --test ci_e2e
 cargo test -p lepton-test-support --all-features
+# Profile photo upload through meson virus-scan quarantine
+cargo test -p lepton-host-adapter --features ssr --test files_quarantine
 cargo check -p lepton-e2e --features live-twilio
 cargo check -p lepton-e2e --bin lepton-live-oauth --features live-oauth
 cargo test -p lepton-auth --features ssr,oauth-google google_

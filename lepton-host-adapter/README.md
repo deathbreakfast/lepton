@@ -15,6 +15,8 @@ lepton-host-adapter = { git = "https://github.com/unified-field-dev/lepton", pac
 - **Session snapshot** — `session_snapshot_middleware` into higgs
 - **Photon WS auth** — `PhotonAuth` / `extract_user_key`
 - **Token models** — reset / verification schemas in `generated`
+- **Profile files** — `files_routes` for photo upload / serve; uploads wait in
+  meson's quarantine store until a virus scan clears them
 
 ## Getting started
 

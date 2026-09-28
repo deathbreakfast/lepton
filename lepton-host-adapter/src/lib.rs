@@ -18,7 +18,8 @@
 //! - **Token models** — Holds password-reset and verification schemas in [`generated`]
 //!   for SSR token lifecycle ([Host wiring](#host-wiring)).
 //! - **Profile files** — Serves profile photo upload/download through [`files`] when
-//!   the product stores avatar bytes ([Host wiring](#host-wiring)).
+//!   the product stores avatar bytes. New uploads wait in meson's quarantine store
+//!   until a virus scan clears them ([Host wiring](#host-wiring)).
 //! - **Product → User** — Documents hopping from a product Valence edge to identity
 //!   `User` on [`lepton_identity`](../lepton_identity/index.html#product-composition).
 //!
