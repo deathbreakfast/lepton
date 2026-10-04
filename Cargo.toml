@@ -69,6 +69,9 @@ double_must_use = "allow"
 assert_is_empty = "allow"
 # Leptos `#[component]` with no props: TypedBuilder emits an empty enum.
 empty_enums = "allow"
+# Newer nightly flags the docs `#[component]` generates for
+# `#[prop(default = None)]`; an attribute on the component does not reach them.
+doc_markdown = "allow"
 
 [workspace.dependencies]
 # Leptos

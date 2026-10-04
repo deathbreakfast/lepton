@@ -13,8 +13,8 @@
 //! | Concern | API |
 //! |---------|-----|
 //! | Install adapters for workers | [`DeliveryRuntime::install`](crate::delivery::DeliveryRuntime::install) |
-//! | Persist attempt + provider id | [`record_delivery_attempt`](crate::delivery::record_delivery_attempt) |
-//! | Enqueue email / SMS | [`enqueue_email`](crate::delivery::enqueue_email) / [`enqueue_sms`](crate::delivery::enqueue_sms) |
+//! | Persist attempt + provider id | [`record_delivery_attempt`] |
+//! | Enqueue email / SMS | [`enqueue_email`] / [`enqueue_sms`] |
 //! | Task handlers | [`crate::delivery::tasks`] |
 //!
 //! # Examples
