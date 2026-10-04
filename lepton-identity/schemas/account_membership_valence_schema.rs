@@ -58,8 +58,10 @@ valence_schema! {
                 r#type: FieldType::Record("user"),
                 required: true,
             },
+            // `member` is the default for a user's own account. `owner` and
+            // `super_admin` are platform roles that Gauge promotes to Super User.
             role: {
-                r#type: FieldType::Enum(&["owner", "admin", "super_admin"]),
+                r#type: FieldType::Enum(&["member", "owner", "admin", "super_admin"]),
                 required: true,
                 policies: {
                     read: { allow: [OWNER_BY_USER_FIELD] },

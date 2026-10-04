@@ -147,7 +147,7 @@ pub async fn create_oauth_user(
     let membership = AccountMembership::new(
         account_thing.clone(),
         user_id.clone(),
-        AccountMembershipRole::Owner,
+        AccountMembershipRole::Member,
         now,
         now,
     )

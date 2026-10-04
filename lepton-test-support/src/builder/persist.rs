@@ -100,7 +100,7 @@ async fn create_owner_account(
     let membership = AccountMembership::new(
         account_id.clone(),
         user_id.clone(),
-        AccountMembershipRole::Owner,
+        AccountMembershipRole::Member,
         now,
         now,
     )

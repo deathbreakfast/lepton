@@ -393,7 +393,7 @@ pub mod ssr {
         let membership = AccountMembership::new(
             account_thing.clone(),
             user_thing,
-            AccountMembershipRole::Owner,
+            AccountMembershipRole::Member,
             Utc::now(),
             Utc::now(),
         )

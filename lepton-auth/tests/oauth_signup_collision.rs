@@ -233,6 +233,18 @@ async fn oauth_provision_sets_account_user_happy() {
         bare_id_from_record(&user_id)
     );
     assert!(account.primary_email().is_some());
+
+    let membership = AccountMembership::query(&valence, valence::use_!(r"**Test:** Fixture **Account Membership** list for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+        .where_user(RecordPredicate::Equals(user_id.clone()))
+        .first()
+        .await
+        .expect("query")
+        .expect("membership");
+    assert_eq!(
+        *membership.role(),
+        AccountMembershipRole::Member,
+        "a new sign-up must not get the platform owner role"
+    );
 }
 
 #[tokio::test]

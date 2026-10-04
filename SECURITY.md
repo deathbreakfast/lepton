@@ -87,10 +87,12 @@ intentional and narrow.
 
 ## Account wipe (GDPR erase)
 
-Account wipe is Owner-only on Account Settings (`WipeAccount` / `execute_wipe_account`):
+Account wipe on Account Settings (`WipeAccount` / `execute_wipe_account`) is for the
+account's own user. Sign-up gives that user the `member` role; `owner` is reserved for
+platform owners, who may also wipe their own account. `admin` is refused.
 
 1. Session via `require_auth_user`
-2. Session role `owner` **and** `AccountMembership` role Owner on the resolved account
+2. Session role `member` or `owner` **and** `AccountMembership` role Member or Owner on the resolved account
 3. Current-password Argon2 re-check (same path as change-password)
 4. Confirm phrase `DELETE`
 5. When an enabled `TotpFactor` exists, a valid TOTP code

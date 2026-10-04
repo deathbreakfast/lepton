@@ -128,7 +128,7 @@ async fn seed_user(router: Arc<DatabaseRouter>, default_backend_key: &str) -> an
     let membership = AccountMembership::new(
         account_id.clone(),
         user_id.clone(),
-        AccountMembershipRole::Owner,
+        AccountMembershipRole::Member,
         now,
         now,
     )?;

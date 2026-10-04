@@ -159,8 +159,8 @@ async fn execute_wipe_account_happy() {
     let (auth_user, user_id, account_id) = seed_owner_account(
         &valence,
         "wipe-happy@example.test",
-        AccountMembershipRole::Owner,
-        vec!["owner".into()],
+        AccountMembershipRole::Member,
+        vec!["member".into()],
     )
     .await;
 
@@ -187,13 +187,42 @@ async fn execute_wipe_account_happy() {
 }
 
 #[tokio::test]
+async fn execute_wipe_account_platform_owner_happy() {
+    let valence = system_valence("wipe_platform_owner").await;
+    let (auth_user, _user_id, account_id) = seed_owner_account(
+        &valence,
+        "wipe-platform-owner@example.test",
+        AccountMembershipRole::Owner,
+        vec!["owner".into()],
+    )
+    .await;
+
+    execute_wipe_account(
+        &valence,
+        &auth_user,
+        WipeAccountRequest {
+            current_password: PASSWORD.into(),
+            confirm_phrase: WIPE_CONFIRM_PHRASE.into(),
+            totp_code: None,
+        },
+    )
+    .await
+    .expect("platform owner can wipe their own account");
+
+    assert!(Account::get(&bare_id_from_record(&account_id), &valence, valence::use_!(r"**Test:** Fixture **Account** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+        .await
+        .expect("get")
+        .is_none());
+}
+
+#[tokio::test]
 async fn execute_wipe_account_bad_password() {
     let valence = system_valence("wipe_bad_password").await;
     let (auth_user, user_id, account_id) = seed_owner_account(
         &valence,
         "wipe-bad-pw@example.test",
-        AccountMembershipRole::Owner,
-        vec!["owner".into()],
+        AccountMembershipRole::Member,
+        vec!["member".into()],
     )
     .await;
 
@@ -226,8 +255,8 @@ async fn execute_wipe_account_bad_phrase_sad() {
     let (auth_user, user_id, account_id) = seed_owner_account(
         &valence,
         "wipe-bad-phrase@example.test",
-        AccountMembershipRole::Owner,
-        vec!["owner".into()],
+        AccountMembershipRole::Member,
+        vec!["member".into()],
     )
     .await;
 
@@ -294,8 +323,8 @@ async fn execute_wipe_account_totp_required() {
     let (auth_user, user_id, account_id) = seed_owner_account(
         &valence,
         "wipe-totp@example.test",
-        AccountMembershipRole::Owner,
-        vec!["owner".into()],
+        AccountMembershipRole::Member,
+        vec!["member".into()],
     )
     .await;
     seed_enabled_totp(&valence, &user_id).await;

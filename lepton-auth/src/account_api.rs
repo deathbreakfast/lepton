@@ -262,7 +262,7 @@ pub mod ssr {
         auth_user: &lepton_host_adapter::auth::User,
         req: RequestEmailChangeRequest,
     ) -> Result<(), ServerFnError> {
-        let allowed_roles = ["owner", "admin", "super_admin"];
+        let allowed_roles = ["member", "owner", "admin", "super_admin"];
         if !auth_user
             .roles
             .iter()
@@ -450,7 +450,9 @@ pub mod ssr {
         Ok(())
     }
 
-    /// Owner-gated GDPR wipe: password (+ TOTP when enrolled), then [`crate::identity_delete::erase_account`].
+    /// GDPR wipe of the caller's own account (membership role `member`, or `owner` for a
+    /// platform owner; `admin` is refused): password (+ TOTP when enrolled), then
+    /// [`crate::identity_delete::erase_account`].
     ///
     /// `valence` must be System (or otherwise capable of Account / contact CUD). Authz is
     /// enforced here before erase — do not call with an unauthenticated actor.
@@ -494,7 +496,11 @@ pub mod ssr {
             ));
         }
 
-        if !auth_user.roles.iter().any(|role| role == "owner") {
+        if !auth_user
+            .roles
+            .iter()
+            .any(|role| role == "member" || role == "owner")
+        {
             tracing::warn!(
                 operation = "account_wipe",
                 outcome = "error",
@@ -533,7 +539,10 @@ pub mod ssr {
                 "Only the account owner can wipe this account".into(),
             ));
         };
-        if *membership.role() != AccountMembershipRole::Owner {
+        if !matches!(
+            membership.role(),
+            AccountMembershipRole::Member | AccountMembershipRole::Owner
+        ) {
             tracing::warn!(
                 operation = "account_wipe",
                 outcome = "error",
