@@ -57,6 +57,12 @@ fn decode_referer_once(path: &str) -> Option<String> {
         .map(std::borrow::Cow::into_owned)
 }
 
+/// `/api` itself or anything under it; app pages such as `/api-tokens` are not.
+fn is_api_path(path: &str) -> bool {
+    path.strip_prefix("/api")
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '?', '#']))
+}
+
 fn is_safe_in_app_path(path: &str) -> bool {
     if !path.starts_with('/') || path.starts_with("//") {
         return false;
@@ -64,7 +70,7 @@ fn is_safe_in_app_path(path: &str) -> bool {
     if path.contains('\\') || path.contains('@') || path.contains('\0') || path.contains("..") {
         return false;
     }
-    if path.starts_with("/auth") || path.starts_with("/api") {
+    if path.starts_with("/auth") || is_api_path(path) {
         return false;
     }
     if path == "/home" || path == "/home/" {
@@ -155,6 +161,15 @@ mod tests {
     }
 
     #[test]
+    fn sanitize_referer_path_accepts_pages_that_start_with_api() {
+        assert_eq!(
+            sanitize_referer_path(Some("/api-tokens".to_string())),
+            "/api-tokens"
+        );
+        assert_eq!(sanitize_referer_path(Some("/apis".to_string())), "/apis");
+    }
+
+    #[test]
     fn sanitize_referer_path_rejects_unsafe_or_auth_paths() {
         assert_eq!(
             sanitize_referer_path(Some("//example.com".to_string())),
@@ -164,6 +179,7 @@ mod tests {
         assert_eq!(sanitize_referer_path(Some("/auth".to_string())), "/");
         assert_eq!(sanitize_referer_path(Some("/api/upload".to_string())), "/");
         assert_eq!(sanitize_referer_path(Some("/api".to_string())), "/");
+        assert_eq!(sanitize_referer_path(Some("/api?x=1".to_string())), "/");
         assert_eq!(sanitize_referer_path(Some("/home".to_string())), "/");
         assert_eq!(sanitize_referer_path(None), "/");
     }
