@@ -34,6 +34,8 @@ mod api;
 #[cfg(all(feature = "ssr", feature = "totp"))]
 mod error;
 #[cfg(all(feature = "ssr", feature = "totp"))]
+pub mod key_ring;
+#[cfg(all(feature = "ssr", feature = "totp"))]
 mod qr;
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub(crate) mod seal;

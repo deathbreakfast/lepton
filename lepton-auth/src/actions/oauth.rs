@@ -42,10 +42,11 @@ pub async fn begin_oauth(
         _ => return Err(ServerFnError::Args("Unknown OAuth provider".into())),
     };
     let services = auth_services().map_err(|e| ServerFnError::new(e.to_string()))?;
-    let cfg = services
+    let cfg_snapshot = services
         .oauth
-        .as_ref()
+        .get()
         .ok_or_else(|| ServerFnError::new("OAuth is not configured"))?;
+    let cfg = cfg_snapshot.as_ref();
 
     let ctx = higgs::Higgs::from_request().await?;
     let valence = ctx
@@ -97,10 +98,11 @@ pub async fn complete_oauth_callback(
     use leptos_axum::extract;
 
     let services = auth_services().map_err(|e| ServerFnError::new(e.to_string()))?;
-    let cfg = services
+    let cfg_snapshot = services
         .oauth
-        .as_ref()
+        .get()
         .ok_or_else(|| ServerFnError::new("OAuth is not configured"))?;
+    let cfg = cfg_snapshot.as_ref();
 
     let ctx = higgs::Higgs::from_request().await?;
     let valence = ctx

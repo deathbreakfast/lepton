@@ -184,10 +184,11 @@ pub async fn begin_oauth_link(
         .unwrap_or_else(|| USER_ACCOUNT_SETTINGS.to_string());
 
     let services = auth_services().map_err(|e| ServerFnError::new(e.to_string()))?;
-    let cfg = services
+    let cfg_snapshot = services
         .oauth
-        .as_ref()
+        .get()
         .ok_or_else(|| ServerFnError::new("OAuth is not configured"))?;
+    let cfg = cfg_snapshot.as_ref();
 
     tracing::info!(
         operation = "oauth_begin",

@@ -253,6 +253,8 @@ pub mod contacts;
 /// Durable Boson delivery + [`DeliveryAttempt`](lepton_host_adapter::generated::DeliveryAttempt) log.
 #[cfg(all(feature = "ssr", feature = "boson-delivery"))]
 pub mod delivery;
+/// Delivery settings types, host backend contract and runtime-swappable email/SMS adapters.
+pub mod delivery_settings;
 /// Trusted browser / WebAuthn device APIs and DTOs.
 pub mod devices;
 /// Server-side email dispatch for verification/reset flows (`email` feature).

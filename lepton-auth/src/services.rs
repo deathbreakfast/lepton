@@ -57,7 +57,7 @@
 //! [`provide_auth_services`]).
 
 #[cfg(feature = "ssr")]
-use std::sync::Arc;
+use std::sync::{Arc, PoisonError, RwLock};
 
 #[cfg(all(feature = "ssr", feature = "phone"))]
 use lepton_sms::SmsDeliveryService;
@@ -71,6 +71,42 @@ use crate::devices::WebauthnRpConfig;
 #[cfg(feature = "ssr")]
 use crate::oauth::OAuthClientConfig;
 
+/// Shared, replaceable OAuth client configuration.
+///
+/// Clones share one slot, so a host that keeps a clone can [`set`](Self::set) new
+/// provider settings and every later `begin`/`complete` call sees them without a
+/// restart. Readers take a snapshot with [`get`](Self::get).
+#[cfg(feature = "ssr")]
+#[derive(Clone, Default)]
+pub struct OAuthHandle {
+    slot: Arc<RwLock<Option<Arc<OAuthClientConfig>>>>,
+}
+
+#[cfg(feature = "ssr")]
+impl OAuthHandle {
+    /// Handle holding `cfg` (or nothing, when OAuth is not configured).
+    #[must_use]
+    pub fn new(cfg: Option<OAuthClientConfig>) -> Self {
+        Self {
+            slot: Arc::new(RwLock::new(cfg.map(Arc::new))),
+        }
+    }
+
+    /// Current configuration, or `None` when OAuth is not configured.
+    #[must_use]
+    pub fn get(&self) -> Option<Arc<OAuthClientConfig>> {
+        self.slot
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Replace the configuration. `None` turns OAuth off.
+    pub fn set(&self, cfg: Option<OAuthClientConfig>) {
+        *self.slot.write().unwrap_or_else(PoisonError::into_inner) = cfg.map(Arc::new);
+    }
+}
+
 /// Bundled delivery adapters + public URL used by auth verification flows.
 #[cfg(feature = "ssr")]
 #[derive(Clone)]
@@ -83,8 +119,11 @@ pub struct LeptonAuthServices {
     pub sms: Arc<dyn SmsDeliveryService>,
     /// Absolute public origin for token links (no trailing slash required).
     pub public_base_url: String,
-    /// Optional OAuth client config (Google/GitHub / mock). Absent when host omits `.oauth()`.
-    pub oauth: Option<OAuthClientConfig>,
+    /// OAuth client config (Google/GitHub / mock). Empty when the host omits `.oauth()`.
+    ///
+    /// Read with [`OAuthHandle::get`]; hosts that keep a clone of the handle can
+    /// replace the configuration while the process runs.
+    pub oauth: OAuthHandle,
     /// Optional `WebAuthn` relying-party config. Absent when host omits `.webauthn_rp()`.
     #[cfg(feature = "webauthn")]
     pub webauthn_rp: Option<WebauthnRpConfig>,
@@ -99,7 +138,7 @@ pub struct LeptonAuthServicesBuilder {
     #[cfg(feature = "phone")]
     sms: Option<Arc<dyn SmsDeliveryService>>,
     public_base_url: Option<String>,
-    oauth: Option<OAuthClientConfig>,
+    oauth: OAuthHandle,
     #[cfg(feature = "webauthn")]
     webauthn_rp: Option<WebauthnRpConfig>,
 }
@@ -155,7 +194,14 @@ impl LeptonAuthServicesBuilder {
     /// Attach OAuth client configuration (optional; enables `BeginOAuth` / callback).
     #[must_use]
     pub fn oauth(mut self, cfg: OAuthClientConfig) -> Self {
-        self.oauth = Some(cfg);
+        self.oauth = OAuthHandle::new(Some(cfg));
+        self
+    }
+
+    /// Attach a shared [`OAuthHandle`] so the host can change OAuth settings after boot.
+    #[must_use]
+    pub fn oauth_handle(mut self, handle: OAuthHandle) -> Self {
+        self.oauth = handle;
         self
     }
 

@@ -13,7 +13,7 @@ use super::throttle::{is_locked, record_failure};
 use super::window::{self, store_window};
 use crate::factor::verify_totp_against_sealed;
 use crate::ssr_support::{extract_auth_user, higgs_ctx};
-use crate::totp::seal::{is_sealed_envelope, seal_totp_secret, unseal_totp_secret};
+use crate::totp::seal::{needs_reseal, seal_totp_secret, unseal_totp_secret};
 
 /// Successful window open.
 #[derive(Clone, Debug)]
@@ -104,8 +104,12 @@ async fn apply_success(
     now: chrono::DateTime<Utc>,
 ) -> Result<(), StepUpError> {
     let mut sealed = secret_sealed.to_string();
-    if !is_sealed_envelope(&sealed) {
-        sealed = seal_totp_secret(&sealed).map_err(|_| StepUpError::TotpSecret)?;
+    // Legacy plaintext, or an envelope under a key version other than the
+    // current one: re-seal under the current key now that the code proved
+    // the secret is good.
+    if needs_reseal(&sealed) {
+        let open = unseal_totp_secret(&sealed).map_err(|_| StepUpError::TotpSecret)?;
+        sealed = seal_totp_secret(&open).map_err(|_| StepUpError::TotpSecret)?;
     }
     factor
         .get_mutable(valence, valence::use_!(r"When an **authenticator step-up code succeeds**, we **update your factor** with the step it matched and clear any lockout, so the same code can't be replayed and your next attempt starts fresh."))
