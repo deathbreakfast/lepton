@@ -178,6 +178,22 @@ name = "confirm_account_status"
 required-features = ["ssr", "phone"]
 
 [[test]]
+name = "bots_lifecycle"
+required-features = ["ssr"]
+
+[[test]]
+name = "bots_privacy"
+required-features = ["ssr"]
+
+[[test]]
+name = "bots_gate_unwired"
+required-features = ["ssr"]
+
+[[test]]
+name = "bots_owner_delete"
+required-features = ["ssr"]
+
+[[test]]
 name = "membership_primary_clear"
 required-features = ["ssr", "test-utils", "phone"]
 

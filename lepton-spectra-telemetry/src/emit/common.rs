@@ -166,6 +166,17 @@ const ERROR_CLASSES: &[&str] = &[
     "user",
     "webauthn_browser",
     "webauthn_verify",
+    // Bot lifecycle (`lepton_auth::bots::BotError::reason_class`).
+    "actor",
+    "permission",
+    "not_configured",
+    "gate",
+    "handle",
+    "handle_taken",
+    "profile",
+    "not_found",
+    "transition",
+    "forbidden",
 ];
 
 /// Map an `error_class` / `reason_class` token to an allowlisted label (or `unknown`).

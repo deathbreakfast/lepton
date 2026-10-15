@@ -15,6 +15,8 @@
 pub use crate::schemas::lepton_account::LeptonAccountRecorder;
 /// Logger for the `lepton_auth_failure` event table.
 pub use crate::schemas::lepton_auth_failure::{LeptonAuthFailure, LeptonAuthFailureLogger};
+/// Recorder for the `lepton_bot` counter.
+pub use crate::schemas::lepton_bot::LeptonBotRecorder;
 /// Recorder for the `lepton_contact` counter.
 pub use crate::schemas::lepton_contact::LeptonContactRecorder;
 /// Recorder for the `lepton_device` counter.

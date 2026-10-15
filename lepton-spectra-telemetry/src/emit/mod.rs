@@ -5,6 +5,7 @@
 //! OTPs, tokens, or raw `Display` strings as label values.
 
 mod account;
+mod bot;
 mod common;
 mod contact;
 mod delivery;
@@ -20,6 +21,7 @@ mod totp;
 mod verify;
 
 pub use account::{record_account, AccountOperation};
+pub use bot::{record_bot, BotOperation};
 pub use common::{
     bound_error_class, bound_optional_channel, bound_optional_provider, AuthFactor,
     AuthFailureFlow, AuthOutcome,

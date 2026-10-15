@@ -25,6 +25,9 @@
 //! - **Signup, OAuth, contacts, and devices** — Covers account creation and linked
 //!   identity surfaces in [`signup_api`], [`oauth`], [`contacts`], and [`devices`]
 //!   (wipe/erase under [`identity_delete`]; [Examples](#examples)).
+//! - **Bot accounts** — Lets a signed-in user create bots they own, then edit, suspend,
+//!   resume, or delete them through [`bots`]. Only the owner, and users the host's bot gate
+//!   trusts to manage any bot, can see a bot ([Create and manage a bot](#create-and-manage-a-bot)).
 //! - **Tokens and policy** — Provides one-time tokens ([`token_helpers`]) and password /
 //!   audit helpers ([`security`]) for reset and policy checks
 //!   ([Boot delivery](#boot-delivery-email-only)).
@@ -185,6 +188,66 @@
 //! Runnable: `cargo run -p lepton-auth --example step_up_totp --features ssr,totp`.
 //! UI retry: `lepton-auth-ui` `StepUpController` / `StepUpDialog`.
 //!
+//! ## Create and manage a bot
+//!
+//! A bot is a non-human account the signed-in user owns. It gets its own id and acts in
+//! Valence as its own service actor, so an agent or integration can work under the bot's
+//! name instead of a person's. Call these functions from server functions with the
+//! **request** Valence of the signed-in owner; the owner is taken from that actor.
+//!
+//! Prerequisites: `lepton-auth` with `features = ["ssr"]`; a bot gate installed at boot
+//! ([Install the bot gate](../lepton_identity/index.html#install-the-bot-gate)) that lets
+//! this user create bots; the request Valence from [`require_auth_user`] + [`user_valence`];
+//! and, for deletes, a Valence deletion dispatcher registered at boot (valence-platform's
+//! Chronon deletion orchestrator).
+//!
+//! 1. [`bots::create_bot`] with a handle ending in `bot`, a display name, and an optional
+//!    description. The bot starts `active`.
+//! 2. [`bots::update_bot`] edits the display name or description; owner and handle never change.
+//! 3. [`bots::suspend_bot`] / [`bots::resume_bot`] pause and restart it.
+//! 4. [`bots::delete_bot`] removes it with the standard Valence delete.
+//!
+//! ```rust,ignore
+//! use lepton_auth::bots::{
+//!     create_bot, delete_bot, get_bot, resume_bot, suspend_bot, update_bot, BotError,
+//!     BotProfileUpdate, NewBot,
+//! };
+//! use lepton_host_adapter::generated::BotStatus;
+//! use lepton_identity::bots::BotId;
+//!
+//! // `v` is the signed-in owner's request Valence (`user_valence(&ctx)?`).
+//! async fn bot_lifecycle(v: &valence::Valence) -> Result<(), Box<dyn std::error::Error>> {
+//!     let bot = create_bot(v, NewBot {
+//!         handle: "spectra-bot",
+//!         display_name: "Spectra agent",
+//!         description: Some("Reads product metrics"),
+//!     })
+//!     .await?;
+//!     assert_eq!(bot.status(), &BotStatus::Active);
+//!     let id = BotId::parse(bot.id().ok_or("unsaved bot")?.id())?;
+//!
+//!     update_bot(v, &id, BotProfileUpdate { display_name: Some("Spectra reader"), ..Default::default() }).await?;
+//!     assert_eq!(suspend_bot(v, &id).await?.status(), &BotStatus::Suspended);
+//!     assert_eq!(resume_bot(v, &id).await?.status(), &BotStatus::Active);
+//!
+//!     delete_bot(v, &id).await?;
+//!     assert!(matches!(get_bot(v, &id).await, Err(BotError::NotFound)));
+//!     Ok(())
+//! }
+//! ```
+//!
+//! Errors carry a `reason_class` ([`bots::BotError::reason_class`]). The ones a form shows:
+//!
+//! - **Handle in use**: [`bots::BotError::HandleTaken`] carries a free suggestion such as
+//!   `spectra-2-bot`; [`bots::suggest_bot_handle`] turns free text into a free handle first.
+//! - **Not allowed**: [`bots::BotError::CreateNotPermitted`] when the gate says no, and
+//!   [`bots::BotError::GateNotInstalled`] when the host never installed one.
+//! - **Someone else's bot**: [`bots::BotError::NotFound`]. A bot the caller may not see looks
+//!   the same as one that does not exist.
+//!
+//! Bots, service users, and anonymous callers get [`bots::BotError::NotAUser`], so a bot never
+//! manages itself. Deleting the owner's user through [`identity_delete`] deletes their bots.
+//!
 //! ## Typical verification flow (backend)
 //!
 //! 1. Inject SMTP/SMS via [`provide_auth_services`] at SSR boot.
@@ -247,6 +310,9 @@
 pub mod account_api;
 /// `#[server]` functions backing the auth UI.
 pub mod actions;
+/// Bot accounts: create, edit, suspend, resume, and delete (`ssr`).
+#[cfg(feature = "ssr")]
+pub mod bots;
 /// Multi-email / multi-phone contacts and primary selection (`ssr`).
 #[cfg(feature = "ssr")]
 pub mod contacts;
