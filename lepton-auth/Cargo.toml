@@ -194,6 +194,10 @@ name = "bots_owner_delete"
 required-features = ["ssr"]
 
 [[test]]
+name = "bots_quota"
+required-features = ["ssr"]
+
+[[test]]
 name = "membership_primary_clear"
 required-features = ["ssr", "test-utils", "phone"]
 

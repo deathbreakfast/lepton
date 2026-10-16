@@ -65,6 +65,10 @@
 //!    [`bots::BotGateAlreadyInstalled`] and keeps the first gate.
 //! 3. Create and manage bots through `lepton_auth::bots` with the request Valence.
 //!
+//! Hosts that use Gauge don't need to write a gate: `gauge::bots::GaugeBotGate` answers from
+//! the `lepton.bot.create` and `lepton.bot.manage_any` permissions and a seeded "Bot
+//! creators" group. The example below is a hand-written gate for a host without Gauge.
+//!
 //! ```rust
 //! use std::sync::Arc;
 //!

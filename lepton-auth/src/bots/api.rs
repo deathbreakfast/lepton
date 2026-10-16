@@ -12,6 +12,11 @@ use super::BotError;
 const MAX_DISPLAY_NAME: usize = 80;
 const MAX_DESCRIPTION: usize = 500;
 
+/// Most bots one owner can have at once. Active and suspended bots count;
+/// deleted ones (including deletions still running) do not. Super users are
+/// held to the same limit for the bots they own.
+pub const MAX_BOTS_PER_OWNER: usize = 10;
+
 /// Profile for a new bot. See [`create_bot`].
 #[derive(Debug, Clone, Copy)]
 pub struct NewBot<'a> {
@@ -163,6 +168,8 @@ async fn require_create_permission(valence: &Valence) -> Result<(), BotError> {
 /// - [`BotError::InvalidHandle`] / [`BotError::InvalidProfile`] for bad input.
 /// - [`BotError::GateNotInstalled`], [`BotError::CreateNotPermitted`], or
 ///   [`BotError::Gate`] when the host's gate refuses or fails.
+/// - [`BotError::QuotaReached`] when the caller already owns
+///   [`MAX_BOTS_PER_OWNER`] bots.
 /// - [`BotError::HandleTaken`] with a free suggestion when another bot uses the
 ///   handle.
 /// - [`BotError::Store`] on a storage failure.
@@ -182,6 +189,11 @@ async fn create_bot_inner(valence: &Valence, input: NewBot<'_>) -> Result<Bot, B
     let display_name = check_display_name(input.display_name)?;
     let description = check_description(input.description)?;
     require_create_permission(valence).await?;
+    if list_my_bots(valence).await?.len() >= MAX_BOTS_PER_OWNER {
+        return Err(BotError::QuotaReached {
+            limit: MAX_BOTS_PER_OWNER,
+        });
+    }
 
     if handle_key_taken(valence, &handle.key()).await? {
         let suggestion = first_free(valence, handle).await.ok();

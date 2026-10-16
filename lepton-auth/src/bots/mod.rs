@@ -21,6 +21,12 @@
 //! free suggestion such as `spectra-2-bot`. [`suggest_bot_handle`] turns free
 //! text into a free handle before the form is submitted.
 //!
+//! # Limit per owner
+//!
+//! One owner can have at most [`MAX_BOTS_PER_OWNER`] bots, active or suspended.
+//! [`create_bot`] fails with [`BotError::QuotaReached`] past that; deleting a bot
+//! frees its slot at once.
+//!
 //! # Deletion
 //!
 //! [`delete_bot`] uses the standard Valence delete: the bot disappears from reads
@@ -35,6 +41,6 @@ mod handle_lookup;
 
 pub use api::{
     create_bot, delete_bot, get_bot, list_my_bots, resume_bot, suggest_bot_handle, suspend_bot,
-    update_bot, BotProfileUpdate, NewBot,
+    update_bot, BotProfileUpdate, NewBot, MAX_BOTS_PER_OWNER,
 };
 pub use error::BotError;

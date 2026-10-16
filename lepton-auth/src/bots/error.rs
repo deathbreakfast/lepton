@@ -28,6 +28,13 @@ pub enum BotError {
     /// The handle breaks a handle rule.
     #[error("reason_class=handle: invalid handle ({})", .0.reason())]
     InvalidHandle(BotHandleError),
+    /// The caller already owns the most bots allowed
+    /// ([`MAX_BOTS_PER_OWNER`](super::MAX_BOTS_PER_OWNER)). Deleting one frees a slot.
+    #[error("reason_class=quota: bot limit of {limit} reached")]
+    QuotaReached {
+        /// The per-owner limit.
+        limit: usize,
+    },
     /// Another bot already uses this handle (ignoring case and dashes).
     #[error("reason_class=handle_taken: handle already in use")]
     HandleTaken {
@@ -68,6 +75,7 @@ impl BotError {
             Self::GateNotInstalled => "not_configured",
             Self::Gate(_) => "gate",
             Self::InvalidHandle(_) => "handle",
+            Self::QuotaReached { .. } => "quota",
             Self::HandleTaken { .. } => "handle_taken",
             Self::InvalidProfile { .. } => "profile",
             Self::NotFound => "not_found",

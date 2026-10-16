@@ -242,6 +242,8 @@
 //!   `spectra-2-bot`; [`bots::suggest_bot_handle`] turns free text into a free handle first.
 //! - **Not allowed**: [`bots::BotError::CreateNotPermitted`] when the gate says no, and
 //!   [`bots::BotError::GateNotInstalled`] when the host never installed one.
+//! - **Too many bots**: [`bots::BotError::QuotaReached`] once the owner has
+//!   [`bots::MAX_BOTS_PER_OWNER`] bots; deleting one frees a slot.
 //! - **Someone else's bot**: [`bots::BotError::NotFound`]. A bot the caller may not see looks
 //!   the same as one that does not exist.
 //!
