@@ -1,45 +1,46 @@
 use valence::prelude::*;
 use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
-use crate::bots::{BOT_CREATE_GATE, BOT_IDENTITY_IMMUTABLE, BOT_MANAGE_ANY};
+use crate::service_users::{SERVICE_USER_CREATE_GATE, SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY};
 
 valence_schema! {
-    Bot {
+    ServiceUserAccount {
         repository: "https://github.com/unified-field-dev/lepton",
-        table: "bot",
+        table: "service_user_account",
         version: "0.1.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
-        description: "Bot account owned by a user; acts in Valence as Actor::ServiceUser `bot:<id>`",
+        description: "Service user owned by a user; acts in Valence as Actor::ServiceUser `svc:<id>`",
 
         privacy: {
             gdpr_compliant: true,
         },
 
-        // Owners manage their own bots; the host's BotGate decides who may create
-        // bots and who may manage any bot. Bot and service-user actors match none
-        // of these rules, so a bot never manages itself.
+        // Owners manage their own service users; the host's ServiceUserGate decides who may
+        // create service users and who may manage any service user. Service user actors,
+        // registered or built-in, match none of these rules, so a service user never manages
+        // itself.
         policies: {
             read: {
                 always_allow: [],
-                allow: [OWNER_BY_USER_FIELD, BOT_MANAGE_ANY],
+                allow: [OWNER_BY_USER_FIELD, SERVICE_USER_MANAGE_ANY],
                 block: [],
                 always_block: [],
             },
             create: {
                 always_allow: [],
-                allow: [BOT_CREATE_GATE],
+                allow: [SERVICE_USER_CREATE_GATE],
                 block: [],
                 always_block: [],
             },
             update: {
                 always_allow: [],
-                allow: [OWNER_BY_USER_FIELD, BOT_MANAGE_ANY],
+                allow: [OWNER_BY_USER_FIELD, SERVICE_USER_MANAGE_ANY],
                 block: [],
-                always_block: [BOT_IDENTITY_IMMUTABLE],
+                always_block: [SERVICE_USER_IDENTITY_IMMUTABLE],
             },
             delete: {
                 always_allow: [],
-                allow: [OWNER_BY_USER_FIELD, BOT_MANAGE_ANY],
+                allow: [OWNER_BY_USER_FIELD, SERVICE_USER_MANAGE_ANY],
                 block: [],
                 always_block: [],
             },
@@ -52,7 +53,7 @@ valence_schema! {
                 required: true,
             },
             // Owning user. Optional at the column level so a team owner can be
-            // added later without a nullability change; BOT_CREATE_GATE requires it.
+            // added later without a nullability change; SERVICE_USER_CREATE_GATE requires it.
             user: {
                 r#type: FieldType::Record("user"),
                 required: false,

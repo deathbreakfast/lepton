@@ -19,12 +19,13 @@ pub use lepton_identity::generated::{
     Account, AccountEmail, AccountEmailReference, AccountMembership, AccountMembershipReference,
     AccountMembershipRole, AccountPhone, AccountPhoneReference, AccountPlan, AccountReference,
     AccountStatus, AuthDevice, AuthDeviceCeremony, AuthDeviceCeremonyPhase,
-    AuthDeviceCeremonyReference, AuthDeviceKind, AuthDeviceReference, Bot, BotOwnerKind, BotQuery,
-    BotReference, BotStatus, FileFileStatus, LinkedIdentity, LinkedIdentityProvider,
-    LinkedIdentityReference, OauthPendingState, OauthPendingStateIntent, OauthPendingStateProvider,
-    OauthPendingStateReference, ProfilePhoto, ProfilePhotoReference, User, UserAppearance,
-    UserAppearanceReference, UserProfile, UserProfileReference, UserQuery, UserReference,
-    UserStatus, UserUserType,
+    AuthDeviceCeremonyReference, AuthDeviceKind, AuthDeviceReference, FileFileStatus,
+    LinkedIdentity, LinkedIdentityProvider, LinkedIdentityReference, OauthPendingState,
+    OauthPendingStateIntent, OauthPendingStateProvider, OauthPendingStateReference, ProfilePhoto,
+    ProfilePhotoReference, ServiceUserAccount, ServiceUserAccountOwnerKind,
+    ServiceUserAccountQuery, ServiceUserAccountReference, ServiceUserAccountStatus, User,
+    UserAppearance, UserAppearanceReference, UserProfile, UserProfileReference, UserQuery,
+    UserReference, UserStatus, UserUserType,
 };
 
 #[cfg(feature = "ssr")]

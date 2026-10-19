@@ -39,9 +39,9 @@ pub mod lepton_totp;
 #[path = "../schemas/lepton_device_spectra_metric.rs"]
 pub mod lepton_device;
 
-/// `lepton_bot` counter schema.
-#[path = "../schemas/lepton_bot_spectra_metric.rs"]
-pub mod lepton_bot;
+/// `lepton_service_user` counter schema.
+#[path = "../schemas/lepton_service_user_spectra_metric.rs"]
+pub mod lepton_service_user;
 
 /// `lepton_contact` counter schema.
 #[path = "../schemas/lepton_contact_spectra_metric.rs"]

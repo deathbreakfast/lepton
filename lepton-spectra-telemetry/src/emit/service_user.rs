@@ -1,25 +1,25 @@
-//! Bot account lifecycle counter.
+//! Service user lifecycle counter.
 
-use crate::helpers::LeptonBotRecorder;
+use crate::helpers::LeptonServiceUserRecorder;
 
 use super::common::{bound_error_class, AuthOutcome};
 
-/// Bot lifecycle operation.
+/// Service user lifecycle operation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BotOperation {
-    /// Create a bot.
+pub enum ServiceUserOperation {
+    /// Create a service user.
     Create,
     /// Edit display name or description.
     Update,
-    /// Suspend an active bot.
+    /// Suspend an active service user.
     Suspend,
-    /// Resume a suspended bot.
+    /// Resume a suspended service user.
     Resume,
-    /// Delete a bot.
+    /// Delete a service user.
     Delete,
 }
 
-impl BotOperation {
+impl ServiceUserOperation {
     /// Spectra label value.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -33,12 +33,16 @@ impl BotOperation {
     }
 }
 
-/// Best-effort bump of `lepton_bot{operation,outcome,error_class}`.
+/// Best-effort bump of `lepton_service_user{operation,outcome,error_class}`.
 ///
-/// Labels carry no bot id, handle, or user id.
-pub fn record_bot(operation: BotOperation, outcome: AuthOutcome, error_class: &'static str) {
+/// Labels carry no service user id, handle, or user id.
+pub fn record_service_user(
+    operation: ServiceUserOperation,
+    outcome: AuthOutcome,
+    error_class: &'static str,
+) {
     let error_class = bound_error_class(error_class);
-    LeptonBotRecorder::record(
+    LeptonServiceUserRecorder::record(
         1,
         serde_json::json!({
             "operation": operation.as_str(),
@@ -53,13 +57,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bot_metric_labels_are_enum_only_happy() {
+    fn service_user_metric_labels_are_enum_only_happy() {
         let ops = [
-            BotOperation::Create,
-            BotOperation::Update,
-            BotOperation::Suspend,
-            BotOperation::Resume,
-            BotOperation::Delete,
+            ServiceUserOperation::Create,
+            ServiceUserOperation::Update,
+            ServiceUserOperation::Suspend,
+            ServiceUserOperation::Resume,
+            ServiceUserOperation::Delete,
         ];
         let labels: Vec<_> = ops.iter().map(|o| o.as_str()).collect();
         assert_eq!(labels, ["create", "update", "suspend", "resume", "delete"]);
@@ -82,12 +86,16 @@ mod tests {
                 "{class} must be allowlisted"
             );
         }
-        record_bot(BotOperation::Create, AuthOutcome::Success, "none");
+        record_service_user(ServiceUserOperation::Create, AuthOutcome::Success, "none");
     }
 
     #[test]
-    fn bot_metric_unknown_class_bounded_sad() {
-        assert_eq!(bound_error_class("spectra-bot"), "unknown");
-        record_bot(BotOperation::Create, AuthOutcome::Failure, "spectra-bot");
+    fn service_user_metric_unknown_class_bounded_sad() {
+        assert_eq!(bound_error_class("spectra-agent"), "unknown");
+        record_service_user(
+            ServiceUserOperation::Create,
+            AuthOutcome::Failure,
+            "spectra-agent",
+        );
     }
 }

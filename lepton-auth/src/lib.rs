@@ -25,9 +25,10 @@
 //! - **Signup, OAuth, contacts, and devices** — Covers account creation and linked
 //!   identity surfaces in [`signup_api`], [`oauth`], [`contacts`], and [`devices`]
 //!   (wipe/erase under [`identity_delete`]; [Examples](#examples)).
-//! - **Bot accounts** — Lets a signed-in user create bots they own, then edit, suspend,
-//!   resume, or delete them through [`bots`]. Only the owner, and users the host's bot gate
-//!   trusts to manage any bot, can see a bot ([Create and manage a bot](#create-and-manage-a-bot)).
+//! - **Service users** — Lets a signed-in user create service users they own, then edit,
+//!   suspend, resume, or delete them through [`service_users`]. Only the owner, and users the
+//!   host's service user gate trusts to manage any service user, can see a service user
+//!   ([Create and manage a service user](#create-and-manage-a-service-user)).
 //! - **Tokens and policy** — Provides one-time tokens ([`token_helpers`]) and password /
 //!   audit helpers ([`security`]) for reset and policy checks
 //!   ([Boot delivery](#boot-delivery-email-only)).
@@ -188,67 +189,75 @@
 //! Runnable: `cargo run -p lepton-auth --example step_up_totp --features ssr,totp`.
 //! UI retry: `lepton-auth-ui` `StepUpController` / `StepUpDialog`.
 //!
-//! ## Create and manage a bot
+//! ## Create and manage a service user
 //!
-//! A bot is a non-human account the signed-in user owns. It gets its own id and acts in
-//! Valence as its own service actor, so an agent or integration can work under the bot's
+//! A service user is a non-human account the signed-in user owns. It gets its own id and acts in
+//! Valence as its own service actor, so an agent or integration can work under the service user's
 //! name instead of a person's. Call these functions from server functions with the
 //! **request** Valence of the signed-in owner; the owner is taken from that actor.
 //!
-//! Prerequisites: `lepton-auth` with `features = ["ssr"]`; a bot gate installed at boot
-//! ([Install the bot gate](../lepton_identity/index.html#install-the-bot-gate)) that lets
-//! this user create bots; the request Valence from [`require_auth_user`] + [`user_valence`];
+//! Prerequisites: `lepton-auth` with `features = ["ssr"]`; a service user gate installed at
+//! boot ([Install the service user
+//! gate](../lepton_identity/index.html#install-the-service-user-gate)) that lets this user
+//! create service users; the request Valence from [`require_auth_user`] + [`user_valence`];
 //! and, for deletes, a Valence deletion dispatcher registered at boot (valence-platform's
 //! Chronon deletion orchestrator).
 //!
-//! 1. [`bots::create_bot`] with a handle ending in `bot`, a display name, and an optional
-//!    description. The bot starts `active`.
-//! 2. [`bots::update_bot`] edits the display name or description; owner and handle never change.
-//! 3. [`bots::suspend_bot`] / [`bots::resume_bot`] pause and restart it.
-//! 4. [`bots::delete_bot`] removes it with the standard Valence delete.
+//! 1. [`service_users::create_service_user`] with a handle such as `spectra-agent`, a display
+//!    name, and an optional description. The service user starts `active`.
+//! 2. [`service_users::update_service_user`] edits the display name or description; owner and
+//!    handle never change.
+//! 3. [`service_users::suspend_service_user`] / [`service_users::resume_service_user`] pause
+//!    and restart it.
+//! 4. [`service_users::delete_service_user`] removes it with the standard Valence delete.
 //!
 //! ```rust,ignore
-//! use lepton_auth::bots::{
-//!     create_bot, delete_bot, get_bot, resume_bot, suspend_bot, update_bot, BotError,
-//!     BotProfileUpdate, NewBot,
+//! use lepton_auth::service_users::{
+//!     create_service_user, delete_service_user, get_service_user, resume_service_user, suspend_service_user, update_service_user, ServiceUserError,
+//!     ServiceUserProfileUpdate, NewServiceUser,
 //! };
-//! use lepton_host_adapter::generated::BotStatus;
-//! use lepton_identity::bots::BotId;
+//! use lepton_host_adapter::generated::ServiceUserAccountStatus;
+//! use lepton_identity::service_users::ServiceUserId;
 //!
 //! // `v` is the signed-in owner's request Valence (`user_valence(&ctx)?`).
-//! async fn bot_lifecycle(v: &valence::Valence) -> Result<(), Box<dyn std::error::Error>> {
-//!     let bot = create_bot(v, NewBot {
-//!         handle: "spectra-bot",
+//! async fn service_user_lifecycle(v: &valence::Valence) -> Result<(), Box<dyn std::error::Error>> {
+//!     let service_user = create_service_user(v, NewServiceUser {
+//!         handle: "spectra-agent",
 //!         display_name: "Spectra agent",
 //!         description: Some("Reads product metrics"),
 //!     })
 //!     .await?;
-//!     assert_eq!(bot.status(), &BotStatus::Active);
-//!     let id = BotId::parse(bot.id().ok_or("unsaved bot")?.id())?;
+//!     assert_eq!(service_user.status(), &ServiceUserAccountStatus::Active);
+//!     let id = ServiceUserId::parse(service_user.id().ok_or("unsaved service user")?.id())?;
 //!
-//!     update_bot(v, &id, BotProfileUpdate { display_name: Some("Spectra reader"), ..Default::default() }).await?;
-//!     assert_eq!(suspend_bot(v, &id).await?.status(), &BotStatus::Suspended);
-//!     assert_eq!(resume_bot(v, &id).await?.status(), &BotStatus::Active);
+//!     update_service_user(v, &id, ServiceUserProfileUpdate { display_name: Some("Spectra reader"), ..Default::default() }).await?;
+//!     assert_eq!(suspend_service_user(v, &id).await?.status(), &ServiceUserAccountStatus::Suspended);
+//!     assert_eq!(resume_service_user(v, &id).await?.status(), &ServiceUserAccountStatus::Active);
 //!
-//!     delete_bot(v, &id).await?;
-//!     assert!(matches!(get_bot(v, &id).await, Err(BotError::NotFound)));
+//!     delete_service_user(v, &id).await?;
+//!     assert!(matches!(get_service_user(v, &id).await, Err(ServiceUserError::NotFound)));
 //!     Ok(())
 //! }
 //! ```
 //!
-//! Errors carry a `reason_class` ([`bots::BotError::reason_class`]). The ones a form shows:
+//! Errors carry a `reason_class` ([`service_users::ServiceUserError::reason_class`]). The ones
+//! a form shows:
 //!
-//! - **Handle in use**: [`bots::BotError::HandleTaken`] carries a free suggestion such as
-//!   `spectra-2-bot`; [`bots::suggest_bot_handle`] turns free text into a free handle first.
-//! - **Not allowed**: [`bots::BotError::CreateNotPermitted`] when the gate says no, and
-//!   [`bots::BotError::GateNotInstalled`] when the host never installed one.
-//! - **Too many bots**: [`bots::BotError::QuotaReached`] once the owner has
-//!   [`bots::MAX_BOTS_PER_OWNER`] bots; deleting one frees a slot.
-//! - **Someone else's bot**: [`bots::BotError::NotFound`]. A bot the caller may not see looks
-//!   the same as one that does not exist.
+//! - **Handle in use**: [`service_users::ServiceUserError::HandleTaken`] carries a free
+//!   suggestion such as `spectra-agent-2`; [`service_users::suggest_service_user_handle`]
+//!   turns free text into a free handle first.
+//! - **Not allowed**: [`service_users::ServiceUserError::CreateNotPermitted`] when the gate
+//!   says no, and [`service_users::ServiceUserError::GateNotInstalled`] when the host never
+//!   installed one.
+//! - **Too many service users**: [`service_users::ServiceUserError::QuotaReached`] once the
+//!   owner has [`service_users::MAX_SERVICE_USERS_PER_OWNER`] service users; deleting one
+//!   frees a slot.
+//! - **Someone else's service user**: [`service_users::ServiceUserError::NotFound`]. A service
+//!   user the caller may not see looks the same as one that does not exist.
 //!
-//! Bots, service users, and anonymous callers get [`bots::BotError::NotAUser`], so a bot never
-//! manages itself. Deleting the owner's user through [`identity_delete`] deletes their bots.
+//! Service users, registered or built-in, and anonymous callers get
+//! [`service_users::ServiceUserError::NotAUser`], so a service user never manages itself.
+//! Deleting the owner's user through [`identity_delete`] deletes their service users.
 //!
 //! ## Typical verification flow (backend)
 //!
@@ -312,9 +321,6 @@
 pub mod account_api;
 /// `#[server]` functions backing the auth UI.
 pub mod actions;
-/// Bot accounts: create, edit, suspend, resume, and delete (`ssr`).
-#[cfg(feature = "ssr")]
-pub mod bots;
 /// Multi-email / multi-phone contacts and primary selection (`ssr`).
 #[cfg(feature = "ssr")]
 pub mod contacts;
@@ -344,6 +350,9 @@ pub mod paths;
 pub mod routes;
 /// Password policy checks, credential audit logging, and random tokens.
 pub mod security;
+/// Service users: create, edit, suspend, resume, and delete (`ssr`).
+#[cfg(feature = "ssr")]
+pub mod service_users;
 /// Injected email/SMS/public-URL services for auth send paths.
 #[cfg(feature = "ssr")]
 pub mod services;

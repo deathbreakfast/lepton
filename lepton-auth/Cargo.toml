@@ -178,23 +178,23 @@ name = "confirm_account_status"
 required-features = ["ssr", "phone"]
 
 [[test]]
-name = "bots_lifecycle"
+name = "service_users_lifecycle"
 required-features = ["ssr"]
 
 [[test]]
-name = "bots_privacy"
+name = "service_users_privacy"
 required-features = ["ssr"]
 
 [[test]]
-name = "bots_gate_unwired"
+name = "service_users_gate_unwired"
 required-features = ["ssr"]
 
 [[test]]
-name = "bots_owner_delete"
+name = "service_users_owner_delete"
 required-features = ["ssr"]
 
 [[test]]
-name = "bots_quota"
+name = "service_users_quota"
 required-features = ["ssr"]
 
 [[test]]

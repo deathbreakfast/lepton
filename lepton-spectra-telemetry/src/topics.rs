@@ -14,8 +14,6 @@ pub use crate::schemas::lepton_account::{LeptonAccountPayload, LEPTON_ACCOUNT_TO
 pub use crate::schemas::lepton_auth_failure::{
     LeptonAuthFailurePayload, LEPTON_AUTH_FAILURE_TOPIC,
 };
-/// Payload and topic constant for `lepton_bot`.
-pub use crate::schemas::lepton_bot::{LeptonBotPayload, LEPTON_BOT_TOPIC};
 /// Payload and topic constant for `lepton_contact`.
 pub use crate::schemas::lepton_contact::{LeptonContactPayload, LEPTON_CONTACT_TOPIC};
 /// Payload and topic constant for `lepton_device`.
@@ -31,6 +29,10 @@ pub use crate::schemas::lepton_oauth::{LeptonOauthPayload, LEPTON_OAUTH_TOPIC};
 /// Payload and topic constant for `lepton_password_reset`.
 pub use crate::schemas::lepton_password_reset::{
     LeptonPasswordResetPayload, LEPTON_PASSWORD_RESET_TOPIC,
+};
+/// Payload and topic constant for `lepton_service_user`.
+pub use crate::schemas::lepton_service_user::{
+    LeptonServiceUserPayload, LEPTON_SERVICE_USER_TOPIC,
 };
 /// Payload and topic constant for `lepton_signin`.
 pub use crate::schemas::lepton_signin::{LeptonSigninPayload, LEPTON_SIGNIN_TOPIC};

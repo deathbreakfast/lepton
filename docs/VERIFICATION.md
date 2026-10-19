@@ -96,9 +96,9 @@ Auth library (includes Photon publish capture helpers under `test-utils`):
 
 ```bash
 cargo test -p lepton-auth --features ssr,full,test-utils
-# Bot accounts: lifecycle, privacy rules, unwired gate (own binary), owner deletion
-cargo test -p lepton-auth --features ssr --test bots_lifecycle --test bots_privacy \
-  --test bots_gate_unwired --test bots_owner_delete
+# Service users: lifecycle, privacy rules, unwired gate (own binary), owner deletion, quota
+cargo test -p lepton-auth --features ssr --test service_users_lifecycle --test service_users_privacy \
+  --test service_users_gate_unwired --test service_users_owner_delete --test service_users_quota
 cargo test -p lepton-e2e --lib --tests
 cargo test -p lepton-e2e --test ci_e2e
 cargo test -p lepton-test-support --all-features
