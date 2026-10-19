@@ -15,7 +15,7 @@ lepton-identity = { git = "https://github.com/unified-field-dev/lepton", package
 - **Password hashing** — `auth::hash_password` (Argon2 PHC)
 - **Signup ownership** — `ownership::ensure_signup_identity_ownership`
 - **Product composition** — hop from a product row to `User`
-- **Bot accounts** — `Bot` model, `bots::BotId` actor mapping, handle rules, and the host-installed `bots::BotGate`
+- **Service users** — `ServiceUserAccount` model, `service_users::ServiceUserId` actor mapping, handle rules, and the host-installed `service_users::ServiceUserGate`
 
 ## Getting started
 

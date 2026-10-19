@@ -5,7 +5,6 @@
 //! OTPs, tokens, or raw `Display` strings as label values.
 
 mod account;
-mod bot;
 mod common;
 mod contact;
 mod delivery;
@@ -14,6 +13,7 @@ mod failure;
 mod identity_delete;
 mod oauth;
 mod password_reset;
+mod service_user;
 mod signin;
 mod signup;
 mod step_up;
@@ -21,7 +21,6 @@ mod totp;
 mod verify;
 
 pub use account::{record_account, AccountOperation};
-pub use bot::{record_bot, BotOperation};
 pub use common::{
     bound_error_class, bound_optional_channel, bound_optional_provider, AuthFactor,
     AuthFailureFlow, AuthOutcome,
@@ -38,6 +37,7 @@ pub use oauth::{
     bound_oauth_provider, record_oauth, OAuthIntentLabel, OAuthProviderLabel, OAuthStage,
 };
 pub use password_reset::{record_password_reset, PasswordResetStage};
+pub use service_user::{record_service_user, ServiceUserOperation};
 pub use signin::{record_signin, SigninStage};
 pub use signup::record_signup;
 pub use step_up::{record_step_up, StepUpPath};

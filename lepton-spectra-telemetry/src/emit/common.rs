@@ -166,7 +166,7 @@ const ERROR_CLASSES: &[&str] = &[
     "user",
     "webauthn_browser",
     "webauthn_verify",
-    // Bot lifecycle (`lepton_auth::bots::BotError::reason_class`).
+    // Service user lifecycle (`lepton_auth::service_users::ServiceUserError::reason_class`).
     "actor",
     "permission",
     "not_configured",

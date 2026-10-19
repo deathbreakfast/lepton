@@ -1,8 +1,8 @@
-//! Valence privacy rules for the `bot` table.
+//! Valence privacy rules for the `service_user_account` table.
 //!
-//! Every rule refuses any actor that is not `Actor::User`, so a bot (an
-//! `Actor::ServiceUser`) can never create or manage bots, including itself, and
-//! infrastructure service users gain nothing. System keeps its usual access
+//! Every rule refuses any actor that is not `Actor::User`, so a registered service user can
+//! never create or manage service users, including itself, and built-in service users gain
+//! nothing. System keeps its usual access
 //! through `OWNER_BY_USER_FIELD`.
 
 use std::any::Any;
@@ -13,23 +13,23 @@ use serde_json::Value;
 use valence::privacy_policies::owner::check_owner_by_field;
 use valence::{Actor, ActorContext, PolicyEvaluator, PrivacyOperation, Result, Valence};
 
-use super::gate::installed_bot_gate;
+use super::gate::installed_service_user_gate;
 
-const BOT_TABLE: &str = "bot";
+const SERVICE_USER_TABLE: &str = "service_user_account";
 
-/// Fields that never change after a bot is created.
+/// Fields that never change after a service user is created.
 const IMMUTABLE_FIELDS: &[&str] = &["user", "owner_kind", "created_by", "handle", "handle_key"];
 
-/// `create` rule: the caller owns the new bot and the host's
-/// [`BotGate`](super::BotGate) allows it to create bots.
+/// `create` rule: the caller owns the new service user and the host's
+/// [`ServiceUserGate`](super::ServiceUserGate) allows it to create service users.
 ///
 /// The new row must name the caller in both `user` and `created_by` and carry
-/// `owner_kind = "user"`, so nobody creates a bot on someone else's behalf.
-pub const BOT_CREATE_GATE: BotCreateGateRule = BotCreateGateRule;
+/// `owner_kind = "user"`, so nobody creates a service user on someone else's behalf.
+pub const SERVICE_USER_CREATE_GATE: ServiceUserCreateGateRule = ServiceUserCreateGateRule;
 
-/// `read` / `update` / `delete` rule: the host's [`BotGate`](super::BotGate)
-/// lets the caller manage any bot (super users).
-pub const BOT_MANAGE_ANY: BotManageAnyRule = BotManageAnyRule;
+/// `read` / `update` / `delete` rule: the host's [`ServiceUserGate`](super::ServiceUserGate)
+/// lets the caller manage any service user (super users).
+pub const SERVICE_USER_MANAGE_ANY: ServiceUserManageAnyRule = ServiceUserManageAnyRule;
 
 /// `update` `always_block` rule: blocks any change to the owner, creator,
 /// owner kind, or handle.
@@ -38,19 +38,20 @@ pub const BOT_MANAGE_ANY: BotManageAnyRule = BotManageAnyRule;
 /// rule re-reads the stored row from the backend rather than trusting the
 /// caller's copy, so it also holds for update paths that skip the stored-row
 /// check. A row that cannot be read back is blocked.
-pub const BOT_IDENTITY_IMMUTABLE: BotIdentityImmutableRule = BotIdentityImmutableRule;
+pub const SERVICE_USER_IDENTITY_IMMUTABLE: ServiceUserIdentityImmutableRule =
+    ServiceUserIdentityImmutableRule;
 
-/// See [`BOT_CREATE_GATE`].
+/// See [`SERVICE_USER_CREATE_GATE`].
 #[derive(Debug, Clone, Copy)]
-pub struct BotCreateGateRule;
+pub struct ServiceUserCreateGateRule;
 
-/// See [`BOT_MANAGE_ANY`].
+/// See [`SERVICE_USER_MANAGE_ANY`].
 #[derive(Debug, Clone, Copy)]
-pub struct BotManageAnyRule;
+pub struct ServiceUserManageAnyRule;
 
-/// See [`BOT_IDENTITY_IMMUTABLE`].
+/// See [`SERVICE_USER_IDENTITY_IMMUTABLE`].
 #[derive(Debug, Clone, Copy)]
-pub struct BotIdentityImmutableRule;
+pub struct ServiceUserIdentityImmutableRule;
 
 /// The calling user, or `None` for every other kind of actor.
 fn user_actor(actor: &dyn ActorContext) -> Option<Actor> {
@@ -62,21 +63,21 @@ fn warn_gate_missing() {
     static WARNED: Once = Once::new();
     WARNED.call_once(|| {
         tracing::warn!(
-            target: "lepton.bot",
-            rule = "bot_gate",
-            "no BotGate installed; bot creation and manage-any are refused"
+            target: "lepton.service_user",
+            rule = "service_user_gate",
+            "no ServiceUserGate installed; service user creation and manage-any are refused"
         );
     });
 }
 
 #[async_trait]
-impl PolicyEvaluator for BotCreateGateRule {
+impl PolicyEvaluator for ServiceUserCreateGateRule {
     fn name(&self) -> &'static str {
-        "lepton::BOT_CREATE_GATE"
+        "lepton::SERVICE_USER_CREATE_GATE"
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Caller creates a bot it owns and the host's BotGate allows bot creation")
+        Some("Caller creates a service user it owns and the host's ServiceUserGate allows service user creation")
     }
 
     async fn evaluate(
@@ -98,11 +99,11 @@ impl PolicyEvaluator for BotCreateGateRule {
         if !owns {
             return Ok(false);
         }
-        let Some(gate) = installed_bot_gate() else {
+        let Some(gate) = installed_service_user_gate() else {
             warn_gate_missing();
             return Ok(false);
         };
-        Ok(gate.may_create_bot(v).await.unwrap_or(false))
+        Ok(gate.may_create_service_user(v).await.unwrap_or(false))
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -111,13 +112,13 @@ impl PolicyEvaluator for BotCreateGateRule {
 }
 
 #[async_trait]
-impl PolicyEvaluator for BotManageAnyRule {
+impl PolicyEvaluator for ServiceUserManageAnyRule {
     fn name(&self) -> &'static str {
-        "lepton::BOT_MANAGE_ANY"
+        "lepton::SERVICE_USER_MANAGE_ANY"
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("The host's BotGate lets the caller manage every bot (super users)")
+        Some("The host's ServiceUserGate lets the caller manage every service user (super users)")
     }
 
     async fn evaluate(
@@ -130,11 +131,11 @@ impl PolicyEvaluator for BotManageAnyRule {
         if matches!(op, PrivacyOperation::Create) || user_actor(actor).is_none() {
             return Ok(false);
         }
-        let Some(gate) = installed_bot_gate() else {
+        let Some(gate) = installed_service_user_gate() else {
             warn_gate_missing();
             return Ok(false);
         };
-        Ok(gate.may_manage_any_bot(v).await.unwrap_or(false))
+        Ok(gate.may_manage_any_service_user(v).await.unwrap_or(false))
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -143,13 +144,15 @@ impl PolicyEvaluator for BotManageAnyRule {
 }
 
 #[async_trait]
-impl PolicyEvaluator for BotIdentityImmutableRule {
+impl PolicyEvaluator for ServiceUserIdentityImmutableRule {
     fn name(&self) -> &'static str {
-        "lepton::BOT_IDENTITY_IMMUTABLE"
+        "lepton::SERVICE_USER_IDENTITY_IMMUTABLE"
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Blocks any update that changes a bot's owner, creator, owner kind, or handle")
+        Some(
+            "Blocks any update that changes a service user's owner, creator, owner kind, or handle",
+        )
     }
 
     async fn evaluate(
@@ -165,12 +168,12 @@ impl PolicyEvaluator for BotIdentityImmutableRule {
         let Some(id) = record.get("id").and_then(ref_id) else {
             return Ok(true);
         };
-        let backend = v.backend_for_table(BOT_TABLE)?;
+        let backend = v.backend_for_table(SERVICE_USER_TABLE)?;
         let stored = valence::get_record(
             backend.as_ref(),
-            BOT_TABLE,
+            SERVICE_USER_TABLE,
             &id,
-            valence::use_!(r"Before anyone saves a change to a **bot account**, we **read the bot's stored owner and handle** to make sure the change does not **reassign the bot to someone else** or **rename it**. Only the owner link, owner kind, creator, and handle are compared; nothing is shown to anyone, and the check blocks the save when they differ."),
+            valence::use_!(r"Before anyone saves a change to a **service user**, we **read the service user's stored owner and handle** to make sure the change does not **reassign the service user to someone else** or **rename it**. Only the owner link, owner kind, creator, and handle are compared; nothing is shown to anyone, and the check blocks the save when they differ."),
         )
         .await?;
         let Some(stored) = stored else {

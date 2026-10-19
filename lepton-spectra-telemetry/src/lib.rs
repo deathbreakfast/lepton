@@ -119,12 +119,12 @@ pub mod topics;
 pub use emit::{
     bound_email_driver, bound_error_class, bound_oauth_provider, bound_optional_channel,
     bound_optional_provider, bound_sms_driver, bound_verify_channel, log_auth_failure,
-    record_account, record_bot, record_contact, record_device, record_email_send,
-    record_identity_delete, record_oauth, record_password_reset, record_signin, record_signup,
+    record_account, record_contact, record_device, record_email_send, record_identity_delete,
+    record_oauth, record_password_reset, record_service_user, record_signin, record_signup,
     record_sms_send, record_step_up, record_totp, record_verify, AccountOperation, AuthFactor,
-    AuthFailureFlow, AuthOutcome, BotOperation, ContactOperation, DeviceKind, DeviceOperation,
-    EmailSendOutcome, IdentityDeleteOperation, OAuthIntentLabel, OAuthProviderLabel, OAuthStage,
-    PasswordResetStage, SigninStage, SmsSendOutcome, StepUpPath, TotpOperation, VerifyChannel,
+    AuthFailureFlow, AuthOutcome, ContactOperation, DeviceKind, DeviceOperation, EmailSendOutcome,
+    IdentityDeleteOperation, OAuthIntentLabel, OAuthProviderLabel, OAuthStage, PasswordResetStage,
+    ServiceUserOperation, SigninStage, SmsSendOutcome, StepUpPath, TotpOperation, VerifyChannel,
     VerifyStage,
 };
 pub use helpers::*;

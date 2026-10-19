@@ -1,8 +1,8 @@
 //! Identity Valence models and Argon2 password hashing for headless and SSR hosts.
 //!
-//! Generated tables (`user`, `account`, memberships, contacts, devices, bots) ship without Leptos so
-//! workers and adapters can share one schema surface. Hash passwords with [`auth::hash_password`],
-//! assign signup ownership with [`ownership`], then wire sessions in
+//! Generated tables (`user`, `account`, memberships, contacts, devices, service users) ship
+//! without Leptos so workers and adapters can share one schema surface. Hash passwords with
+//! [`auth::hash_password`], assign signup ownership with [`ownership`], then wire sessions in
 //! [`lepton_host_adapter`](../lepton_host_adapter/index.html).
 //!
 //! # Features
@@ -17,9 +17,10 @@
 //!   bare ids ([Signup ownership](#signup-ownership)).
 //! - **Product composition** — Lets a product row hop to [`generated::User`] when the
 //!   schema points at Lepton `user` ([Product composition](#product-composition)).
-//! - **Bot accounts** — Gives a user non-human accounts they own. Each bot acts in Valence
-//!   as its own service actor, so what it does is attributed to the bot, and the host
-//!   decides who may create bots ([Install the bot gate](#install-the-bot-gate)).
+//! - **Service users** — Gives a user non-human accounts they own, for MCP clients, CI jobs,
+//!   webhook consumers, or agents. Each service user acts in Valence as its own service actor,
+//!   so what it does is attributed to the service user, and the host decides who may create
+//!   service users ([Install the service user gate](#install-the-service-user-gate)).
 //! - **Storage constants** — Names router logical DBs in [`embedded_surreal`] for
 //!   host Valence wiring ([Model overview](#model-overview)).
 //! - **Session / axum-login** — Points hosts at session boot on
@@ -46,58 +47,64 @@
 //! assert!(phc.starts_with("$argon2"));
 //! ```
 //!
-//! ## Install the bot gate
+//! ## Install the service user gate
 //!
-//! A bot is a non-human account that a user owns. The bot gate is the host's answer to two
-//! questions: who may create bots, and who may manage every bot whoever owns it (usually
-//! super users). Install it once at host boot, before serving requests; until a gate is
-//! installed, nobody can create bots and nobody can manage a bot they do not own. Valence
-//! consults the gate on every write to the `bot` table, so server functions, background
-//! tasks, and scheduled jobs all get the same answer.
+//! A service user is a non-human account that a user owns. The service user gate is the host's
+//! answer to two questions: who may create service users, and who may manage every service
+//! user whoever owns it (usually super users). Install it once at host boot, before serving
+//! requests; until a gate is installed, nobody can create service users and nobody can manage
+//! a service user they do not own. Valence consults the gate on every write to the
+//! `service_user_account` table, so server functions, background tasks, and scheduled jobs all
+//! get the same answer.
 //!
 //! Prerequisites: a Valence handle per request whose actor is the signed-in user. A gate
 //! that reads permission tables must use raw backend reads, since it runs inside privacy
 //! checks, and must never switch the caller to `Actor::System`.
 //!
-//! 1. Implement [`bots::BotGate`]: `may_create_bot` and `may_manage_any_bot`, both reading
-//!    the caller from `valence.actor()`.
-//! 2. Call [`bots::install_bot_gate`] once at boot. A second call returns
-//!    [`bots::BotGateAlreadyInstalled`] and keeps the first gate.
-//! 3. Create and manage bots through `lepton_auth::bots` with the request Valence.
+//! 1. Implement [`service_users::ServiceUserGate`]: `may_create_service_user` and
+//!    `may_manage_any_service_user`, both reading the caller from `valence.actor()`.
+//! 2. Call [`service_users::install_service_user_gate`] once at boot. A second call returns
+//!    [`service_users::ServiceUserGateAlreadyInstalled`] and keeps the first gate.
+//! 3. Create and manage service users through `lepton_auth::service_users` with the request
+//!    Valence.
 //!
-//! Hosts that use Gauge don't need to write a gate: `gauge::bots::GaugeBotGate` answers from
-//! the `lepton.bot.create` and `lepton.bot.manage_any` permissions and a seeded "Bot
-//! creators" group. The example below is a hand-written gate for a host without Gauge.
+//! Hosts that use Gauge don't need to write a gate:
+//! `gauge::service_users::GaugeServiceUserGate` answers from the `lepton.service_user.create`
+//! and `lepton.service_user.manage_any` permissions and a seeded "Service user creators"
+//! group. The example below is a hand-written gate for a host without Gauge.
 //!
 //! ```rust
 //! use std::sync::Arc;
 //!
-//! use lepton_identity::bots::{install_bot_gate, installed_bot_gate, BotGate, BotGateError};
+//! use lepton_identity::service_users::{install_service_user_gate, installed_service_user_gate, ServiceUserGate, ServiceUserGateError};
 //! use valence::Valence;
 //!
-//! /// Named users may create bots; nobody manages other people's bots.
-//! struct BotCreators(Vec<String>);
+//! /// Named users may create service users; nobody manages other people's service users.
+//! struct ServiceUserCreators(Vec<String>);
 //!
 //! #[async_trait::async_trait]
-//! impl BotGate for BotCreators {
-//!     async fn may_create_bot(&self, v: &Valence) -> Result<bool, BotGateError> {
+//! impl ServiceUserGate for ServiceUserCreators {
+//!     async fn may_create_service_user(&self, v: &Valence) -> Result<bool, ServiceUserGateError> {
 //!         Ok(v.actor().user_id().is_some_and(|id| self.0.iter().any(|c| c == id)))
 //!     }
-//!     async fn may_manage_any_bot(&self, _v: &Valence) -> Result<bool, BotGateError> {
+//!     async fn may_manage_any_service_user(&self, _v: &Valence) -> Result<bool, ServiceUserGateError> {
 //!         Ok(false)
 //!     }
 //! }
 //!
-//! install_bot_gate(Arc::new(BotCreators(vec!["alice".into()]))).expect("first install");
-//! assert!(installed_bot_gate().is_some());
-//! assert!(install_bot_gate(Arc::new(BotCreators(vec![]))).is_err());
+//! install_service_user_gate(Arc::new(ServiceUserCreators(vec!["alice".into()]))).expect("first install");
+//! assert!(installed_service_user_gate().is_some());
+//! assert!(install_service_user_gate(Arc::new(ServiceUserCreators(vec![]))).is_err());
 //! ```
 //!
-//! A bot acts as `Actor::ServiceUser { service_name: "bot:<id>" }`; [`bots::BotId`] builds
-//! and parses that actor, and [`bots::BotHandle`] validates handles such as `spectra-bot`.
-//! Bot and service-user actors pass none of the bot rules, so a bot never manages itself.
-//! Next: create and manage bots with `lepton_auth::bots`
-//! ([Create and manage a bot](../lepton_auth/index.html#create-and-manage-a-bot)).
+//! A registered service user acts as `Actor::ServiceUser { service_name: "svc:<id>" }`;
+//! [`service_users::ServiceUserId`] builds and parses that actor, and
+//! [`service_users::ServiceUserHandle`] validates handles such as `spectra-agent`. Service
+//! user actors, registered or built-in, pass none of these rules, so a service user never
+//! manages itself. [Built-in and registered service
+//! users](service_users#built-in-and-registered-service-users) explains how the two kinds
+//! differ. Next: create and manage service users with `lepton_auth::service_users` ([Create
+//! and manage a service user](../lepton_auth/index.html#create-and-manage-a-service-user)).
 //!
 //! ## Model overview
 //!
@@ -132,10 +139,11 @@
 //!   on `User`).
 //! - `AccountMembership`, `LinkedIdentity`, `AuthDevice` / `AuthDeviceCeremony` — membership,
 //!   OAuth, and trusted devices.
-//! - `Bot` — a bot account: owner (`user`), handle, display name, description, and status
-//!   (`active` / `suspended`). Only the owner, and users the bot gate lets manage any bot,
-//!   can read or change it. Owner, creator, and handle never change after creation, and
-//!   deleting the owner's user deletes their bots ([`bots`]).
+//! - `ServiceUserAccount` — a service user: owner (`user`), handle, display name, description,
+//!   and status (`active` / `suspended`). Only the owner, and users the service user gate lets
+//!   manage any service user, can read or change it. Owner, creator, and handle never change
+//!   after creation, and deleting the owner's user deletes their service users
+//!   ([`service_users`]).
 //!
 //! Password hashing: [`auth`]. Session types live in `lepton-host-adapter`. Signup ownership
 //! and membership side effects: [`ownership`], [`side_effects`]. Router constants:
@@ -209,13 +217,12 @@
 //! - [`generated`] — Valence identity models
 //! - [`auth::hash_password`] — Argon2 PHC helper
 //! - [`ownership`] / [`side_effects`] — signup ownership and mutation hooks
-//! - [`bots`] — bot ids, handles, the bot gate, and the `bot` table's privacy rules
+//! - [`service_users`] — service user ids, handles, the service user gate, and the
+//!   `service_user_account` table's privacy rules
 //! - [`lepton_host_adapter`](../lepton_host_adapter/index.html) — axum-login session bridge
 
 /// Argon2 password hashing shared by SSR and worker crates.
 pub mod auth;
-/// Bot accounts: ids, handles, the host bot gate, and `bot` table privacy rules.
-pub mod bots;
 /// Logical database name/storage constants for identity schemas.
 pub mod embedded_surreal;
 /// Build-generated Valence models for identity tables (see the [crate-level
@@ -223,6 +230,9 @@ pub mod embedded_surreal;
 pub mod generated;
 /// Signup-time row ownership assignment for identity models.
 pub mod ownership;
+/// Service users: ids, handles, the host service user gate, and `service_user_account` table
+/// privacy rules.
+pub mod service_users;
 /// Valence mutation side effects for identity models.
 pub mod side_effects;
 

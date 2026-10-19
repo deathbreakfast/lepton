@@ -151,12 +151,12 @@ valence_schema! {
                 on_delete: Cascade,
                 model: "crate::generated::AuthDeviceCeremony",
             },
-            bots: {
-                table: "bot",
+            service_users: {
+                table: "service_user_account",
                 cardinality: HasMany,
                 reverse_field: "user",
                 on_delete: Cascade,
-                model: "crate::generated::Bot",
+                model: "crate::generated::ServiceUserAccount",
             },
             primary_email: {
                 table: "account_email",
