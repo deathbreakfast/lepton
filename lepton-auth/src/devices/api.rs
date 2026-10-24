@@ -166,7 +166,8 @@ pub async fn list_auth_devices(
             Some(AuthDeviceView {
                 id,
                 kind,
-                label: d.label().clone(),
+                // Owner-only, and these are the caller's own devices.
+                label: d.label()?.clone(),
                 credential_id: d.credential_id().cloned(),
                 sign_count: d.sign_count().copied(),
                 trusted_at: d.trusted_at().copied(),
