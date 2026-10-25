@@ -1,0 +1,7 @@
+account_wipe.spec.ts › pw-account-wipe › pw-account-wipe-bad-password
+account_wipe.spec.ts › pw-account-wipe › pw-account-wipe-happy
+oauth.spec.ts › pw-oauth › pw-oauth-buttons-visible
+oauth.spec.ts › pw-oauth › pw-oauth-signup-happy
+oauth.spec.ts › pw-oauth › pw-oauth-signin-login-happy
+oauth.spec.ts › pw-oauth › pw-oauth-state-sad
+oauth.spec.ts › pw-oauth › pw-auth-modal-width

@@ -11,7 +11,7 @@ use axum::{Extension, Router};
 use axum_login::AuthManagerLayerBuilder;
 use lepton_auth::services::provide_auth_services;
 use lepton_auth_ui_e2e::app::{shell, App};
-use lepton_auth_ui_e2e::boot::boot_platform;
+use lepton_auth_ui_e2e::boot::{boot_platform, lab_env};
 use lepton_auth_ui_e2e::seed::seed_data;
 use lepton_host_adapter::session_snapshot_middleware;
 use leptos::prelude::*;
@@ -34,9 +34,9 @@ async fn main() -> anyhow::Result<()> {
         std::env::set_var("VALENCE_OWNERSHIP_COLOCATE", "0");
     }
 
-    // Lab mock OIDC on :5556 (reuse if already bound).
+    // Lab mock OIDC on `UF_MOCK_OIDC_URL` (default :5556; reuse if already bound).
     spawn_mock_oidc_sidecar().await?;
-    // Lab SMS HTTP sink on :8099 (reuse if already bound).
+    // Lab SMS HTTP sink on `UF_SMS_SINK_URL` (default :8099; reuse if already bound).
     spawn_sms_sink_sidecar().await?;
 
     let (state, backend, auth_services) = boot_platform()?;
@@ -93,69 +93,83 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Start [`lepton_e2e::mock_oidc`] on `127.0.0.1:5556`, or no-op if already listening.
+/// Start [`lepton_e2e::mock_oidc`] on `UF_MOCK_OIDC_URL` (default
+/// `127.0.0.1:5556`), or no-op if already listening.
 async fn spawn_mock_oidc_sidecar() -> anyhow::Result<()> {
     use std::net::SocketAddr;
     use std::sync::Arc;
     use std::time::Duration;
 
-    use lepton_e2e::mock_oidc::{serve, CodeStore, DEFAULT_BIND, DEFAULT_ISSUER};
+    use anyhow::Context as _;
+    use lepton_e2e::mock_oidc::{serve, CodeStore, DEFAULT_ISSUER};
+
+    let issuer = lab_env("UF_MOCK_OIDC_URL", DEFAULT_ISSUER);
+    let issuer = issuer.trim_end_matches('/').to_owned();
 
     let probe = reqwest::Client::builder()
         .timeout(Duration::from_millis(400))
         .build()?;
     if probe
-        .get(format!("{DEFAULT_ISSUER}/.well-known/openid-configuration"))
+        .get(format!("{issuer}/.well-known/openid-configuration"))
         .send()
         .await
         .is_ok()
     {
-        tracing::info!(issuer = DEFAULT_ISSUER, "mock OIDC already running");
+        tracing::info!(issuer = %issuer, "mock OIDC already running");
         return Ok(());
     }
 
-    let addr: SocketAddr = DEFAULT_BIND.parse()?;
+    let addr: SocketAddr = issuer
+        .trim_start_matches("http://")
+        .parse()
+        .with_context(|| format!("UF_MOCK_OIDC_URL {issuer} is not http://host:port"))?;
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
             tracing::info!(
-                issuer = DEFAULT_ISSUER,
+                issuer = %issuer,
                 "mock OIDC port in use; assuming ready"
             );
             return Ok(());
         }
         Err(e) => return Err(e.into()),
     };
+    let served = issuer.clone();
     tokio::spawn(async move {
-        if let Err(e) = serve(listener, Arc::new(CodeStore::new()), DEFAULT_ISSUER).await {
+        if let Err(e) = serve(listener, Arc::new(CodeStore::new()), served).await {
             tracing::error!(error = %e, "mock OIDC serve failed");
         }
     });
 
     for _ in 0..50 {
         if probe
-            .get(format!("{DEFAULT_ISSUER}/.well-known/openid-configuration"))
+            .get(format!("{issuer}/.well-known/openid-configuration"))
             .send()
             .await
             .is_ok()
         {
-            tracing::info!(issuer = DEFAULT_ISSUER, "mock OIDC ready");
+            tracing::info!(issuer = %issuer, "mock OIDC ready");
             return Ok(());
         }
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
-    anyhow::bail!("mock OIDC did not become ready on {DEFAULT_ISSUER}");
+    anyhow::bail!("mock OIDC did not become ready on {issuer}");
 }
 
-/// Start [`lepton_e2e::sms_sink`] on `127.0.0.1:8099`, or no-op if already listening.
+/// Start [`lepton_e2e::sms_sink`] on `UF_SMS_SINK_URL` (default
+/// `127.0.0.1:8099`), or no-op if already listening.
 async fn spawn_sms_sink_sidecar() -> anyhow::Result<()> {
     use std::net::SocketAddr;
     use std::sync::Arc;
     use std::time::Duration;
 
-    use lepton_e2e::sms_sink::{default_bind_addr, serve, MessageStore, DEFAULT_BIND};
+    use anyhow::Context as _;
+    use lepton_e2e::sms_sink::{serve, MessageStore, DEFAULT_BIND};
 
-    let base = format!("http://{DEFAULT_BIND}");
+    let base = lab_env("UF_SMS_SINK_URL", &format!("http://{DEFAULT_BIND}"));
+    let base = base.trim_end_matches('/').to_owned();
+    let bind = base.trim_start_matches("http://").to_owned();
+
     let probe = reqwest::Client::builder()
         .timeout(Duration::from_millis(400))
         .build()?;
@@ -165,15 +179,17 @@ async fn spawn_sms_sink_sidecar() -> anyhow::Result<()> {
         .await
         .is_ok()
     {
-        tracing::info!(%DEFAULT_BIND, "SMS sink already running");
+        tracing::info!(%bind, "SMS sink already running");
         return Ok(());
     }
 
-    let addr: SocketAddr = default_bind_addr();
+    let addr: SocketAddr = bind
+        .parse()
+        .with_context(|| format!("UF_SMS_SINK_URL {base} is not http://host:port"))?;
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
-            tracing::info!(%DEFAULT_BIND, "SMS sink port in use; assuming ready");
+            tracing::info!(%bind, "SMS sink port in use; assuming ready");
             return Ok(());
         }
         Err(e) => return Err(e.into()),
@@ -191,10 +207,10 @@ async fn spawn_sms_sink_sidecar() -> anyhow::Result<()> {
             .await
             .is_ok()
         {
-            tracing::info!(%DEFAULT_BIND, "SMS sink ready");
+            tracing::info!(%bind, "SMS sink ready");
             return Ok(());
         }
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
-    anyhow::bail!("SMS sink did not become ready on {DEFAULT_BIND}");
+    anyhow::bail!("SMS sink did not become ready on {bind}");
 }
