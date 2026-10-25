@@ -301,7 +301,11 @@ pub async fn finish_webauthn_assertion(
     if device.revoked_at().is_some() {
         return Err(DeviceError::Revoked);
     }
-    let label = device.label().clone();
+    // `label` is owner-only and this session may not be the owner yet.
+    let label = device
+        .label()
+        .cloned()
+        .unwrap_or_else(|| "WebAuthn device".to_string());
     let trusted_at = device.trusted_at().copied();
     let Some(json) = device.passkey_json().cloned() else {
         return Err(DeviceError::Store);

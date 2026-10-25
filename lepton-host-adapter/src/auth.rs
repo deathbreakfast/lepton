@@ -222,9 +222,11 @@ async fn resolve_session_fields(
         .await
         .unwrap_or_default();
     let account_id = memberships.first().map(|m| m.account().to_string());
+    // `role` is owner-only; these are the signed-in user's own memberships, so it is
+    // present. A membership whose role this session can't read carries no role.
     let roles = memberships
         .into_iter()
-        .map(|m| m.role().to_string())
+        .filter_map(|m| m.role().map(ToString::to_string))
         .collect::<Vec<_>>();
 
     Ok((email, email_verified, display_name, account_id, roles))

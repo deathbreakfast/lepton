@@ -539,9 +539,10 @@ pub mod ssr {
                 "Only the account owner can wipe this account".into(),
             ));
         };
+        // `role` is owner-only; a role this session can't read is not an owner role.
         if !matches!(
             membership.role(),
-            AccountMembershipRole::Member | AccountMembershipRole::Owner
+            Some(AccountMembershipRole::Member | AccountMembershipRole::Owner)
         ) {
             tracing::warn!(
                 operation = "account_wipe",

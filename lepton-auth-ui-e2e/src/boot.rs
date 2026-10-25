@@ -214,9 +214,10 @@ impl DatabaseBackend for TolerantMemBackend {
     }
 }
 
-/// A lab setting from the environment, or `default` when it's unset or
-/// blank. The defaults match a single local host; the lane runner sets one
-/// value per lane so each host gets its own mail, SMS and OIDC sidecars.
+/// A lab setting from the environment, or `default` when it's unset or blank.
+///
+/// The defaults match a single local host; the lane runner sets one value per
+/// lane so each host gets its own mail, SMS and OIDC sidecars.
 pub fn lab_env(key: &str, default: &str) -> String {
     std::env::var(key)
         .ok()

@@ -241,8 +241,8 @@ async fn oauth_provision_sets_account_user_happy() {
         .expect("query")
         .expect("membership");
     assert_eq!(
-        *membership.role(),
-        AccountMembershipRole::Member,
+        membership.role(),
+        Some(&AccountMembershipRole::Member),
         "a new sign-up must not get the platform owner role"
     );
 }

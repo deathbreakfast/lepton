@@ -93,7 +93,7 @@ async fn ci_e2e_signup_persists_legal_and_display_name() {
         .await
         .expect("profile query")
         .expect("profile");
-    assert_eq!(profile.legal_name(), legal_name);
+    assert_eq!(profile.legal_name().map(String::as_str), Some(legal_name));
     assert_eq!(profile.display_name(), display_name);
     assert_eq!(
         bare_id_from_record(profile.user()),
