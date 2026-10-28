@@ -14,6 +14,7 @@ use valence::privacy_policies::owner::check_owner_by_field;
 use valence::{Actor, ActorContext, PolicyEvaluator, PrivacyOperation, Result, Valence};
 
 use super::gate::installed_service_user_gate;
+use super::resolve::active_service_user_owner;
 
 const SERVICE_USER_TABLE: &str = "service_user_account";
 
@@ -41,6 +42,17 @@ pub const SERVICE_USER_MANAGE_ANY: ServiceUserManageAnyRule = ServiceUserManageA
 pub const SERVICE_USER_IDENTITY_IMMUTABLE: ServiceUserIdentityImmutableRule =
     ServiceUserIdentityImmutableRule;
 
+/// Rule for tables owned through a `user` field: an active registered service user
+/// reaches exactly the rows its owner owns.
+///
+/// The acting service user must resolve through
+/// [`active_service_user_owner`](super::active_service_user_owner), so a suspended,
+/// deleted, or unknown service user, a built-in one such as `cron`, and every other
+/// kind of actor are refused. The check is the same `user` field match as
+/// `OWNER_BY_USER_FIELD`, made against the owner, for every operation the rule is
+/// listed under.
+pub const SERVICE_USER_ACTIVE: ServiceUserActiveRule = ServiceUserActiveRule;
+
 /// See [`SERVICE_USER_CREATE_GATE`].
 #[derive(Debug, Clone, Copy)]
 pub struct ServiceUserCreateGateRule;
@@ -52,6 +64,10 @@ pub struct ServiceUserManageAnyRule;
 /// See [`SERVICE_USER_IDENTITY_IMMUTABLE`].
 #[derive(Debug, Clone, Copy)]
 pub struct ServiceUserIdentityImmutableRule;
+
+/// See [`SERVICE_USER_ACTIVE`].
+#[derive(Debug, Clone, Copy)]
+pub struct ServiceUserActiveRule;
 
 /// The calling user, or `None` for every other kind of actor.
 fn user_actor(actor: &dyn ActorContext) -> Option<Actor> {
@@ -187,9 +203,42 @@ impl PolicyEvaluator for ServiceUserIdentityImmutableRule {
     }
 }
 
+#[async_trait]
+impl PolicyEvaluator for ServiceUserActiveRule {
+    fn name(&self) -> &'static str {
+        "lepton::SERVICE_USER_ACTIVE"
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("An active service user reaches the rows its owner owns through the user field")
+    }
+
+    async fn evaluate(
+        &self,
+        _op: PrivacyOperation,
+        record: &Value,
+        actor: &dyn ActorContext,
+        v: &Valence,
+    ) -> Result<bool> {
+        let Ok(Actor::ServiceUser { service_name }) =
+            serde_json::from_value::<Actor>(actor.actor_json().clone())
+        else {
+            return Ok(false);
+        };
+        let Some(owner) = active_service_user_owner(&service_name, v).await else {
+            return Ok(false);
+        };
+        Ok(check_owner_by_field(record, &owner, "user"))
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 /// Bare id from a string (`table:id` or `id`), `{ "id": "…" }`, or
 /// `{ "id": { "String": "…" } }`; the shapes Valence uses for record links.
-fn ref_id(value: &Value) -> Option<String> {
+pub(super) fn ref_id(value: &Value) -> Option<String> {
     let text = match value {
         Value::String(s) => s.as_str(),
         Value::Object(obj) => match obj.get("id")? {

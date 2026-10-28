@@ -198,6 +198,10 @@ name = "service_users_quota"
 required-features = ["ssr"]
 
 [[test]]
+name = "service_users_resolver"
+required-features = ["ssr"]
+
+[[test]]
 name = "membership_primary_clear"
 required-features = ["ssr", "test-utils", "phone"]
 
