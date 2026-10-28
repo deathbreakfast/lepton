@@ -202,6 +202,14 @@ name = "service_users_resolver"
 required-features = ["ssr"]
 
 [[test]]
+name = "service_users_host_limit"
+required-features = ["ssr"]
+
+[[test]]
+name = "service_users_events"
+required-features = ["ssr", "test-utils"]
+
+[[test]]
 name = "membership_primary_clear"
 required-features = ["ssr", "test-utils", "phone"]
 

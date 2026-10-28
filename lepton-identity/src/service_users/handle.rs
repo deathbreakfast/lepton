@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 /// Shortest allowed handle, in characters.
 pub const MIN_HANDLE_LEN: usize = 3;
 /// Longest allowed handle, in characters.
@@ -40,7 +42,7 @@ const RESERVED_STEMS: &[&str] = &[
 /// A validated service user handle such as `spectra-agent`.
 ///
 /// Handles are 3–32 characters of `a-z`, `0-9` and single dashes, and start
-/// with a letter or digit. They live in their own namespace: people have no
+/// and end with a letter or digit. They live in their own namespace: people have no
 /// handles, and two service users can never hold handles with the same
 /// [`key`](Self::key). The service rejects a handle whose key is taken, but the
 /// service user's identity is its [`ServiceUserId`](super::ServiceUserId).
@@ -69,7 +71,7 @@ pub enum ServiceUserHandleError {
     TooShort,
     /// More than [`MAX_HANDLE_LEN`] characters.
     TooLong,
-    /// A character outside `a-z`, `0-9`, `-`, or a leading or doubled dash.
+    /// A character outside `a-z`, `0-9`, `-`, or a leading, trailing, or doubled dash.
     InvalidChar,
     /// The handle names staff, the platform, or everyone.
     Reserved,
@@ -115,7 +117,8 @@ impl ServiceUserHandle {
         let valid_chars = handle
             .chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
-        if !valid_chars || handle.starts_with('-') || handle.contains("--") {
+        if !valid_chars || handle.starts_with('-') || handle.ends_with('-') || handle.contains("--")
+        {
             return Err(ServiceUserHandleError::InvalidChar);
         }
         let candidate = Self(handle);
@@ -162,6 +165,21 @@ impl ServiceUserHandle {
     /// Every candidate is a valid handle.
     pub fn suggestions(&self) -> impl Iterator<Item = Self> + '_ {
         (2..=MAX_SUGGESTIONS).filter_map(move |n| Self::parse(&fit(&self.0, Some(n))).ok())
+    }
+}
+
+impl Serialize for ServiceUserHandle {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+/// Deserializes through [`ServiceUserHandle::parse`], so the handle rules hold for
+/// values that arrive over the wire.
+impl<'de> Deserialize<'de> for ServiceUserHandle {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        Self::parse(&text).map_err(serde::de::Error::custom)
     }
 }
 
@@ -246,6 +264,8 @@ mod tests {
             "spectra_agent",
             "spec tra",
             "-spectra",
+            "spectra-",
+            "spectra-agent-",
             "spectra--agent",
             "spéctra",
             "@spectra",
@@ -282,6 +302,27 @@ mod tests {
             assert_eq!(
                 ServiceUserHandle::parse(bad),
                 Err(ServiceUserHandleError::Reserved),
+                "{bad}"
+            );
+        }
+    }
+
+    #[test]
+    fn handle_serde_round_trip_happy() {
+        let h = ServiceUserHandle::parse("spectra-agent").expect("h");
+        let json = serde_json::to_string(&h).expect("serialize");
+        assert_eq!(json, "\"spectra-agent\"");
+        let back: ServiceUserHandle = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back, h);
+        let folded: ServiceUserHandle = serde_json::from_str("\"Spectra-Agent\"").expect("folds");
+        assert_eq!(folded, h);
+    }
+
+    #[test]
+    fn handle_serde_rejects_invalid_sad() {
+        for bad in ["\"handle-\"", "\"admin\"", "\"ab\"", "\"a_b_c\"", "7"] {
+            assert!(
+                serde_json::from_str::<ServiceUserHandle>(bad).is_err(),
                 "{bad}"
             );
         }

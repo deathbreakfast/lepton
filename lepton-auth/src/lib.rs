@@ -250,8 +250,9 @@
 //!   says no, and [`service_users::ServiceUserError::GateNotInstalled`] when the host never
 //!   installed one.
 //! - **Too many service users**: [`service_users::ServiceUserError::QuotaReached`] once the
-//!   owner has [`service_users::MAX_SERVICE_USERS_PER_OWNER`] service users; deleting one
-//!   frees a slot.
+//!   owner has as many service users as the host allows
+//!   ([`lepton_identity::config::service_users_per_owner`], 10 unless the host sets it);
+//!   deleting one frees a slot.
 //! - **Someone else's service user**: [`service_users::ServiceUserError::NotFound`]. A service
 //!   user the caller may not see looks the same as one that does not exist.
 //!
@@ -334,7 +335,8 @@ pub mod devices;
 /// Server-side email dispatch for verification/reset flows (`email` feature).
 #[cfg(feature = "email")]
 pub mod email_delivery;
-/// Photon topics for verification completion (best-effort publish).
+/// Photon topics for verification completion and service user lifecycle changes
+/// (best-effort publish).
 pub mod events;
 /// Multi-factor challenge issue / verify (email OTP, SMS OTP, TOTP).
 pub mod factor;

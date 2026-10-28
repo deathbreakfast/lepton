@@ -71,6 +71,11 @@ impl fmt::Display for ServiceUserGateAlreadyInstalled {
 
 impl std::error::Error for ServiceUserGateAlreadyInstalled {}
 
+// A process-wide `OnceLock` rather than a value passed through context. The gate is read
+// inside Valence privacy rules, which only see the record, the actor, and the Valence
+// handle; Valence has no slot for host ports, and Lepton cannot depend on the host's
+// context types. The gate is also one decision fixed at boot that every write path
+// (server functions, Boson tasks, Chronon jobs) must share, so one install is the seam.
 static GATE: OnceLock<Arc<dyn ServiceUserGate>> = OnceLock::new();
 
 /// Install the process-wide [`ServiceUserGate`]. Call once at host boot, before

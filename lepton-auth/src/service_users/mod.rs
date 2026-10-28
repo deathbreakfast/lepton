@@ -25,8 +25,22 @@
 //! # Limit per owner
 //!
 //! One owner can have at most [`MAX_SERVICE_USERS_PER_OWNER`] service users, active or
-//! suspended. [`create_service_user`] fails with [`ServiceUserError::QuotaReached`] past that;
+//! suspended, unless the host sets another limit at boot with
+//! [`install_service_users_per_owner`](lepton_identity::config::install_service_users_per_owner).
+//! [`create_service_user`] fails with [`ServiceUserError::QuotaReached`] past the limit;
 //! deleting a service user frees its slot at once.
+//!
+//! # Listing every service user
+//!
+//! [`list_my_service_users`] lists the caller's own. [`list_all_service_users`] lists every
+//! service user, whoever owns it, for callers the gate grants manage-any; anyone else gets
+//! [`ServiceUserError::Forbidden`].
+//!
+//! # Events
+//!
+//! Each saved create, suspend, resume, and delete publishes one Photon
+//! [`ServiceUserLifecycleChanged`](crate::events::ServiceUserLifecycleChanged), keyed by the
+//! owner and carrying ids only. Edits publish nothing.
 //!
 //! # Deletion
 //!
@@ -41,8 +55,8 @@ mod error;
 mod handle_lookup;
 
 pub use api::{
-    create_service_user, delete_service_user, get_service_user, list_my_service_users,
-    resume_service_user, suggest_service_user_handle, suspend_service_user, update_service_user,
-    NewServiceUser, ServiceUserProfileUpdate, MAX_SERVICE_USERS_PER_OWNER,
+    create_service_user, delete_service_user, get_service_user, list_all_service_users,
+    list_my_service_users, resume_service_user, suggest_service_user_handle, suspend_service_user,
+    update_service_user, NewServiceUser, ServiceUserProfileUpdate, MAX_SERVICE_USERS_PER_OWNER,
 };
 pub use error::ServiceUserError;

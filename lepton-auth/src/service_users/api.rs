@@ -4,6 +4,7 @@ use chrono::Utc;
 use lepton_host_adapter::generated::{
     ServiceUserAccount, ServiceUserAccountOwnerKind, ServiceUserAccountStatus,
 };
+use lepton_identity::config::service_users_per_owner;
 use lepton_identity::service_users::{
     installed_service_user_gate, ServiceUserHandle, ServiceUserId,
 };
@@ -13,16 +14,20 @@ use valence::{Actor, Model, RecordId, Valence};
 
 use super::handle_lookup::{first_free, handle_key_taken};
 use super::ServiceUserError;
+use crate::events::{publish_service_user_lifecycle, ServiceUserLifecycleEvent};
 
 const MAX_DISPLAY_NAME: usize = 80;
 const MAX_DESCRIPTION: usize = 500;
 
-/// Most service users one owner can have at once.
+/// Service users one owner can have at once when the host sets no limit.
 ///
+/// Hosts change the limit at boot with
+/// [`install_service_users_per_owner`](lepton_identity::config::install_service_users_per_owner).
 /// Active and suspended service users count; deleted ones (including deletions
 /// still running) do not. Super users are held to the same limit for the service
 /// users they own.
-pub const MAX_SERVICE_USERS_PER_OWNER: usize = 10;
+pub const MAX_SERVICE_USERS_PER_OWNER: usize =
+    lepton_identity::config::DEFAULT_SERVICE_USERS_PER_OWNER;
 
 /// Serializes the check-then-insert in [`create_service_user`] so concurrent
 /// creates cannot both pass the per-owner quota or claim the same handle.
@@ -129,6 +134,23 @@ fn caller_user(valence: &Valence) -> Result<String, ServiceUserError> {
     }
 }
 
+/// Bare user id of the service user's owner.
+fn owner_id(service_user: &ServiceUserAccount) -> Option<String> {
+    let owner = service_user.user()?;
+    Some(valence::extract_id_from_record(owner).unwrap_or_else(|_| owner.id().to_string()))
+}
+
+/// Publish one lifecycle event for a saved change. Best-effort; never fails the call.
+async fn publish(
+    service_user: &ServiceUserAccount,
+    id: &ServiceUserId,
+    event: ServiceUserLifecycleEvent,
+) {
+    if let Some(owner) = owner_id(service_user) {
+        publish_service_user_lifecycle(owner, id, event).await;
+    }
+}
+
 /// Map a Valence write failure: a privacy refusal is [`ServiceUserError::Forbidden`].
 const fn write_error(e: &valence::Error) -> ServiceUserError {
     match e {
@@ -197,8 +219,9 @@ async fn require_create_permission(valence: &Valence) -> Result<(), ServiceUserE
 /// - [`ServiceUserError::InvalidHandle`] / [`ServiceUserError::InvalidProfile`] for bad input.
 /// - [`ServiceUserError::GateNotInstalled`], [`ServiceUserError::CreateNotPermitted`], or
 ///   [`ServiceUserError::Gate`] when the host's gate refuses or fails.
-/// - [`ServiceUserError::QuotaReached`] when the caller already owns
-///   [`MAX_SERVICE_USERS_PER_OWNER`] service users.
+/// - [`ServiceUserError::QuotaReached`] when the caller already owns as many service users
+///   as the host allows ([`service_users_per_owner`], default
+///   [`MAX_SERVICE_USERS_PER_OWNER`]).
 /// - [`ServiceUserError::HandleTaken`] with a free suggestion when another service user uses the
 ///   handle.
 /// - [`ServiceUserError::Store`] on a storage failure.
@@ -212,7 +235,11 @@ pub async fn create_service_user(
         .ok()
         .and_then(|b| b.id())
         .and_then(|rid| ServiceUserId::parse(rid.id()).ok());
-    record(Op::Create, result, id.as_ref())
+    let result = record(Op::Create, result, id.as_ref());
+    if let (Ok(service_user), Some(id)) = (&result, &id) {
+        publish(service_user, id, ServiceUserLifecycleEvent::Created).await;
+    }
+    result
 }
 
 async fn create_service_user_inner(
@@ -233,10 +260,9 @@ async fn create_service_user_inner(
     // backs this up across processes (mapped below).
     let _create_guard = CREATE_LOCK.lock().await;
 
-    if list_my_service_users(valence).await?.len() >= MAX_SERVICE_USERS_PER_OWNER {
-        return Err(ServiceUserError::QuotaReached {
-            limit: MAX_SERVICE_USERS_PER_OWNER,
-        });
+    let limit = service_users_per_owner();
+    if list_my_service_users(valence).await?.len() >= limit {
+        return Err(ServiceUserError::QuotaReached { limit });
     }
 
     if handle_key_taken(valence, &handle.key()).await? {
@@ -350,6 +376,44 @@ pub async fn list_my_service_users(
     )
     .await
     .map_err(|_| ServiceUserError::Store)?;
+    visible_oldest_first(valence, service_users).await
+}
+
+/// Every service user, whoever owns it, oldest first (ties by handle). Only callers the
+/// host's [`ServiceUserGate`](lepton_identity::service_users::ServiceUserGate) grants
+/// manage-any may list them.
+///
+/// # Errors
+///
+/// [`ServiceUserError::NotAUser`]; [`ServiceUserError::Forbidden`] when the gate does not
+/// grant manage-any; [`ServiceUserError::GateNotInstalled`] or [`ServiceUserError::Gate`]
+/// when there is no gate or it fails; [`ServiceUserError::Store`].
+pub async fn list_all_service_users(
+    valence: &Valence,
+) -> Result<Vec<ServiceUserAccount>, ServiceUserError> {
+    caller_user(valence)?;
+    let gate = installed_service_user_gate().ok_or(ServiceUserError::GateNotInstalled)?;
+    if !gate
+        .may_manage_any_service_user(valence)
+        .await
+        .map_err(ServiceUserError::Gate)?
+    {
+        return Err(ServiceUserError::Forbidden);
+    }
+    let service_users = ServiceUserAccount::query(
+        valence,
+        valence::use_!(r"On the **all service users** page, a platform administrator sees **every service user, whoever owns it**, with its handle, display name, owner, and status, so they can suspend or delete one. Only people the host lets manage every service user can open it."),
+    )
+    .await
+    .map_err(|_| ServiceUserError::Store)?;
+    visible_oldest_first(valence, service_users).await
+}
+
+/// Drop rows whose deletion is still running and sort oldest first, ties by handle.
+async fn visible_oldest_first(
+    valence: &Valence,
+    service_users: Vec<ServiceUserAccount>,
+) -> Result<Vec<ServiceUserAccount>, ServiceUserError> {
     // Queries return rows whose deletion is still running; `ServiceUserAccount::get` hides
     // them, so the list must too.
     let mut visible = Vec::with_capacity(service_users.len());
@@ -365,10 +429,9 @@ pub async fn list_my_service_users(
             Err(_) => return Err(ServiceUserError::Store),
         }
     }
-    let mut service_users = visible;
     // Timestamps are stored at second precision; the handle breaks ties.
-    service_users.sort_by(|a, b| (a.created_at(), a.handle()).cmp(&(b.created_at(), b.handle())));
-    Ok(service_users)
+    visible.sort_by(|a, b| (a.created_at(), a.handle()).cmp(&(b.created_at(), b.handle())));
+    Ok(visible)
 }
 
 /// Edit a service user's display name or description. The handle and owner never change.
@@ -433,7 +496,11 @@ pub async fn suspend_service_user(
     id: &ServiceUserId,
 ) -> Result<ServiceUserAccount, ServiceUserError> {
     let result = set_status(valence, id, ServiceUserAccountStatus::Suspended).await;
-    record(Op::Suspend, result, Some(id))
+    let result = record(Op::Suspend, result, Some(id));
+    if let Ok(service_user) = &result {
+        publish(service_user, id, ServiceUserLifecycleEvent::Suspended).await;
+    }
+    result
 }
 
 /// Resume a suspended service user.
@@ -447,7 +514,11 @@ pub async fn resume_service_user(
     id: &ServiceUserId,
 ) -> Result<ServiceUserAccount, ServiceUserError> {
     let result = set_status(valence, id, ServiceUserAccountStatus::Active).await;
-    record(Op::Resume, result, Some(id))
+    let result = record(Op::Resume, result, Some(id));
+    if let Ok(service_user) = &result {
+        publish(service_user, id, ServiceUserLifecycleEvent::Resumed).await;
+    }
+    result
 }
 
 async fn set_status(
@@ -497,22 +568,30 @@ pub async fn delete_service_user(
     id: &ServiceUserId,
 ) -> Result<(), ServiceUserError> {
     let result = delete_service_user_inner(valence, id).await;
-    record(Op::Delete, result, Some(id))
+    match record(Op::Delete, result, Some(id)) {
+        Ok(service_user) => {
+            publish(&service_user, id, ServiceUserLifecycleEvent::Deleted).await;
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
 }
 
+/// Delete and return the row as it was loaded, so the event can name its owner.
 async fn delete_service_user_inner(
     valence: &Valence,
     id: &ServiceUserId,
-) -> Result<(), ServiceUserError> {
+) -> Result<ServiceUserAccount, ServiceUserError> {
     caller_user(valence)?;
-    load(valence, id).await?;
+    let service_user = load(valence, id).await?;
     ServiceUserAccount::delete(
         id.as_str(),
         valence,
         valence::use_!(r"When the owner **deletes a service user**, we **remove the service user and everything attached to it** so it can no longer act and none of its data stays behind."),
     )
     .await
-    .map_err(|e| write_error(&e))
+    .map_err(|e| write_error(&e))?;
+    Ok(service_user)
 }
 
 #[cfg(test)]
