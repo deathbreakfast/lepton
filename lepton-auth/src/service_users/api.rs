@@ -7,6 +7,7 @@ use lepton_host_adapter::generated::{
 use lepton_identity::service_users::{
     installed_service_user_gate, ServiceUserHandle, ServiceUserId,
 };
+use tokio::sync::Mutex;
 use valence::ownership::OwnershipService;
 use valence::{Actor, Model, RecordId, Valence};
 
@@ -22,6 +23,10 @@ const MAX_DESCRIPTION: usize = 500;
 /// still running) do not. Super users are held to the same limit for the service
 /// users they own.
 pub const MAX_SERVICE_USERS_PER_OWNER: usize = 10;
+
+/// Serializes the check-then-insert in [`create_service_user`] so concurrent
+/// creates cannot both pass the per-owner quota or claim the same handle.
+static CREATE_LOCK: Mutex<()> = Mutex::const_new(());
 
 /// Profile for a new service user. See [`create_service_user`].
 #[derive(Debug, Clone, Copy)]
@@ -77,7 +82,11 @@ fn record<T>(
             service_user_id = service_user_id.map(ServiceUserId::as_str),
             "service user lifecycle"
         ),
-        Err(e @ (ServiceUserError::Store | ServiceUserError::Gate(_))) => tracing::warn!(
+        Err(
+            e @ (ServiceUserError::Store
+            | ServiceUserError::Gate(_)
+            | ServiceUserError::Misconfigured),
+        ) => tracing::warn!(
             target: "lepton.service_user",
             op = op.as_str(),
             reason_class = e.reason_class(),
@@ -215,6 +224,15 @@ async fn create_service_user_inner(
     let display_name = check_display_name(input.display_name)?;
     let description = check_description(input.description)?;
     require_create_permission(valence).await?;
+
+    // Serialize the quota count, the handle probe, and the insert. Each is a
+    // check-then-insert: without this lock two concurrent creates for the same
+    // owner could both read a count below the limit, or both find a handle free,
+    // and then both insert. Service user creation is rare and quota-capped, so a
+    // process-wide lock is cheap. The `unique: true` constraint on `handle_key`
+    // backs this up across processes (mapped below).
+    let _create_guard = CREATE_LOCK.lock().await;
+
     if list_my_service_users(valence).await?.len() >= MAX_SERVICE_USERS_PER_OWNER {
         return Err(ServiceUserError::QuotaReached {
             limit: MAX_SERVICE_USERS_PER_OWNER,
@@ -250,9 +268,16 @@ async fn create_service_user_inner(
         valence::use_!(r"When you **create a service user**, we **save its profile**: the handle and display name you chose, the description, and that **you own it**. You see this on your service users page, and the platform uses the owner link to decide who may manage the service user."),
     )
     .await
-    .map_err(|e| match e {
-        valence::Error::Privacy(_) => ServiceUserError::CreateNotPermitted,
-        _ => ServiceUserError::Store,
+    .map_err(|e| {
+        // The owner slipped past the in-process probe (another host, or a race the
+        // lock above cannot see): the unique `handle_key` index rejects the insert.
+        if e.as_unique_violation().is_some() {
+            ServiceUserError::HandleTaken { suggestion: None }
+        } else if matches!(e, valence::Error::Privacy(_)) {
+            ServiceUserError::CreateNotPermitted
+        } else {
+            ServiceUserError::Store
+        }
     })
 }
 
