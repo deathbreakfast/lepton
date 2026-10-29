@@ -214,6 +214,17 @@ impl DatabaseBackend for TolerantMemBackend {
     }
 }
 
+/// A lab setting from the environment, or `default` when it's unset or blank.
+///
+/// The defaults match a single local host; the lane runner sets one value per
+/// lane so each host gets its own mail, SMS and OIDC sidecars.
+pub fn lab_env(key: &str, default: &str) -> String {
+    std::env::var(key)
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| default.to_owned())
+}
+
 /// Open in-memory Valence, register identity schemas, build Higgs + auth services.
 #[allow(clippy::too_many_lines)] // platform boot: valence + schemas + Higgs + auth services
 pub fn boot_platform() -> anyhow::Result<(
@@ -258,16 +269,24 @@ pub fn boot_platform() -> anyhow::Result<(
         .smtp(
             SmtpConfig::builder()
                 .host("127.0.0.1")
-                .port(1025)
+                .port(
+                    lab_env("UF_SMTP_PORT", "1025")
+                        .parse()
+                        .context("UF_SMTP_PORT")?,
+                )
                 .use_tls(false)
                 .from_email("noreply@example.test")
                 .from_name("Lepton Auth")
                 .build()?,
         )
         .build()?;
-    // SMS HTTP sink on :8099 (spawned from main); HttpCapture adapter for OTP asserts.
+    // SMS HTTP sink (spawned from main, `UF_SMS_SINK_URL`, default :8099);
+    // HttpCapture adapter for OTP asserts.
     let sms = SmsServiceBuilder::new()
-        .http_capture(HttpCaptureSmsConfig::new("http://127.0.0.1:8099")?)
+        .http_capture(HttpCaptureSmsConfig::new(lab_env(
+            "UF_SMS_SINK_URL",
+            "http://127.0.0.1:8099",
+        ))?)
         .build()?;
     #[cfg(feature = "boson-delivery")]
     {
@@ -294,12 +313,11 @@ pub fn boot_platform() -> anyhow::Result<(
             .context("Boson build")?;
         configure(boson);
     }
-    let mock_issuer = std::env::var("UF_MOCK_OIDC_URL")
-        .ok()
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| "http://127.0.0.1:5556".into());
+    let mock_issuer = lab_env("UF_MOCK_OIDC_URL", "http://127.0.0.1:5556");
+    // The Playwright origin. A lane runner sets it per lane.
+    let public_base_url = lab_env("UF_PUBLIC_BASE_URL", "http://localhost:3120");
     let oauth = lepton_auth::oauth::OAuthClientConfig {
-        public_base_url: "http://localhost:3120".into(),
+        public_base_url: public_base_url.clone(),
         redirect_path: "/auth/oauth/callback".into(),
         google_client_id: None,
         google_client_secret: None,
@@ -317,12 +335,12 @@ pub fn boot_platform() -> anyhow::Result<(
         LeptonAuthServicesBuilder::new()
             .email(email)
             .sms(sms)
-            .public_base_url("http://localhost:3120")
+            .public_base_url(public_base_url.clone())
             .oauth(oauth)
             .webauthn_rp(lepton_auth::devices::WebauthnRpConfig {
-                // Match Playwright origin (`http://localhost:3120`).
+                // Match the Playwright origin (`UF_PUBLIC_BASE_URL`).
                 rp_id: "localhost".into(),
-                rp_origin: "http://localhost:3120".into(),
+                rp_origin: public_base_url,
                 rp_name: "Lepton".into(),
             })
             .build()?,
