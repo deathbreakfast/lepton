@@ -15,7 +15,7 @@ lepton-identity = { git = "https://github.com/unified-field-dev/lepton", package
 - **Password hashing** — `auth::hash_password` (Argon2 PHC)
 - **Signup ownership** — `ownership::ensure_signup_identity_ownership`
 - **Product composition** — hop from a product row to `User`
-- **Service users** — `ServiceUserAccount` model, `service_users::ServiceUserId` actor mapping, handle rules, and the host-installed `service_users::ServiceUserGate`
+- **Service users** — `ServiceUserAccount` model, `service_users::ServiceUserId` actor mapping, handle rules, and the host-installed `service_users::ServiceUserGate`. Users, service users, and System are different actors; a service user never satisfies `AUTHENTICATED`, and authenticating a service user is the host's job (preview)
 
 ## Getting started
 

@@ -20,7 +20,8 @@ const SERVICE_USER_TABLE: &str = "service_user_account";
 /// store errors.
 ///
 /// The row is read from the backend directly, so the answer does not depend on who is
-/// asking. Callers decide what the owner may reach; [`SERVICE_USER_ACTIVE`] is the
+/// asking. The host calls this after it authenticates a service user (see [Authentication
+/// is the host's job](crate#authentication-is-the-hosts-job-preview)). Callers decide what the owner may reach; [`SERVICE_USER_ACTIVE`] is the
 /// ready-made Valence rule for tables owned through a `user` field.
 ///
 /// [`SERVICE_USER_ACTIVE`]: super::SERVICE_USER_ACTIVE

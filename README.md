@@ -66,7 +66,7 @@ on top of these crates as a separate consuming layer.
 | Two-factor | TOTP enroll / verify / disable; recovery codes returned once |
 | OAuth | Google and GitHub signup, sign-in, and Account Settings link/unlink (`oauth-google` / `oauth-github`); mock provider for CI |
 | Devices | Trusted-browser register / confirm / list / revoke; WebAuthn register / assert (`webauthn` feature) |
-| Service users | Users create service users they own (handles such as `spectra-agent`), then edit, suspend, resume, or delete them; a service user acts as its own Valence service actor, and the host's service user gate decides who may create service users |
+| Service users | Users create service users they own (handles such as `spectra-agent`), then edit, suspend, resume, or delete them; a service user acts as its own Valence service actor, and the host's service user gate decides who may create service users; the host authenticates them and refuses suspended ones |
 | UI (`lepton-auth-ui`) | `AuthDialog`, `StepUpDialog` / `StepUpController`, `SigninContent`, `SignupContent`, password-reset dialogs and content, logout |
 | Delivery | Builder-first SMTP and SMS; inject once with `provide_auth_services` |
 | Spectra | Optional `lepton-spectra-telemetry` delivery + auth funnel counters (`spectra` on smtp/sms/auth) |

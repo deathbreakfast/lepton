@@ -10,11 +10,11 @@ use valence::Actor;
 ///
 /// A registered service user acts as
 /// `Actor::ServiceUser { service_name: "svc:<id>" }`. Any other service name is
-/// a built-in service user that the host asserts, such as `cron`, with no row,
-/// owner, or tokens.
+/// a built-in service user that the host asserts, such as `cron`, with no row
+/// or owner.
 pub const SERVICE_USER_PREFIX: &str = "svc:";
 
-/// Prefix registered service users carried before they were renamed from bots.
+/// Prefix registered service users carried before the rename to service users.
 /// Still reserved so a host can never assert it as a built-in name.
 const LEGACY_BOT_PREFIX: &str = "bot:";
 
@@ -100,7 +100,7 @@ impl ServiceUserId {
         }
     }
 
-    /// The bare UUID text, as stored in the `service_user.id` column.
+    /// The bare UUID text, as stored in the `service_user_account.id` column.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
