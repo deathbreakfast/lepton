@@ -76,7 +76,8 @@ load their own PHC for change-password and email re-auth on session
 `Backend::authenticate` / `get_user`, signup, and password reset.
 
 Entity `User` read stays `AUTHENTICATED`, so another signed-in user can load the
-row; Valence field filtering omits `password_hash` (returns `None`). Covered by
+row; Valence field filtering omits `password_hash` (returns `None`). Service users do not
+satisfy `AUTHENTICATED` (see [Service users](#service-users)). Covered by
 `lepton-auth` tests `password_hash_owner_read_happy_path`,
 `password_hash_cross_user_redacted_sad`, and
 `password_hash_system_read_happy_path`.
@@ -84,6 +85,19 @@ row; Valence field filtering omits `password_hash` (returns `None`). Covered by
 **Accepted residual:** any System-scoped Valence can still read every user's
 PHC. That is required for control-plane credential paths; keep System use
 intentional and narrow.
+
+## Service users
+
+A service user is a non-human account a user owns. It acts in Valence as
+`Actor::ServiceUser`, which is neither a user nor System, so it never satisfies
+`AUTHENTICATED` and reaches only the rows an owner rule gives it. No service user,
+registered or built-in, can create or manage service users, itself included.
+
+Authentication is the host's job (preview). Lepton keeps the owner and the
+`active` / `suspended` status and stores no credentials for a service user. The host
+verifies whatever a service user presents, calls `active_service_user_owner` on the
+result, and refuses the call when it returns `None`. Suspending a service user records the
+status only; a host that skips that check keeps accepting a suspended one.
 
 ## Account wipe (GDPR erase)
 

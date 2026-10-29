@@ -211,7 +211,7 @@
 //!    and restart it.
 //! 4. [`service_users::delete_service_user`] removes it with the standard Valence delete.
 //!
-//! ```rust,ignore
+//! ```rust,no_run
 //! use lepton_auth::service_users::{
 //!     create_service_user, delete_service_user, get_service_user, resume_service_user, suspend_service_user, update_service_user, ServiceUserError,
 //!     ServiceUserProfileUpdate, NewServiceUser,
@@ -259,6 +259,10 @@
 //! Service users, registered or built-in, and anonymous callers get
 //! [`service_users::ServiceUserError::NotAUser`], so a service user never manages itself.
 //! Deleting the owner's user through [`identity_delete`] deletes their service users.
+//!
+//! Suspending records the status only. The host refuses a suspended service user when it
+//! authenticates one ([Authentication is the host's
+//! job](../lepton_identity/index.html#authentication-is-the-hosts-job-preview)).
 //!
 //! ## Typical verification flow (backend)
 //!

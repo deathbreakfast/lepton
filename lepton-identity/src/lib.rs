@@ -17,7 +17,7 @@
 //!   bare ids ([Signup ownership](#signup-ownership)).
 //! - **Product composition** — Lets a product row hop to [`generated::User`] when the
 //!   schema points at Lepton `user` ([Product composition](#product-composition)).
-//! - **Service users** — Gives a user non-human accounts they own, for MCP clients, CI jobs,
+//! - **Service users** — Gives a user non-human accounts they own, for automation clients, CI jobs,
 //!   webhook consumers, or agents. Each service user acts in Valence as its own service actor,
 //!   so what it does is attributed to the service user, and the host decides who may create
 //!   service users ([Install the service user gate](#install-the-service-user-gate)).
@@ -105,6 +105,59 @@
 //! users](service_users#built-in-and-registered-service-users) explains how the two kinds
 //! differ. Next: create and manage service users with `lepton_auth::service_users` ([Create
 //! and manage a service user](../lepton_auth/index.html#create-and-manage-a-service-user)).
+//!
+//! ## User, service user, System
+//!
+//! Callers reach Valence as one of these [`Actor`](valence::Actor)s:
+//!
+//! | Caller | Actor | What it is |
+//! |--------|-------|------------|
+//! | User | `Actor::User` | A signed-in person. Owns accounts and service users. |
+//! | Registered service user | `Actor::ServiceUser { "svc:<id>" }` | A non-human account a user owns, with a row in `service_user_account`, a status, and an owner who answers for it. |
+//! | Built-in service user | `Actor::ServiceUser { "cron" }` and similar | A name host code asserts for its own background work. No row, no owner. |
+//! | System | `Actor::System` | The platform itself, for jobs that started as System. |
+//!
+//! The built-in `AUTHENTICATED` privacy rule means "a signed-in user, or System". A service
+//! user, registered or built-in, does not satisfy it, so a table readable by `AUTHENTICATED`
+//! is not readable by a service user. To let a registered service user reach rows, name an
+//! owner rule on the table: [`service_users::SERVICE_USER_ACTIVE`] gives an active service
+//! user exactly the rows its owner owns, through the table's `user` field.
+//!
+//! The Rust model is `ServiceUserAccount` ([`generated::ServiceUserAccount`]); its table is
+//! `service_user_account`. "Service user" is the name everywhere else.
+//!
+//! ```rust
+//! use lepton_identity::service_users::{is_managed_service_name, ServiceUserId};
+//! use valence::Actor;
+//!
+//! // A new service user gets an id, and the id names the actor it acts as.
+//! let id = ServiceUserId::new_v4();
+//! let actor = id.actor();
+//! assert!(is_managed_service_name(&format!("svc:{}", id.as_str())));
+//! assert_eq!(ServiceUserId::from_actor(&actor), Some(id));
+//!
+//! // A built-in service user and a person never resolve to a registered service user.
+//! let cron = Actor::ServiceUser { service_name: "cron".into() };
+//! assert_eq!(ServiceUserId::from_actor(&cron), None);
+//! assert_eq!(ServiceUserId::from_actor(&Actor::User { user_id: "alice".into() }), None);
+//! ```
+//!
+//! ## Authentication is the host's job (preview)
+//!
+//! Lepton stores who a service user is, who owns it, and whether it is `active` or
+//! `suspended`. It does not issue, store, or check credentials for a service user. The host
+//! decides what a service user presents when it calls in, and does this on each request:
+//!
+//! 1. Verify the credential with the host's own mechanism, which yields a service user id.
+//! 2. Call [`service_users::active_service_user_owner`] with that id and a Valence handle.
+//!    `None` means the service user is unknown, suspended, deleted, or not a registered
+//!    service user at all (a built-in name, say), so the host refuses the call.
+//! 3. Open Valence as [`service_users::ServiceUserId::actor`] and run the request.
+//!
+//! Suspending a service user with `lepton_auth::service_users::suspend_service_user` records
+//! the status. The host's step 2 is what stops a suspended service user from acting, so a
+//! host that skips it keeps accepting one. This part of the API is a preview and may change
+//! as hosts report what they need.
 //!
 //! ## Model overview
 //!

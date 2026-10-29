@@ -1,6 +1,6 @@
 //! Service users: non-human accounts owned by a user.
 //!
-//! A service user is the account an MCP client, a CI job, a webhook consumer, or an agent uses
+//! A service user is the account an automation client, a CI job, a webhook consumer, or an agent uses
 //! to act for a person. It has its own [`ServiceUserId`] and acts in Valence as
 //! `Actor::ServiceUser { service_name: "svc:<id>" }`, so audit rows and privacy checks name
 //! the service user, not the person who owns it. Its profile lives in the
@@ -32,6 +32,8 @@
 //! ([`SERVICE_USER_IDENTITY_IMMUTABLE`]).
 //!
 //! The lifecycle calls (create, suspend, delete, …) are in `lepton_auth::service_users`.
+//! How a host authenticates a service user and refuses a suspended one is in [Authentication
+//! is the host's job](crate#authentication-is-the-hosts-job-preview).
 //!
 //! # Built-in and registered service users
 //!
@@ -40,10 +42,10 @@
 //! answers for what it does.
 //!
 //! - A **built-in** service user, such as `cron` or `spectra-ingest`, is asserted by host code
-//!   for its own background work. It has no row, no owner, and no tokens, and it never gains
+//!   for its own background work. It has no row and no owner, and it never gains
 //!   the powers of a registered one.
 //! - A **registered** service user is the managed kind described above: a row in the
-//!   `service_user_account` table with an owner, a status, tokens, and any Gauge grants, acting as
+//!   `service_user_account` table with an owner, a status, and any Gauge grants, acting as
 //!   `svc:<id>`.
 //!
 //! [`ServiceUserId::from_actor`] is the one check that recognizes a registered service user.

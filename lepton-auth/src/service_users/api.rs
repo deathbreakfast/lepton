@@ -484,8 +484,12 @@ async fn update_service_user_inner(
         .map_err(|e| write_error(&e))
 }
 
-/// Suspend an active service user. A suspended service user keeps its profile but must not act;
-/// token checks (added with service user tokens) refuse it.
+/// Suspend an active service user.
+///
+/// A suspended service user keeps its profile but must not act.
+/// Lepton records the status; the host refuses a suspended service user when it
+/// authenticates one, through
+/// [`active_service_user_owner`](lepton_identity::service_users::active_service_user_owner).
 ///
 /// # Errors
 ///
