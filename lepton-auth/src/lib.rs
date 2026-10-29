@@ -324,42 +324,28 @@
 
 /// Server-side account settings overview + mutation logic.
 pub mod account_api;
-/// `#[server]` functions backing the auth UI.
 pub mod actions;
-/// Multi-email / multi-phone contacts and primary selection (`ssr`).
 #[cfg(feature = "ssr")]
 pub mod contacts;
-/// Durable Boson delivery + [`DeliveryAttempt`](lepton_host_adapter::generated::DeliveryAttempt) log.
 #[cfg(all(feature = "ssr", feature = "boson-delivery"))]
 pub mod delivery;
-/// Delivery settings types, host backend contract and runtime-swappable email/SMS adapters.
 pub mod delivery_settings;
-/// Trusted browser / WebAuthn device APIs and DTOs.
 pub mod devices;
-/// Server-side email dispatch for verification/reset flows (`email` feature).
 #[cfg(feature = "email")]
 pub mod email_delivery;
-/// Photon topics for verification completion and service user lifecycle changes
-/// (best-effort publish).
 pub mod events;
-/// Multi-factor challenge issue / verify (email OTP, SMS OTP, TOTP).
 pub mod factor;
-/// Guarded user/email/membership deletes and account erase (`ssr`).
 #[cfg(feature = "ssr")]
 pub mod identity_delete;
-/// OAuth login / signup / link (`ssr`; mock provider + provider flags).
 #[cfg(feature = "ssr")]
 pub mod oauth;
 /// Route path constants shared between server routes and client-side links.
 pub mod paths;
 /// Redirect/referer path parsing and sanitization for post-auth navigation.
 pub mod routes;
-/// Password policy checks, credential audit logging, and random tokens.
 pub mod security;
-/// Service users: create, edit, suspend, resume, and delete (`ssr`).
 #[cfg(feature = "ssr")]
 pub mod service_users;
-/// Injected email/SMS/public-URL services for auth send paths.
 #[cfg(feature = "ssr")]
 pub mod services;
 /// Session bag keys for AuthDevice binding (`ssr`).
@@ -373,23 +359,17 @@ pub mod session_mfa;
 pub mod signup_api;
 /// Open-signup enablement (`UF_LEPTON_SIGNUP_DISABLED`).
 pub mod signup_policy;
-/// Session-bound TOTP step-up / sudo window (`ssr` + `totp`).
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub mod step_up;
-/// One-time token issuance and lifecycle checks (verification/reset).
 pub mod token_helpers;
 /// Client-side one-time token URL helpers (fragment-first; legacy query strip).
 #[cfg(feature = "hydrate")]
 pub mod token_url;
-/// TOTP enroll / disable / recovery codes (`totp`).
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub mod totp;
-/// Confirm / id-verify library APIs (`ssr`; no product UI).
 #[cfg(feature = "ssr")]
 pub mod trust;
-/// Challenge-keyed verification status server fn (+ optional Photon synced refetch).
 pub mod verification;
-/// Browser `navigator.credentials` WebAuthn JSON helpers (`hydrate`).
 #[cfg(feature = "hydrate")]
 pub mod webauthn_browser;
 

@@ -275,9 +275,7 @@
 //!   `service_user_account` table's privacy rules
 //! - [`lepton_host_adapter`](../lepton_host_adapter/index.html) — axum-login session bridge
 
-/// Argon2 password hashing shared by SSR and worker crates.
 pub mod auth;
-/// Host settings set once at boot, such as the service user limit per owner.
 pub mod config;
 /// Logical database name/storage constants for identity schemas.
 pub mod embedded_surreal;
@@ -286,8 +284,6 @@ pub mod embedded_surreal;
 pub mod generated;
 /// Signup-time row ownership assignment for identity models.
 pub mod ownership;
-/// Service users: ids, handles, the host service user gate, and `service_user_account` table
-/// privacy rules.
 pub mod service_users;
 /// Valence mutation side effects for identity models.
 pub mod side_effects;
