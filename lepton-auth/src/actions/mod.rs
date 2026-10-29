@@ -20,9 +20,7 @@ pub mod confirm_account;
 pub mod devices;
 /// Logout server function.
 pub mod logout;
-/// OAuth begin / callback server functions.
 pub mod oauth;
-/// OAuth link / unlink server functions (Account Settings).
 pub mod oauth_settings;
 /// Password reset request/completion server functions.
 pub mod password_reset;
@@ -32,5 +30,4 @@ pub mod signin;
 pub mod signup;
 /// Step-up TOTP verify (opens a session sudo window).
 pub mod step_up;
-/// TOTP enroll / disable / recovery server functions (Account Settings).
 pub mod totp;

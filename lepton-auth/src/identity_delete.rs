@@ -192,6 +192,7 @@ const KNOWN_USER_CHILD_TABLES: &[&str] = &[
     "account_membership",
     "auth_device",
     "auth_device_ceremony",
+    "service_user_account",
     "linked_identity",
     "totp_factor",
     "totp_recovery_code",
@@ -282,6 +283,13 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
         if let Some(id) = code.id() {
             physical_delete(valence, "totp_recovery_code", &bare_id(id)).await?;
         }
+    }
+
+    for service_user in crate::service_users::erase::owned_service_user_ids(valence, uid)
+        .await
+        .map_err(|_| IdentityDeleteError::Store)?
+    {
+        physical_delete(valence, "service_user_account", &service_user).await?;
     }
 
     physical_delete(valence, "user", uid).await

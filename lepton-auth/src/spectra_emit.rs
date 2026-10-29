@@ -9,14 +9,14 @@
 
 use lepton_spectra_telemetry::{
     log_auth_failure, record_account, record_contact, record_device, record_identity_delete,
-    record_oauth, record_password_reset, record_signin, record_signup, record_step_up, record_totp,
-    record_verify, AuthFailureFlow,
+    record_oauth, record_password_reset, record_service_user, record_signin, record_signup,
+    record_step_up, record_totp, record_verify, AuthFailureFlow,
 };
 
 pub use lepton_spectra_telemetry::{
     AccountOperation, AuthFactor, AuthOutcome, ContactOperation, DeviceKind, DeviceOperation,
     IdentityDeleteOperation, OAuthIntentLabel, OAuthProviderLabel, OAuthStage, PasswordResetStage,
-    SigninStage, StepUpPath, TotpOperation, VerifyChannel, VerifyStage,
+    ServiceUserOperation, SigninStage, StepUpPath, TotpOperation, VerifyChannel, VerifyStage,
 };
 
 pub fn signup(ok: bool, error_class: &'static str) {
@@ -199,4 +199,14 @@ pub const fn oauth_intent_label(intent: crate::oauth::OAuthIntent) -> OAuthInten
         crate::oauth::OAuthIntent::Signup => OAuthIntentLabel::Signup,
         crate::oauth::OAuthIntent::Link => OAuthIntentLabel::Link,
     }
+}
+
+/// Service user lifecycle counter; `error_class` is `"none"` on success.
+pub fn service_user(operation: ServiceUserOperation, error_class: &'static str) {
+    let outcome = if error_class == "none" {
+        AuthOutcome::Success
+    } else {
+        AuthOutcome::Failure
+    };
+    record_service_user(operation, outcome, error_class);
 }

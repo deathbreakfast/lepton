@@ -10,6 +10,9 @@
 use valence::privacy_policies::common::{AUTHENTICATED, PUBLIC_READ, SYSTEM_ONLY};
 use valence::privacy_policies::owner::{OWNER_BY_ID, OWNER_BY_USER_FIELD};
 
+use crate::service_users::{
+    SERVICE_USER_CREATE_GATE, SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
+};
 use crate::side_effects::ClearAccountPrimaryOnMembershipDelete;
 
 include!(concat!(env!("OUT_DIR"), "/generated_models.rs"));

@@ -13,6 +13,7 @@ mod failure;
 mod identity_delete;
 mod oauth;
 mod password_reset;
+mod service_user;
 mod signin;
 mod signup;
 mod step_up;
@@ -36,6 +37,7 @@ pub use oauth::{
     bound_oauth_provider, record_oauth, OAuthIntentLabel, OAuthProviderLabel, OAuthStage,
 };
 pub use password_reset::{record_password_reset, PasswordResetStage};
+pub use service_user::{record_service_user, ServiceUserOperation};
 pub use signin::{record_signin, SigninStage};
 pub use signup::record_signup;
 pub use step_up::{record_step_up, StepUpPath};

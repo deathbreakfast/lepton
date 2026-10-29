@@ -25,6 +25,10 @@
 //! - **Signup, OAuth, contacts, and devices** — Covers account creation and linked
 //!   identity surfaces in [`signup_api`], [`oauth`], [`contacts`], and [`devices`]
 //!   (wipe/erase under [`identity_delete`]; [Examples](#examples)).
+//! - **Service users** — Lets a signed-in user create service users they own, then edit,
+//!   suspend, resume, or delete them through [`service_users`]. Only the owner, and users the
+//!   host's service user gate trusts to manage any service user, can see a service user
+//!   ([Create and manage a service user](#create-and-manage-a-service-user)).
 //! - **Tokens and policy** — Provides one-time tokens ([`token_helpers`]) and password /
 //!   audit helpers ([`security`]) for reset and policy checks
 //!   ([Boot delivery](#boot-delivery-email-only)).
@@ -185,6 +189,81 @@
 //! Runnable: `cargo run -p lepton-auth --example step_up_totp --features ssr,totp`.
 //! UI retry: `lepton-auth-ui` `StepUpController` / `StepUpDialog`.
 //!
+//! ## Create and manage a service user
+//!
+//! A service user is a non-human account the signed-in user owns. It gets its own id and acts in
+//! Valence as its own service actor, so an agent or integration can work under the service user's
+//! name instead of a person's. Call these functions from server functions with the
+//! **request** Valence of the signed-in owner; the owner is taken from that actor.
+//!
+//! Prerequisites: `lepton-auth` with `features = ["ssr"]`; a service user gate installed at
+//! boot ([Install the service user
+//! gate](../lepton_identity/index.html#install-the-service-user-gate)) that lets this user
+//! create service users; the request Valence from [`require_auth_user`] + [`user_valence`];
+//! and, for deletes, a Valence deletion dispatcher registered at boot (valence-platform's
+//! Chronon deletion orchestrator).
+//!
+//! 1. [`service_users::create_service_user`] with a handle such as `spectra-agent`, a display
+//!    name, and an optional description. The service user starts `active`.
+//! 2. [`service_users::update_service_user`] edits the display name or description; owner and
+//!    handle never change.
+//! 3. [`service_users::suspend_service_user`] / [`service_users::resume_service_user`] pause
+//!    and restart it.
+//! 4. [`service_users::delete_service_user`] removes it with the standard Valence delete.
+//!
+//! ```rust,no_run
+//! use lepton_auth::service_users::{
+//!     create_service_user, delete_service_user, get_service_user, resume_service_user, suspend_service_user, update_service_user, ServiceUserError,
+//!     ServiceUserProfileUpdate, NewServiceUser,
+//! };
+//! use lepton_host_adapter::generated::ServiceUserAccountStatus;
+//! use lepton_identity::service_users::ServiceUserId;
+//!
+//! // `v` is the signed-in owner's request Valence (`user_valence(&ctx)?`).
+//! async fn service_user_lifecycle(v: &valence::Valence) -> Result<(), Box<dyn std::error::Error>> {
+//!     let service_user = create_service_user(v, NewServiceUser {
+//!         handle: "spectra-agent",
+//!         display_name: "Spectra agent",
+//!         description: Some("Reads product metrics"),
+//!     })
+//!     .await?;
+//!     assert_eq!(service_user.status(), &ServiceUserAccountStatus::Active);
+//!     let id = ServiceUserId::parse(service_user.id().ok_or("unsaved service user")?.id())?;
+//!
+//!     update_service_user(v, &id, ServiceUserProfileUpdate { display_name: Some("Spectra reader"), ..Default::default() }).await?;
+//!     assert_eq!(suspend_service_user(v, &id).await?.status(), &ServiceUserAccountStatus::Suspended);
+//!     assert_eq!(resume_service_user(v, &id).await?.status(), &ServiceUserAccountStatus::Active);
+//!
+//!     delete_service_user(v, &id).await?;
+//!     assert!(matches!(get_service_user(v, &id).await, Err(ServiceUserError::NotFound)));
+//!     Ok(())
+//! }
+//! ```
+//!
+//! Errors carry a `reason_class` ([`service_users::ServiceUserError::reason_class`]). The ones
+//! a form shows:
+//!
+//! - **Handle in use**: [`service_users::ServiceUserError::HandleTaken`] carries a free
+//!   suggestion such as `spectra-agent-2`; [`service_users::suggest_service_user_handle`]
+//!   turns free text into a free handle first.
+//! - **Not allowed**: [`service_users::ServiceUserError::CreateNotPermitted`] when the gate
+//!   says no, and [`service_users::ServiceUserError::GateNotInstalled`] when the host never
+//!   installed one.
+//! - **Too many service users**: [`service_users::ServiceUserError::QuotaReached`] once the
+//!   owner has as many service users as the host allows
+//!   ([`lepton_identity::config::service_users_per_owner`], 10 unless the host sets it);
+//!   deleting one frees a slot.
+//! - **Someone else's service user**: [`service_users::ServiceUserError::NotFound`]. A service
+//!   user the caller may not see looks the same as one that does not exist.
+//!
+//! Service users, registered or built-in, and anonymous callers get
+//! [`service_users::ServiceUserError::NotAUser`], so a service user never manages itself.
+//! Deleting the owner's user through [`identity_delete`] deletes their service users.
+//!
+//! Suspending records the status only. The host refuses a suspended service user when it
+//! authenticates one ([Authentication is the host's
+//! job](../lepton_identity/index.html#authentication-is-the-hosts-job-preview)).
+//!
 //! ## Typical verification flow (backend)
 //!
 //! 1. Inject SMTP/SMS via [`provide_auth_services`] at SSR boot.
@@ -245,38 +324,28 @@
 
 /// Server-side account settings overview + mutation logic.
 pub mod account_api;
-/// `#[server]` functions backing the auth UI.
 pub mod actions;
-/// Multi-email / multi-phone contacts and primary selection (`ssr`).
 #[cfg(feature = "ssr")]
 pub mod contacts;
-/// Durable Boson delivery + [`DeliveryAttempt`](lepton_host_adapter::generated::DeliveryAttempt) log.
 #[cfg(all(feature = "ssr", feature = "boson-delivery"))]
 pub mod delivery;
-/// Delivery settings types, host backend contract and runtime-swappable email/SMS adapters.
 pub mod delivery_settings;
-/// Trusted browser / WebAuthn device APIs and DTOs.
 pub mod devices;
-/// Server-side email dispatch for verification/reset flows (`email` feature).
 #[cfg(feature = "email")]
 pub mod email_delivery;
-/// Photon topics for verification completion (best-effort publish).
 pub mod events;
-/// Multi-factor challenge issue / verify (email OTP, SMS OTP, TOTP).
 pub mod factor;
-/// Guarded user/email/membership deletes and account erase (`ssr`).
 #[cfg(feature = "ssr")]
 pub mod identity_delete;
-/// OAuth login / signup / link (`ssr`; mock provider + provider flags).
 #[cfg(feature = "ssr")]
 pub mod oauth;
 /// Route path constants shared between server routes and client-side links.
 pub mod paths;
 /// Redirect/referer path parsing and sanitization for post-auth navigation.
 pub mod routes;
-/// Password policy checks, credential audit logging, and random tokens.
 pub mod security;
-/// Injected email/SMS/public-URL services for auth send paths.
+#[cfg(feature = "ssr")]
+pub mod service_users;
 #[cfg(feature = "ssr")]
 pub mod services;
 /// Session bag keys for AuthDevice binding (`ssr`).
@@ -290,23 +359,17 @@ pub mod session_mfa;
 pub mod signup_api;
 /// Open-signup enablement (`UF_LEPTON_SIGNUP_DISABLED`).
 pub mod signup_policy;
-/// Session-bound TOTP step-up / sudo window (`ssr` + `totp`).
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub mod step_up;
-/// One-time token issuance and lifecycle checks (verification/reset).
 pub mod token_helpers;
 /// Client-side one-time token URL helpers (fragment-first; legacy query strip).
 #[cfg(feature = "hydrate")]
 pub mod token_url;
-/// TOTP enroll / disable / recovery codes (`totp`).
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub mod totp;
-/// Confirm / id-verify library APIs (`ssr`; no product UI).
 #[cfg(feature = "ssr")]
 pub mod trust;
-/// Challenge-keyed verification status server fn (+ optional Photon synced refetch).
 pub mod verification;
-/// Browser `navigator.credentials` WebAuthn JSON helpers (`hydrate`).
 #[cfg(feature = "hydrate")]
 pub mod webauthn_browser;
 

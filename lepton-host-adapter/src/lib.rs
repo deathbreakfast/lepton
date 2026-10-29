@@ -111,11 +111,9 @@ pub mod auth;
 #[cfg(feature = "ssr")]
 pub mod session;
 
-/// Photon WebSocket auth extractor built on [`auth::Backend`].
 #[cfg(feature = "ssr")]
 pub mod photon_auth;
 
-/// Profile photo `/api/files/*` handlers and [`files::FileByteBackend`].
 #[cfg(feature = "ssr")]
 pub mod files;
 

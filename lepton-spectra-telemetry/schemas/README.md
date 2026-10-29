@@ -15,6 +15,7 @@ helpers expand when this crate is linked.
 | `lepton_password_reset_spectra_metric.rs` | `lepton_password_reset` | counter |
 | `lepton_totp_spectra_metric.rs` | `lepton_totp` | counter |
 | `lepton_device_spectra_metric.rs` | `lepton_device` | counter |
+| `lepton_service_user_spectra_metric.rs` | `lepton_service_user` | counter |
 | `lepton_contact_spectra_metric.rs` | `lepton_contact` | counter |
 | `lepton_account_spectra_metric.rs` | `lepton_account` | counter |
 | `lepton_identity_delete_spectra_metric.rs` | `lepton_identity_delete` | counter |

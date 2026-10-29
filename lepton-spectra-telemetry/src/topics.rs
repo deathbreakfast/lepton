@@ -30,6 +30,10 @@ pub use crate::schemas::lepton_oauth::{LeptonOauthPayload, LEPTON_OAUTH_TOPIC};
 pub use crate::schemas::lepton_password_reset::{
     LeptonPasswordResetPayload, LEPTON_PASSWORD_RESET_TOPIC,
 };
+/// Payload and topic constant for `lepton_service_user`.
+pub use crate::schemas::lepton_service_user::{
+    LeptonServiceUserPayload, LEPTON_SERVICE_USER_TOPIC,
+};
 /// Payload and topic constant for `lepton_signin`.
 pub use crate::schemas::lepton_signin::{LeptonSigninPayload, LEPTON_SIGNIN_TOPIC};
 /// Payload and topic constant for `lepton_signup`.

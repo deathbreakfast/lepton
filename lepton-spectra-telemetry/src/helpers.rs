@@ -27,6 +27,8 @@ pub use crate::schemas::lepton_identity_delete::LeptonIdentityDeleteRecorder;
 pub use crate::schemas::lepton_oauth::LeptonOauthRecorder;
 /// Recorder for the `lepton_password_reset` counter.
 pub use crate::schemas::lepton_password_reset::LeptonPasswordResetRecorder;
+/// Recorder for the `lepton_service_user` counter.
+pub use crate::schemas::lepton_service_user::LeptonServiceUserRecorder;
 /// Recorder for the `lepton_signin` counter.
 pub use crate::schemas::lepton_signin::LeptonSigninRecorder;
 /// Recorder for the `lepton_signup` counter.
