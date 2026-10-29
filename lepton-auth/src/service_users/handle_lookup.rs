@@ -11,13 +11,17 @@ use super::ServiceUserError;
 /// miss other owners' handles. This reads the `handle_key` column directly and
 /// returns only whether a match exists: no ids or other fields leave this
 /// function. Callers check the service user gate first, so only service user creators can probe.
+///
+/// A service user whose deletion is still running keeps its handle until the row is
+/// purged, matching the `unique: true` constraint; the handle frees for reuse once
+/// the row is gone.
 pub(super) async fn handle_key_taken(
     valence: &Valence,
     key: &str,
 ) -> Result<bool, ServiceUserError> {
     let backend = valence
         .backend_for_table("service_user_account")
-        .map_err(|_| ServiceUserError::Store)?;
+        .map_err(|_| ServiceUserError::Misconfigured)?;
     let compiled = CompiledQuery::new(
         "SELECT id FROM service_user_account WHERE handle_key = $key LIMIT 1".to_string(),
         vec![(

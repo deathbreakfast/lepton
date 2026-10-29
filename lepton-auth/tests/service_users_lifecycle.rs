@@ -9,6 +9,7 @@ mod support;
 #[path = "support/service_users.rs"]
 mod service_users_support;
 
+use lepton_auth::identity_delete::delete_user;
 use lepton_auth::service_users::{
     create_service_user, delete_service_user, get_service_user, list_my_service_users,
     resume_service_user, suggest_service_user_handle, suspend_service_user, update_service_user,
@@ -19,6 +20,7 @@ use service_users_support::{
     install_test_gate, seed_service_user, seed_user, stored_service_user, stored_service_user_count,
 };
 use support::{system_valence, user_valence};
+use valence::RecordId;
 
 fn setup() {
     install_test_gate();
@@ -354,6 +356,29 @@ async fn delete_service_user_owner_happy() {
     get_service_user(&alice, &keep)
         .await
         .expect("other service user untouched");
+}
+
+#[tokio::test]
+async fn handle_unique_after_delete_reusable() {
+    setup();
+    let sys = system_valence("service_users_handle_reuse").await;
+    // Alice takes the handle, then her account is erased, which purges the row.
+    let (_, id, _) = seed_service_user(&sys, "maker-alice", "reused").await;
+    delete_user(&sys, &RecordId::new("user", "maker-alice"))
+        .await
+        .expect("erase owner, purging the service user row");
+    assert!(
+        stored_service_user(&sys, &id).await.is_none(),
+        "the row is gone, so its handle is free"
+    );
+
+    // With the row purged, the handle is free for a new owner to claim.
+    seed_user(&sys, "maker-bob").await;
+    let bob = user_valence(&sys, "maker-bob");
+    let again = create_service_user(&bob, new_service_user("reused"))
+        .await
+        .expect("a purged handle is reusable");
+    assert_eq!(again.handle(), "reused");
 }
 
 #[tokio::test]

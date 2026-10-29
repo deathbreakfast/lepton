@@ -65,6 +65,11 @@ pub enum ServiceUserError {
     /// Storage failed.
     #[error("reason_class=store: service user store operation failed")]
     Store,
+    /// Service user storage is not wired up for this host: the
+    /// `service_user_account` table has no backend. A host configuration problem,
+    /// not a transient store failure.
+    #[error("reason_class=config: service user storage is not configured")]
+    Misconfigured,
 }
 
 impl ServiceUserError {
@@ -84,6 +89,7 @@ impl ServiceUserError {
             Self::InvalidTransition { .. } => "transition",
             Self::Forbidden => "forbidden",
             Self::Store => "store",
+            Self::Misconfigured => "config",
         }
     }
 }

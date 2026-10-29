@@ -7,7 +7,7 @@ valence_schema! {
     ServiceUserAccount {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "service_user_account",
-        version: "0.1.0",
+        version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Service user owned by a user; acts in Valence as Actor::ServiceUser `svc:<id>`",
 
@@ -74,6 +74,7 @@ valence_schema! {
             handle_key: {
                 r#type: FieldType::String,
                 required: true,
+                unique: true,
                 validations: [Validator::NonEmpty, Validator::MaxLength(32)],
             },
             display_name: {
