@@ -30,8 +30,9 @@ pub enum ServiceUserError {
     /// The handle breaks a handle rule.
     #[error("reason_class=handle: invalid handle ({})", .0.reason())]
     InvalidHandle(ServiceUserHandleError),
-    /// The caller already owns the most service users allowed
-    /// ([`MAX_SERVICE_USERS_PER_OWNER`](super::MAX_SERVICE_USERS_PER_OWNER)). Deleting one frees a slot.
+    /// The caller already owns as many service users as the host allows
+    /// ([`service_users_per_owner`](lepton_identity::config::service_users_per_owner)). Deleting
+    /// one frees a slot.
     #[error("reason_class=quota: service user limit of {limit} reached")]
     QuotaReached {
         /// The per-owner limit.

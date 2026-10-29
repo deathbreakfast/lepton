@@ -12,9 +12,9 @@ mod service_users_support;
 
 use chrono::Utc;
 use lepton_auth::service_users::{
-    create_service_user, delete_service_user, get_service_user, list_my_service_users,
-    suspend_service_user, update_service_user, NewServiceUser, ServiceUserError,
-    ServiceUserProfileUpdate,
+    create_service_user, delete_service_user, get_service_user, list_all_service_users,
+    list_my_service_users, suspend_service_user, update_service_user, NewServiceUser,
+    ServiceUserError, ServiceUserProfileUpdate,
 };
 use lepton_host_adapter::generated::{
     ServiceUserAccount, ServiceUserAccountOwnerKind, ServiceUserAccountStatus,
@@ -420,4 +420,63 @@ async fn anonymous_denied_sad() {
         .await
         .expect("get");
     assert!(direct.is_none());
+}
+
+#[tokio::test]
+async fn super_user_lists_every_service_user_happy() {
+    setup();
+    let sys = system_valence("service_users_list_all").await;
+    let (_, alice_id, _) = seed_service_user(&sys, "maker-list-alice", "alice-agent").await;
+    let (_, bob_id, _) = seed_service_user(&sys, "maker-list-bob", "bob-agent").await;
+    let (root, root_id, _) = seed_service_user(&sys, "super-list-root", "root-agent").await;
+
+    let listed: Vec<ServiceUserId> = list_all_service_users(&root)
+        .await
+        .expect("manage-any lists all")
+        .iter()
+        .map(|s| ServiceUserId::parse(s.id().expect("id").id()).expect("service user id"))
+        .collect();
+
+    assert_eq!(listed.len(), 3, "{listed:?}");
+    for id in [&alice_id, &bob_id, &root_id] {
+        assert!(listed.contains(id), "{id}");
+    }
+}
+
+#[tokio::test]
+async fn list_all_hides_deleted_happy() {
+    setup();
+    let sys = system_valence("service_users_list_all_deleted").await;
+    let (alice, alice_id, _) = seed_service_user(&sys, "maker-gone", "gone-agent").await;
+    let (root, root_id, _) = seed_service_user(&sys, "super-gone-root", "kept-agent").await;
+    delete_service_user(&alice, &alice_id)
+        .await
+        .expect("delete");
+
+    let listed = list_all_service_users(&root).await.expect("list");
+
+    assert_eq!(listed.len(), 1);
+    assert_eq!(
+        ServiceUserId::parse(listed[0].id().expect("id").id()).expect("id"),
+        root_id
+    );
+}
+
+#[tokio::test]
+async fn list_all_without_manage_any_sad() {
+    setup();
+    let sys = system_valence("service_users_list_all_denied").await;
+    let (alice, _, _) = seed_service_user(&sys, "maker-nosy", "nosy-agent").await;
+    seed_service_user(&sys, "maker-other-list", "other-agent").await;
+
+    let err = list_all_service_users(&alice)
+        .await
+        .expect_err("not manage-any");
+
+    assert!(matches!(err, ServiceUserError::Forbidden), "{err:?}");
+    let service_user = ServiceUserId::new_v4().actor();
+    let err = list_all_service_users(&sys.with_actor(service_user))
+        .await
+        .expect_err("service user");
+    assert!(matches!(err, ServiceUserError::NotAUser), "{err:?}");
 }

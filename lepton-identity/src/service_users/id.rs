@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use valence::Actor;
 
 /// `service_name` prefix that marks an [`Actor::ServiceUser`] as a registered
@@ -130,6 +131,21 @@ impl ServiceUserId {
     }
 }
 
+impl Serialize for ServiceUserId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+/// Deserializes through [`ServiceUserId::parse`], so only canonical ids (bare or
+/// `svc:`-prefixed) are accepted.
+impl<'de> Deserialize<'de> for ServiceUserId {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        Self::parse(&text).map_err(serde::de::Error::custom)
+    }
+}
+
 impl fmt::Display for ServiceUserId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
@@ -246,6 +262,33 @@ mod tests {
             ServiceUserId::parse(&format!("bot:{UUID}")),
             Err(InvalidServiceUserId)
         );
+    }
+
+    #[test]
+    fn service_user_id_serde_round_trip_happy() {
+        let id = ServiceUserId::parse(UUID).expect("canonical");
+        let json = serde_json::to_string(&id).expect("serialize");
+        assert_eq!(json, format!("\"{UUID}\""));
+        let back: ServiceUserId = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back, id);
+        let prefixed: ServiceUserId =
+            serde_json::from_str(&format!("\"svc:{UUID}\"")).expect("prefixed");
+        assert_eq!(prefixed, id);
+    }
+
+    #[test]
+    fn service_user_id_serde_rejects_invalid_sad() {
+        for bad in [
+            "\"not-a-uuid\"".to_string(),
+            format!("\"{}\"", UUID.to_uppercase()),
+            format!("\"bot:{UUID}\""),
+            "42".to_string(),
+        ] {
+            assert!(
+                serde_json::from_str::<ServiceUserId>(&bad).is_err(),
+                "{bad}"
+            );
+        }
     }
 
     #[test]

@@ -217,12 +217,15 @@
 //! - [`generated`] — Valence identity models
 //! - [`auth::hash_password`] — Argon2 PHC helper
 //! - [`ownership`] / [`side_effects`] — signup ownership and mutation hooks
+//! - [`config`] — host settings such as the service user limit per owner
 //! - [`service_users`] — service user ids, handles, the service user gate, and the
 //!   `service_user_account` table's privacy rules
 //! - [`lepton_host_adapter`](../lepton_host_adapter/index.html) — axum-login session bridge
 
 /// Argon2 password hashing shared by SSR and worker crates.
 pub mod auth;
+/// Host settings set once at boot, such as the service user limit per owner.
+pub mod config;
 /// Logical database name/storage constants for identity schemas.
 pub mod embedded_surreal;
 /// Build-generated Valence models for identity tables (see the [crate-level

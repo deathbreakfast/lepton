@@ -4,7 +4,19 @@ All notable changes to `lepton-identity` are recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- `config::install_service_users_per_owner` lets a host set the service user
+  limit per owner once at boot; `config::service_users_per_owner` reads it and
+  falls back to `DEFAULT_SERVICE_USERS_PER_OWNER` (10).
+- `ServiceUserId` and `ServiceUserHandle` implement `Serialize` and
+  `Deserialize`. Both travel as plain strings and deserialize through `parse`,
+  so invalid values are rejected.
+
 ### Changed
+
+- `ServiceUserHandle::parse` refuses handles that end in a dash, such as
+  `spectra-` (`InvalidChar`).
 
 - Service user handles are now unique at the storage layer: `handle_key` carries
   a `unique: true` constraint and the `service_user_account` schema moves to

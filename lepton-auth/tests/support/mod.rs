@@ -2,7 +2,7 @@
 
 #![allow(dead_code, clippy::expect_used, clippy::unwrap_used)]
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use valence::{
@@ -18,12 +18,21 @@ use valence::{
 #[derive(Debug)]
 pub struct TolerantMemBackend {
     inner: InMemoryBackend,
+    queries: QueryLog,
 }
+
+/// Every compiled query string a [`TolerantMemBackend`] ran, in order.
+pub type QueryLog = Arc<Mutex<Vec<String>>>;
 
 impl TolerantMemBackend {
     pub fn new() -> Self {
+        Self::with_query_log(QueryLog::default())
+    }
+
+    pub fn with_query_log(queries: QueryLog) -> Self {
         Self {
             inner: InMemoryBackend::new(),
+            queries,
         }
     }
 }
@@ -46,6 +55,9 @@ impl DatabaseBackend for TolerantMemBackend {
         &self,
         compiled: &CompiledQuery,
     ) -> Result<Vec<serde_json::Value>> {
+        if let Ok(mut log) = self.queries.lock() {
+            log.push(compiled.query_string.clone());
+        }
         let rows = self.inner.execute_compiled_query(compiled).await?;
         if compiled
             .query_string
@@ -164,13 +176,29 @@ pub async fn system_valence(operation: &str) -> Valence {
     .await
 }
 
+/// System-actor Valence whose backend records every compiled query it runs.
+pub fn system_valence_with_query_log(operation: &str) -> (Valence, QueryLog) {
+    let queries = QueryLog::default();
+    let valence = build_valence(
+        Actor::System {
+            operation: operation.to_string(),
+        },
+        TolerantMemBackend::with_query_log(Arc::clone(&queries)),
+    );
+    (valence, queries)
+}
+
 /// Build a Valence handle with the given actor on a fresh tolerant mem router.
 #[allow(clippy::unused_async)] // kept async so call sites can `.await` uniformly with other helpers
 pub async fn valence_for_actor(actor: Actor, _label: &str) -> Valence {
+    build_valence(actor, TolerantMemBackend::new())
+}
+
+fn build_valence(actor: Actor, backend: TolerantMemBackend) -> Valence {
     std::env::set_var("VALENCE_OWNERSHIP_UNIFIED_FETCH", "0");
     std::env::set_var("VALENCE_OWNERSHIP_COLOCATE", "0");
 
-    let backend: Arc<dyn DatabaseBackend> = Arc::new(TolerantMemBackend::new());
+    let backend: Arc<dyn DatabaseBackend> = Arc::new(backend);
     let mut router = DatabaseRouter::new();
     register_backend_logical_names_slices(
         &mut router,

@@ -429,3 +429,44 @@ async fn list_my_service_users_happy() {
         .collect();
     assert_eq!(handles, ["first", "second"]);
 }
+
+#[tokio::test]
+async fn suggest_service_user_handle_reads_handles_once_happy() {
+    setup();
+    let (sys, queries) = support::system_valence_with_query_log("service_users_suggest_one_read");
+    let (alice, _, _) = seed_service_user(&sys, "maker-alice", "spectra").await;
+    for handle in ["spectra-2", "spectra3"] {
+        create_service_user(&alice, new_service_user(handle))
+            .await
+            .expect("create");
+    }
+    queries.lock().unwrap().clear();
+
+    let suggestion = suggest_service_user_handle(&alice, "Spectra")
+        .await
+        .expect("suggest");
+
+    assert_eq!(suggestion.as_str(), "spectra-4");
+    let handle_reads = queries
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|q| q.contains("handle_key"))
+        .count();
+    assert_eq!(handle_reads, 1, "{:?}", queries.lock().unwrap());
+}
+
+#[tokio::test]
+async fn create_service_user_trailing_dash_sad() {
+    setup();
+    let sys = system_valence("service_users_trailing_dash").await;
+    seed_user(&sys, "maker-dash").await;
+    let owner = user_valence(&sys, "maker-dash");
+
+    let err = create_service_user(&owner, new_service_user("handle-"))
+        .await
+        .expect_err("trailing dash");
+
+    assert!(matches!(err, ServiceUserError::InvalidHandle(_)), "{err:?}");
+    assert_eq!(stored_service_user_count(&sys, "maker-dash").await, 0);
+}
