@@ -197,14 +197,16 @@ pub mod test_support {
         }
     }
 
-    /// Drain recorded service user lifecycle publishes.
+    /// Remove and return the recorded service user lifecycle publishes for `owner_id`,
+    /// leaving other owners' publishes for the tests that expect them.
     #[must_use]
-    pub fn take_service_user_published() -> Vec<ServiceUserPublish> {
-        service_user_log()
+    pub fn take_service_user_published(owner_id: &str) -> Vec<ServiceUserPublish> {
+        let mut log = service_user_log()
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .drain(..)
-            .collect()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let (mine, rest) = log.drain(..).partition(|(owner, _, _)| owner == owner_id);
+        *log = rest;
+        mine
     }
 
     fn log() -> &'static Mutex<Vec<(String, VerificationKind)>> {
@@ -252,10 +254,7 @@ mod tests {
             ServiceUserLifecycleEvent::Suspended,
         )
         .await;
-        let got: Vec<_> = test_support::take_service_user_published()
-            .into_iter()
-            .filter(|(owner, _, _)| owner == "unit-owner")
-            .collect();
+        let got = test_support::take_service_user_published("unit-owner");
         assert_eq!(
             got,
             [(

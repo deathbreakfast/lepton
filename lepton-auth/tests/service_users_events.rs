@@ -22,15 +22,6 @@ fn setup() {
     valence::deletion::register_noop_deletion_dispatcher_for_tests();
 }
 
-/// Captured publishes for `owner`. The capture is process-wide and tests run in
-/// parallel, so each test reads only its own owner's events.
-fn published_for(owner: &str, log: &mut Vec<ServiceUserPublish>) -> Vec<ServiceUserPublish> {
-    log.extend(take_service_user_published());
-    let (mine, rest): (Vec<_>, Vec<_>) = log.drain(..).partition(|(o, _, _)| o == owner);
-    *log = rest;
-    mine
-}
-
 #[tokio::test]
 async fn one_event_per_lifecycle_change_happy() {
     setup();
@@ -51,8 +42,7 @@ async fn one_event_per_lifecycle_change_happy() {
     .expect("edit");
     delete_service_user(&owner_v, &id).await.expect("delete");
 
-    let mut log = Vec::new();
-    let events = published_for(owner, &mut log);
+    let events = take_service_user_published(owner);
 
     let expected: Vec<ServiceUserPublish> = [
         ServiceUserLifecycleEvent::Created,
@@ -91,8 +81,7 @@ async fn refused_changes_publish_nothing_sad() {
     .await
     .expect_err("handle taken");
 
-    let mut log = Vec::new();
-    let events = published_for(owner, &mut log);
+    let events = take_service_user_published(owner);
     assert_eq!(
         events,
         [(
@@ -101,5 +90,5 @@ async fn refused_changes_publish_nothing_sad() {
             ServiceUserLifecycleEvent::Created
         )]
     );
-    assert!(published_for("maker-events-peer", &mut log).is_empty());
+    assert!(take_service_user_published("maker-events-peer").is_empty());
 }
