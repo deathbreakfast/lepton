@@ -14,6 +14,7 @@ use valence::privacy_policies::owner::check_owner_by_field;
 use valence::{Actor, ActorContext, PolicyEvaluator, PrivacyOperation, Result, Valence};
 
 use super::gate::installed_service_user_gate;
+use super::id::ServiceUserId;
 use super::resolve::active_service_user_owner;
 
 const SERVICE_USER_TABLE: &str = "service_user_account";
@@ -220,12 +221,14 @@ impl PolicyEvaluator for ServiceUserActiveRule {
         actor: &dyn ActorContext,
         v: &Valence,
     ) -> Result<bool> {
-        let Ok(Actor::ServiceUser { service_name }) =
-            serde_json::from_value::<Actor>(actor.actor_json().clone())
+        let Some(service_user) = serde_json::from_value::<Actor>(actor.actor_json().clone())
+            .ok()
+            .as_ref()
+            .and_then(ServiceUserId::from_actor)
         else {
             return Ok(false);
         };
-        let Some(owner) = active_service_user_owner(&service_name, v).await else {
+        let Some(owner) = active_service_user_owner(service_user.as_str(), v).await else {
             return Ok(false);
         };
         Ok(check_owner_by_field(record, &owner, "user"))

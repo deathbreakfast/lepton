@@ -159,6 +159,10 @@ async fn service_user_active_rule_nothing_else_sad() {
         Actor::ServiceUser {
             service_name: format!("bot:{}", id.as_str()),
         },
+        // A bare id is not a registered service user's actor name.
+        Actor::ServiceUser {
+            service_name: id.as_str().to_string(),
+        },
         Actor::Anonymous,
         Actor::System {
             operation: "resolver".into(),
