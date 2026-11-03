@@ -41,7 +41,6 @@ lepton-spectra-telemetry = { workspace = true, optional = true }
 lepton-host-adapter = { workspace = true, optional = true }
 lepton-identity = { workspace = true, optional = true }
 photon = { workspace = true, optional = true }
-photon-leptos = { workspace = true, optional = true, default-features = false }
 totp-rs = { workspace = true, optional = true }
 qrcode = { version = "0.14", default-features = false, features = ["svg"], optional = true }
 chacha20poly1305 = { workspace = true, optional = true }
@@ -134,9 +133,7 @@ hydrate = [
     "dep:wasm-bindgen",
     "dep:wasm-bindgen-futures",
     "dep:js-sys",
-    "dep:photon-leptos",
     "dep:higgs-macros",
-    "photon-leptos/hydrate",
 ]
 # Enables publish-capture helpers for validating Photon hooks in integration tests.
 test-utils = ["lepton-identity?/test-utils"]
@@ -160,14 +157,12 @@ ssr = [
     "dep:lepton-host-adapter",
     "dep:lepton-identity",
     "dep:photon",
-    "dep:photon-leptos",
     "dep:tracing",
     "dep:futures",
     "dep:reqwest",
     "lepton-host-adapter/ssr",
     "higgs/ssr",
     "photon/runtime",
-    "photon-leptos/ssr",
 ]
 # Verification / reset mail delivery (not email-as-login).
 email = ["dep:lepton-smtp"]
