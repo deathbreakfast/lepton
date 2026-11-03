@@ -137,4 +137,8 @@ pub use photon_auth::{extract_user_key, PhotonAuth};
 
 #[cfg(feature = "ssr")]
 #[doc(inline)]
+pub use bearer::{bearer_middleware, ServiceUserCaller};
+
+#[cfg(feature = "ssr")]
+#[doc(inline)]
 pub use session::session_snapshot_middleware;
