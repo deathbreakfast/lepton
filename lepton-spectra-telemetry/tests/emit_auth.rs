@@ -9,11 +9,11 @@ use std::time::Duration;
 
 use lepton_spectra_telemetry::{
     log_auth_failure, record_account, record_contact, record_device, record_identity_delete,
-    record_oauth, record_password_reset, record_signin, record_signup, record_step_up, record_totp,
-    record_verify, AccountOperation, AuthFactor, AuthFailureFlow, AuthOutcome, ContactOperation,
-    DeviceKind, DeviceOperation, IdentityDeleteOperation, OAuthIntentLabel, OAuthProviderLabel,
-    OAuthStage, PasswordResetStage, SigninStage, StepUpPath, TotpOperation, VerifyChannel,
-    VerifyStage,
+    record_oauth, record_password_reset, record_service_user, record_signin, record_signup,
+    record_step_up, record_totp, record_verify, AccountOperation, AuthFactor, AuthFailureFlow,
+    AuthOutcome, ContactOperation, DeviceKind, DeviceOperation, IdentityDeleteOperation,
+    OAuthIntentLabel, OAuthProviderLabel, OAuthStage, PasswordResetStage, ServiceUserOperation,
+    SigninStage, StepUpPath, TotpOperation, VerifyChannel, VerifyStage,
 };
 use spectra::{MemEventsBackend, MemMetricsBackend, SchemaRegistry, Spectra};
 use spectra_core::{current_emit_ts, MetricsQueryRange};
@@ -75,6 +75,7 @@ async fn auth_catalog_with_mem_spectra_happy() {
         "lepton_account",
         "lepton_identity_delete",
         "lepton_step_up",
+        "lepton_service_user",
         "lepton_auth_failure",
         "lepton_email_send",
         "lepton_sms_send",
@@ -158,6 +159,18 @@ async fn auth_catalog_with_mem_spectra_happy() {
     .await;
     assert_metric_bumped("lepton_step_up", || {
         record_step_up(StepUpPath::Totp, AuthOutcome::Success, "none");
+    })
+    .await;
+    assert_metric_bumped("lepton_service_user", || {
+        record_service_user(ServiceUserOperation::Create, AuthOutcome::Success, "none");
+    })
+    .await;
+    assert_metric_bumped("lepton_service_user", || {
+        record_service_user(
+            ServiceUserOperation::Create,
+            AuthOutcome::Failure,
+            "handle_taken",
+        );
     })
     .await;
 
