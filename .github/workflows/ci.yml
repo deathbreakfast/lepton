@@ -43,6 +43,20 @@ jobs:
           cargo test --workspace --features ssr,full
           --exclude lepton-auth-ui
           --exclude lepton-auth-ui-e2e
+      # `full` omits `test-utils`, so these tests (required-features) never build above.
+      - name: Clippy (ssr,full,test-utils)
+        run: >
+          cargo clippy -p lepton-auth --all-targets
+          --features ssr,full,test-utils -- -D warnings
+      - name: Test (ssr,full,test-utils)
+        env:
+          RUSTFLAGS: "-D warnings -C link-arg=-fuse-ld=lld"
+          CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
+        run: >
+          cargo test -p lepton-auth --features ssr,full,test-utils
+          --test verification_tokens
+          --test membership_primary_clear
+          --test service_users_events
       - name: Clippy Twilio adapters
         run: >
           cargo clippy -p lepton-sms -p lepton-smtp --all-targets
