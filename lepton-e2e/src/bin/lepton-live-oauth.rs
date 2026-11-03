@@ -40,6 +40,7 @@ impl ProviderLabel for OAuthProvider {
         match self {
             OAuthProvider::Google => "Google",
             OAuthProvider::GitHub => "GitHub",
+            OAuthProvider::Microsoft => "Microsoft",
         }
     }
 }
@@ -59,15 +60,16 @@ async fn run() -> Result<OAuthProvider, LiveVerifyError> {
         None => {
             eprintln!(
                 "lepton-live-oauth: UF_OAUTH_PROVIDER unset; defaulting to google \
-                 (set UF_OAUTH_PROVIDER=github for GitHub)"
+                 (set UF_OAUTH_PROVIDER=github or microsoft for those providers)"
             );
             OAuthProvider::Google
         }
         Some("google") => OAuthProvider::Google,
         Some("github") => OAuthProvider::GitHub,
+        Some("microsoft") => OAuthProvider::Microsoft,
         Some(other) => {
             return Err(LiveVerifyError::config(format!(
-                "UF_OAUTH_PROVIDER must be google or github (got {other})"
+                "UF_OAUTH_PROVIDER must be google, github or microsoft (got {other})"
             )));
         }
     };
@@ -155,6 +157,32 @@ async fn run() -> Result<OAuthProvider, LiveVerifyError> {
                 microsoft_client_id: None,
                 microsoft_client_secret: None,
                 microsoft_tenant: None,
+                microsoft_token_url: None,
+                microsoft_userinfo_url: None,
+            }
+        }
+        OAuthProvider::Microsoft => {
+            let client_id = std::env::var("UF_OAUTH_MICROSOFT_CLIENT_ID")
+                .map_err(|_| LiveVerifyError::config("missing UF_OAUTH_MICROSOFT_CLIENT_ID"))?;
+            let client_secret = std::env::var("UF_OAUTH_MICROSOFT_CLIENT_SECRET")
+                .map_err(|_| LiveVerifyError::config("missing UF_OAUTH_MICROSOFT_CLIENT_SECRET"))?;
+            OAuthClientConfig {
+                public_base_url,
+                redirect_path,
+                google_client_id: None,
+                google_client_secret: None,
+                github_client_id: None,
+                github_client_secret: None,
+                use_mock_provider: false,
+                mock_oidc_issuer_url: None,
+                google_token_url: None,
+                google_userinfo_url: None,
+                github_token_url: None,
+                github_user_url: None,
+                github_emails_url: None,
+                microsoft_client_id: Some(client_id),
+                microsoft_client_secret: Some(client_secret),
+                microsoft_tenant: std::env::var("UF_OAUTH_MICROSOFT_TENANT").ok(),
                 microsoft_token_url: None,
                 microsoft_userinfo_url: None,
             }
