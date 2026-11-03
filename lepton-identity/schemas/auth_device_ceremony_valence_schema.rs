@@ -6,7 +6,7 @@ valence_schema! {
     AuthDeviceCeremony {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "auth_device_ceremony",
-        version: "0.1.0",
+        version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Short-lived WebAuthn registration or assertion ceremony state",
 
@@ -23,19 +23,19 @@ valence_schema! {
             },
             create: {
                 always_allow: [],
-                allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
             update: {
                 always_allow: [],
-                allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
             delete: {
                 always_allow: [],
-                allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
@@ -67,7 +67,7 @@ valence_schema! {
                 r#type: FieldType::Json,
                 required: true,
                 policies: {
-                    read: { allow: [SYSTEM_ONLY] },
+                    read: { allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY] },
                 },
             },
             expires_at: {
