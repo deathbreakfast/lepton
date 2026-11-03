@@ -284,6 +284,7 @@ pub mod embedded_surreal;
 pub mod generated;
 /// Signup-time row ownership assignment for identity models.
 pub mod ownership;
+pub mod privacy_policies;
 pub mod service_users;
 /// Valence mutation side effects for identity models.
 pub mod side_effects;

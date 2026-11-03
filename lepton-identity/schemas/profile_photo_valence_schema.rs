@@ -1,12 +1,12 @@
 use valence::prelude::*;
 use valence::privacy_policies::common::{AUTHENTICATED, SYSTEM_ONLY};
-use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
+use crate::privacy_policies::OWNER_BY_UPLOADED_BY;
 
 valence_schema! {
     ProfilePhoto {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "profile_photo",
-        version: "0.1.0",
+        version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Profile photo backed by the File trait — stores image metadata and links to a user profile",
 
@@ -31,13 +31,13 @@ valence_schema! {
             },
             update: {
                 always_allow: [],
-                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
+                allow: [OWNER_BY_UPLOADED_BY, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
             delete: {
                 always_allow: [],
-                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
+                allow: [OWNER_BY_UPLOADED_BY, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
