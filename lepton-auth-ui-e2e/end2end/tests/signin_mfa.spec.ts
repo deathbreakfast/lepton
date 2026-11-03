@@ -60,7 +60,7 @@ test.describe("pw-signin-mfa", () => {
     });
     await expect(page).toHaveURL(/\/auth\/signin/);
 
-    const code = totpCode(seeded.totp_secret!);
+    const code = await totpCode(seeded.totp_secret!);
     await root
       .getByTestId("signin-mfa-totp")
       .locator('input[name="code"]')
@@ -117,7 +117,7 @@ test.describe("pw-signin-mfa", () => {
     await root
       .getByTestId("signin-mfa-totp")
       .locator('input[name="code"]')
-      .fill(totpCode(seeded.totp_secret!));
+      .fill(await totpCode(seeded.totp_secret!));
     await root.getByTestId("signin-mfa-submit").getByRole("button").click();
     await expect(page).toHaveURL(/\/welcome/, { timeout: 60_000 });
 
@@ -153,7 +153,7 @@ test.describe("pw-signin-mfa", () => {
     await root
       .getByTestId("signin-mfa-totp")
       .locator('input[name="code"]')
-      .fill(totpCode(seeded.totp_secret!));
+      .fill(await totpCode(seeded.totp_secret!));
     await root.getByTestId("signin-mfa-submit").getByRole("button").click();
     await expect(page).toHaveURL(/\/welcome/, { timeout: 60_000 });
 
@@ -197,7 +197,7 @@ test.describe("pw-signin-mfa", () => {
     await root
       .getByTestId("signin-mfa-totp")
       .locator('input[name="code"]')
-      .fill(totpCode(seeded.totp_secret!));
+      .fill(await totpCode(seeded.totp_secret!));
     await root.getByTestId("signin-mfa-submit").getByRole("button").click();
     await expect(page).toHaveURL(/\/welcome/, { timeout: 60_000 });
 
@@ -321,7 +321,7 @@ test.describe("pw-signin-mfa", () => {
     await root
       .getByTestId("signin-mfa-totp")
       .locator('input[name="code"]')
-      .fill(totpCode(seeded.totp_secret!));
+      .fill(await totpCode(seeded.totp_secret!));
     await root.getByTestId("signin-mfa-submit").getByRole("button").click();
     await expect(page).toHaveURL(/\/welcome/, { timeout: 60_000 });
     expect(

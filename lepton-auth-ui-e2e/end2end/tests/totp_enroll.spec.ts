@@ -103,7 +103,7 @@ test.describe("pw-totp enroll account settings", () => {
     );
     await expect(page.getByTestId("totp-settings-confirm")).toBeVisible();
 
-    await page.getByTestId("totp-settings-code").fill(totpCode(secret));
+    await page.getByTestId("totp-settings-code").fill(await totpCode(secret));
     await clickTestId(page, "totp-settings-confirm-submit");
     await expect(page.getByTestId("totp-settings-recovery")).toBeVisible({
       timeout: 30_000,
@@ -120,7 +120,7 @@ test.describe("pw-totp enroll account settings", () => {
     await expect(page.getByTestId("totp-settings-disable")).toBeVisible();
     await page
       .getByTestId("totp-settings-disable-code")
-      .fill(totpCode(secret));
+      .fill(await totpCode(secret));
     await clickTestId(page, "totp-settings-disable-submit");
     await expect(page.getByTestId("totp-settings-idle")).toBeVisible({
       timeout: 30_000,
@@ -135,7 +135,7 @@ test.describe("pw-totp enroll account settings", () => {
 
     await clickTestId(page, "totp-settings-regen-start");
     await expect(page.getByTestId("totp-settings-regen")).toBeVisible();
-    await page.getByTestId("totp-settings-regen-code").fill(totpCode(secret));
+    await page.getByTestId("totp-settings-regen-code").fill(await totpCode(secret));
     await clickTestId(page, "totp-settings-regen-submit");
 
     await expect(page.getByTestId("totp-settings-recovery")).toBeVisible({

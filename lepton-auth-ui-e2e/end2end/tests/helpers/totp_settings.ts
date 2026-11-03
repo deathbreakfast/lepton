@@ -28,7 +28,7 @@ export async function enrollTotpToEnabled(
 
   await clickTestId(page, "totp-settings-continue");
   await expect(page.getByTestId("totp-settings-confirm")).toBeVisible();
-  await page.getByTestId("totp-settings-code").fill(totpCode(secret));
+  await page.getByTestId("totp-settings-code").fill(await totpCode(secret));
   await clickTestId(page, "totp-settings-confirm-submit");
 
   await expect(page.getByTestId("totp-settings-recovery")).toBeVisible({
