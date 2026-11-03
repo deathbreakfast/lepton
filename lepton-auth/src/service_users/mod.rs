@@ -42,6 +42,15 @@
 //! [`ServiceUserLifecycleChanged`](crate::events::ServiceUserLifecycleChanged), keyed by the
 //! owner and carrying ids only. Edits publish nothing.
 //!
+//! # Activity history
+//!
+//! Each create, edit, suspend, and resume saves one history row for the service user, saved
+//! with the caller's own Valence. A failed write is logged and never fails the change.
+//! Deleting writes none; the history goes with the service user.
+//! [`list_service_user_activity`] returns the newest entries to whoever can see the service
+//! user. Lepton mints no tokens, so the host reports token events with
+//! [`record_service_user_token_activity`]. Rows never change after they are saved.
+//!
 //! # Deletion
 //!
 //! [`delete_service_user`] uses the standard Valence delete: the service user disappears from reads
@@ -49,11 +58,16 @@
 //! Chronon deletion orchestrator) removes the row. Deleting the owner's user
 //! ([`identity_delete`](crate::identity_delete)) deletes their service users too.
 
+mod activity;
 mod api;
 pub(crate) mod erase;
 mod error;
 mod handle_lookup;
 
+pub use activity::{
+    list_service_user_activity, record_service_user_token_activity, ServiceUserTokenEvent,
+    DEFAULT_ACTIVITY_LIMIT, MAX_ACTIVITY_LIMIT,
+};
 pub use api::{
     create_service_user, delete_service_user, get_service_user, list_all_service_users,
     list_my_service_users, resume_service_user, suggest_service_user_handle, suspend_service_user,

@@ -6,6 +6,10 @@ All notable changes to `lepton-identity` are recorded here.
 
 ### Added
 
+- `ServiceUserActivity` model (`service_user_activity` table): an append-only history of
+  each service user's lifecycle changes and token events, readable by the owner and by
+  manage-any users. Rules `SERVICE_USER_ACTIVITY_WRITE` and
+  `SERVICE_USER_ACTIVITY_APPEND_ONLY` guard it.
 - `config::install_service_users_per_owner` lets a host set the service user
   limit per owner once at boot; `config::service_users_per_owner` reads it and
   falls back to `DEFAULT_SERVICE_USERS_PER_OWNER` (10).

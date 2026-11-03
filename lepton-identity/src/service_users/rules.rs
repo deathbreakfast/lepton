@@ -54,9 +54,25 @@ pub const SERVICE_USER_IDENTITY_IMMUTABLE: ServiceUserIdentityImmutableRule =
 /// listed under.
 pub const SERVICE_USER_ACTIVE: ServiceUserActiveRule = ServiceUserActiveRule;
 
+/// `create` rule for `service_user_activity`: the caller is the owner named on the row, or
+/// the host's [`ServiceUserGate`](super::ServiceUserGate) lets it manage any service user.
+pub const SERVICE_USER_ACTIVITY_WRITE: ServiceUserActivityWriteRule = ServiceUserActivityWriteRule;
+
+/// `update` `always_block` rule for `service_user_activity`: history rows never change.
+pub const SERVICE_USER_ACTIVITY_APPEND_ONLY: ServiceUserActivityAppendOnlyRule =
+    ServiceUserActivityAppendOnlyRule;
+
 /// See [`SERVICE_USER_CREATE_GATE`].
 #[derive(Debug, Clone, Copy)]
 pub struct ServiceUserCreateGateRule;
+
+/// See [`SERVICE_USER_ACTIVITY_WRITE`].
+#[derive(Debug, Clone, Copy)]
+pub struct ServiceUserActivityWriteRule;
+
+/// See [`SERVICE_USER_ACTIVITY_APPEND_ONLY`].
+#[derive(Debug, Clone, Copy)]
+pub struct ServiceUserActivityAppendOnlyRule;
 
 /// See [`SERVICE_USER_MANAGE_ANY`].
 #[derive(Debug, Clone, Copy)]
@@ -121,6 +137,69 @@ impl PolicyEvaluator for ServiceUserCreateGateRule {
             return Ok(false);
         };
         Ok(gate.may_create_service_user(v).await.unwrap_or(false))
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+#[async_trait]
+impl PolicyEvaluator for ServiceUserActivityWriteRule {
+    fn name(&self) -> &'static str {
+        "lepton::SERVICE_USER_ACTIVITY_WRITE"
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("Caller owns the service user the history row names, or the host's ServiceUserGate lets it manage any service user")
+    }
+
+    async fn evaluate(
+        &self,
+        op: PrivacyOperation,
+        record: &Value,
+        actor: &dyn ActorContext,
+        v: &Valence,
+    ) -> Result<bool> {
+        if !matches!(op, PrivacyOperation::Create) {
+            return Ok(false);
+        }
+        let Some(user) = user_actor(actor) else {
+            return Ok(false);
+        };
+        if check_owner_by_field(record, &user, "user") {
+            return Ok(true);
+        }
+        let Some(gate) = installed_service_user_gate() else {
+            warn_gate_missing();
+            return Ok(false);
+        };
+        Ok(gate.may_manage_any_service_user(v).await.unwrap_or(false))
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+#[async_trait]
+impl PolicyEvaluator for ServiceUserActivityAppendOnlyRule {
+    fn name(&self) -> &'static str {
+        "lepton::SERVICE_USER_ACTIVITY_APPEND_ONLY"
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("Blocks every update to a service user history row")
+    }
+
+    async fn evaluate(
+        &self,
+        op: PrivacyOperation,
+        _record: &Value,
+        _actor: &dyn ActorContext,
+        _v: &Valence,
+    ) -> Result<bool> {
+        Ok(matches!(op, PrivacyOperation::Update))
     }
 
     fn as_any(&self) -> &dyn Any {

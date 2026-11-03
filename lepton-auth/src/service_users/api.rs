@@ -3,6 +3,7 @@
 use chrono::Utc;
 use lepton_host_adapter::generated::{
     ServiceUserAccount, ServiceUserAccountOwnerKind, ServiceUserAccountStatus,
+    ServiceUserActivityKind,
 };
 use lepton_identity::config::service_users_per_owner;
 use lepton_identity::service_users::{
@@ -12,6 +13,7 @@ use tokio::sync::Mutex;
 use valence::ownership::OwnershipService;
 use valence::{Actor, Model, RecordId, Valence};
 
+use super::activity::record_lifecycle;
 use super::handle_lookup::{first_free, handle_key_taken};
 use super::ServiceUserError;
 use crate::events::{publish_service_user_lifecycle, ServiceUserLifecycleEvent};
@@ -122,7 +124,7 @@ fn record<T>(
 }
 
 /// The calling user's bare id, or [`ServiceUserError::NotAUser`].
-fn caller_user(valence: &Valence) -> Result<String, ServiceUserError> {
+pub(super) fn caller_user(valence: &Valence) -> Result<String, ServiceUserError> {
     match valence.actor() {
         Actor::User { user_id } => {
             let bare = user_id
@@ -135,7 +137,7 @@ fn caller_user(valence: &Valence) -> Result<String, ServiceUserError> {
 }
 
 /// Bare user id of the service user's owner.
-fn owner_id(service_user: &ServiceUserAccount) -> Option<String> {
+pub(super) fn owner_id(service_user: &ServiceUserAccount) -> Option<String> {
     let owner = service_user.user()?;
     Some(valence::extract_id_from_record(owner).unwrap_or_else(|_| owner.id().to_string()))
 }
@@ -238,6 +240,7 @@ pub async fn create_service_user(
     let result = record(Op::Create, result, id.as_ref());
     if let (Ok(service_user), Some(id)) = (&result, &id) {
         publish(service_user, id, ServiceUserLifecycleEvent::Created).await;
+        record_lifecycle(valence, service_user, id, ServiceUserActivityKind::Created).await;
     }
     result
 }
@@ -342,7 +345,7 @@ pub async fn get_service_user(
     load(valence, id).await
 }
 
-async fn load(
+pub(super) async fn load(
     valence: &Valence,
     id: &ServiceUserId,
 ) -> Result<ServiceUserAccount, ServiceUserError> {
@@ -447,7 +450,11 @@ pub async fn update_service_user(
     update: ServiceUserProfileUpdate<'_>,
 ) -> Result<ServiceUserAccount, ServiceUserError> {
     let result = update_service_user_inner(valence, id, update).await;
-    record(Op::Update, result, Some(id))
+    let result = record(Op::Update, result, Some(id));
+    if let Ok(service_user) = &result {
+        record_lifecycle(valence, service_user, id, ServiceUserActivityKind::Updated).await;
+    }
+    result
 }
 
 async fn update_service_user_inner(
@@ -503,6 +510,13 @@ pub async fn suspend_service_user(
     let result = record(Op::Suspend, result, Some(id));
     if let Ok(service_user) = &result {
         publish(service_user, id, ServiceUserLifecycleEvent::Suspended).await;
+        record_lifecycle(
+            valence,
+            service_user,
+            id,
+            ServiceUserActivityKind::Suspended,
+        )
+        .await;
     }
     result
 }
@@ -521,6 +535,7 @@ pub async fn resume_service_user(
     let result = record(Op::Resume, result, Some(id));
     if let Ok(service_user) = &result {
         publish(service_user, id, ServiceUserLifecycleEvent::Resumed).await;
+        record_lifecycle(valence, service_user, id, ServiceUserActivityKind::Resumed).await;
     }
     result
 }
