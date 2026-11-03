@@ -7,6 +7,7 @@ import {
 import { totpCode, totpSecretFromManualLocator } from "./helpers/totp";
 import {
   enrollTotpToEnabled,
+  startTotpSetup,
   parseRecoveryCodes,
 } from "./helpers/totp_settings";
 
@@ -80,14 +81,7 @@ test.describe("pw-totp enroll account settings", () => {
     await gotoAccountSettingsSignedIn(page, auth, email, password);
 
     await expect(page.getByTestId("totp-settings-idle")).toBeVisible();
-    await clickTestId(page, "totp-settings-setup");
-    // Setup is async; surface either the QR step or an enroll error.
-    await expect(
-      page
-        .getByTestId("totp-settings-scan")
-        .or(page.getByTestId("totp-settings-error")),
-    ).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId("totp-settings-scan")).toBeVisible();
+    await startTotpSetup(page);
     const secret = await totpSecretFromManualLocator(
       page.getByTestId("totp-settings-manual-secret"),
     );

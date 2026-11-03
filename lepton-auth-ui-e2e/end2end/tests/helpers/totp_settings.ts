@@ -10,18 +10,28 @@ export type EnrolledTotp = {
   recoveryCodes: string[];
 };
 
+/**
+ * Click Set up until the Scan step shows. A click made before the page
+ * hydrates is dropped, so retry while the idle step is still showing.
+ */
+export async function startTotpSetup(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const scan = page.getByTestId("totp-settings-scan");
+  await expect(async () => {
+    if (await page.getByTestId("totp-settings-idle").isVisible()) {
+      await clickTestId(page, "totp-settings-setup");
+    }
+    await expect(scan).toBeVisible({ timeout: 10_000 });
+  }).toPass({ timeout: 60_000 });
+}
+
 /** Idle → Scan → Confirm → Recovery ack → Enabled. Caller must be on account-settings. */
 export async function enrollTotpToEnabled(
   page: import("@playwright/test").Page,
 ): Promise<EnrolledTotp> {
   await expect(page.getByTestId("totp-settings-idle")).toBeVisible();
-  await clickTestId(page, "totp-settings-setup");
-  await expect(
-    page
-      .getByTestId("totp-settings-scan")
-      .or(page.getByTestId("totp-settings-error")),
-  ).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId("totp-settings-scan")).toBeVisible();
+  await startTotpSetup(page);
   const secret = await totpSecretFromManualLocator(
     page.getByTestId("totp-settings-manual-secret"),
   );
