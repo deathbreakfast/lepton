@@ -8,11 +8,15 @@ mod support;
 #[path = "support/service_users.rs"]
 mod service_users_support;
 
-use lepton_auth::identity_delete::delete_user;
+use chrono::Utc;
+use lepton_auth::identity_delete::{delete_user, erase_account, IdentityDeleteError};
+use lepton_host_adapter::generated::{
+    Account, AccountMembership, AccountMembershipRole, AccountPlan, AccountStatus,
+};
 use service_users_support::{
     install_test_gate, seed_service_user, stored_service_user, stored_service_user_count,
 };
-use valence::RecordId;
+use valence::{Model, RecordId, Valence};
 
 use support::system_valence;
 
@@ -65,4 +69,84 @@ async fn owner_erasure_cascades_service_user_rows() {
         "the downstream service user row is removed with its owner"
     );
     assert_eq!(stored_service_user_count(&sys, "maker-alice").await, 0);
+}
+
+/// **Test:** an account owned by `owner` with `members` as members, via System fixtures.
+async fn seed_account_with_members(sys: &Valence, name: &str, members: &[&str]) -> RecordId {
+    let now = Utc::now();
+    let owner = RecordId::new("user", members[0]);
+    let account = Account::new(
+        name.to_string(),
+        owner,
+        Some(AccountPlan::Free),
+        Some(AccountStatus::Active),
+        None,
+        None,
+        now,
+        now,
+    )
+    .expect("account");
+    let created = Account::create(account, sys, valence::use_!(r"**Test:** Fixture **Account** save for `service_users` tests so the suite can erase an account that has service-user owners. CI and developers running the suite only."))
+        .await
+        .expect("create account");
+    let account_id = created.id().cloned().expect("account id");
+    for member in members {
+        let membership = AccountMembership::new(
+            account_id.clone(),
+            RecordId::new("user", *member),
+            AccountMembershipRole::Owner,
+            now,
+            now,
+        )
+        .expect("membership");
+        AccountMembership::create(membership, sys, valence::use_!(r"**Test:** Fixture **Account Membership** save for `service_users` tests so the suite can erase an account that has service-user owners. CI and developers running the suite only."))
+            .await
+            .expect("create membership");
+    }
+    account_id
+}
+
+/// Erasing an account deletes every member user, and with them their service users.
+#[tokio::test]
+async fn erase_account_removes_member_service_users_happy() {
+    install_test_gate();
+    valence::deletion::register_noop_deletion_dispatcher_for_tests();
+    let sys = system_valence("service_users_erase_account").await;
+    let (_, first, _) = seed_service_user(&sys, "maker-erase-a", "erase-first").await;
+    let (_, second, _) = seed_service_user(&sys, "maker-erase-a", "erase-second").await;
+    let (_, peer, _) = seed_service_user(&sys, "maker-erase-b", "erase-peer").await;
+    let (_, bystander, _) = seed_service_user(&sys, "maker-erase-c", "erase-bystander").await;
+    let account =
+        seed_account_with_members(&sys, "erase-bots", &["maker-erase-a", "maker-erase-b"]).await;
+
+    erase_account(&sys, &account).await.expect("erase account");
+
+    for gone in [&first, &second, &peer] {
+        assert!(
+            stored_service_user(&sys, gone).await.is_none(),
+            "member's service user row removed"
+        );
+    }
+    assert_eq!(stored_service_user_count(&sys, "maker-erase-a").await, 0);
+    assert_eq!(stored_service_user_count(&sys, "maker-erase-b").await, 0);
+    assert!(
+        stored_service_user(&sys, &bystander).await.is_some(),
+        "a non-member's service user stays"
+    );
+    assert_eq!(stored_service_user_count(&sys, "maker-erase-c").await, 1);
+}
+
+#[tokio::test]
+async fn erase_missing_account_keeps_service_users_sad() {
+    install_test_gate();
+    valence::deletion::register_noop_deletion_dispatcher_for_tests();
+    let sys = system_valence("service_users_erase_missing").await;
+    let (_, kept, _) = seed_service_user(&sys, "maker-erase-missing", "erase-kept").await;
+
+    let err = erase_account(&sys, &RecordId::new("account", "no-such-account"))
+        .await
+        .expect_err("missing account");
+
+    assert!(matches!(err, IdentityDeleteError::AccountMissing));
+    assert!(stored_service_user(&sys, &kept).await.is_some());
 }
