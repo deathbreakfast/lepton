@@ -5,7 +5,7 @@ valence_schema! {
     EmailVerificationToken {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "email_verification_token",
-        version: "0.2.0",
+        version: "0.3.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "One-time token metadata for signup and email-change verification",
         traits: [OneTimeTokenLifecycle],
@@ -58,6 +58,14 @@ valence_schema! {
             user_email: {
                 r#type: FieldType::Record("account_email"),
                 required: true,
+            },
+            failed_attempts: {
+                r#type: FieldType::Integer,
+                required: false,
+            },
+            locked_until: {
+                r#type: FieldType::DateTime,
+                required: false,
             }
         ],
 

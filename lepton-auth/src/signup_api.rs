@@ -64,7 +64,7 @@ pub mod ssr {
     /// Pending user created without an auth session login.
     ///
     /// When the `email` feature is on, [`Self::email_token_id`] is the verification
-    /// code (also the Valence token record id). Callers send the envelope.
+    /// code (6 digits; the token record is keyed by user). Callers send the envelope.
     pub struct PendingUser {
         /// Trimmed legal name used at create (and for email greeting).
         pub legal_name: String,

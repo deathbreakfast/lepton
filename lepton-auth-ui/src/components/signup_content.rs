@@ -387,7 +387,7 @@ pub fn SignupContent(
                                             bind.name = "token".into();
                                             bind
                                         }
-                                        appearance=InputAppearance::with_placeholder("Paste code")
+                                        appearance=InputAppearance::with_placeholder("6-digit code")
                                     />
                                 </Field>
                                 <div data-testid="signup-email-verify-submit">

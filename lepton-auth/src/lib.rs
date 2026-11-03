@@ -327,6 +327,8 @@
 pub mod account_api;
 pub mod actions;
 #[cfg(feature = "ssr")]
+pub(crate) mod attempt_throttle;
+#[cfg(feature = "ssr")]
 pub mod contacts;
 #[cfg(all(feature = "ssr", feature = "boson-delivery"))]
 pub mod delivery;

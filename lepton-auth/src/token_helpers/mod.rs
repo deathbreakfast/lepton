@@ -6,14 +6,19 @@
 //! |---------|-----|
 //! | Lifecycle gate | `ensure_token_lifecycle_valid` |
 //! | Secret check (also password PHC verify) | `verify_token_secret` |
-//! | Issue email / reset | `issue_email_verification_token` |
+//! | Issue email code (6 digits, one live code per user) | `issue_email_verification_token` |
+//! | Resend cooldown | `email_resend_wait_secs`, `resend_wait_secs` |
 //! | Issue / consume phone (`phone`) | `issue_phone_verification_token`, `try_consume_phone_verification_token` |
-//! | Consume (unique-marker winner) | `try_consume_email_verification_token`, `try_consume_password_reset_token` |
+//! | Consume email code (attempt lockout) | `consume_email_verification_token` |
+//! | Consume reset token (unique-marker winner) | `try_consume_password_reset_token` |
 //!
 //! Consume uses an **optimistic unique-marker** pattern (not a DB `UPDATE … WHERE` CAS):
 //! after secret/lifecycle checks, the caller writes a unique `$consumed$…` marker into
 //! `token_hash`, reloads, and succeeds only when the stored hash still equals that marker.
 //! Concurrent losers observe a different marker and return failure / `None`.
+//!
+//! Email codes add an attempt budget: five wrong codes lock the token for five minutes, and a
+//! new code does not clear a lockout that is still running.
 //!
 //! # Examples
 //!
@@ -44,6 +49,8 @@ use valence::RecordId;
 use valence::Valence;
 
 #[cfg(feature = "ssr")]
+use crate::attempt_throttle::{is_locked, record_failure};
+#[cfg(feature = "ssr")]
 use crate::security::random_token_part;
 
 #[cfg(all(feature = "ssr", feature = "phone"))]
@@ -67,6 +74,9 @@ pub enum TokenLifecycleError {
     /// The token secret did not match the stored hash.
     #[error("Invalid token")]
     Invalid,
+    /// Too many wrong codes; the token is locked until the lockout ends.
+    #[error("Too many attempts; try again later")]
+    Locked,
 }
 
 #[cfg(feature = "ssr")]
@@ -78,6 +88,7 @@ impl TokenLifecycleError {
             Self::Used => "Token has already been used",
             Self::Expired => "Token has expired",
             Self::Invalid => "Invalid token",
+            Self::Locked => "Too many attempts; try again later",
         }
     }
 
@@ -88,6 +99,7 @@ impl TokenLifecycleError {
             Self::Used => "used",
             Self::Expired => "expired",
             Self::Invalid => "invalid",
+            Self::Locked => "rate_limited",
         }
     }
 }
@@ -154,30 +166,64 @@ pub(super) fn ready_to_consume(
     Ok(())
 }
 
-/// Validate and consume an email verification token (unique-marker winner).
+/// Validate and consume the signed-in user's emailed verification code (unique-marker winner).
 ///
-/// Returns `true` only when this caller wins the marker race after a valid secret match.
-/// The email link secret **is** the record id (`token_id`).
+/// The record is keyed by `user`, so the 6-digit `otp_code` is checked against that user's
+/// single live token. A wrong code counts toward the attempt budget
+/// ([`crate::attempt_throttle`]); the miss that exhausts it locks the token until the lockout
+/// ends, and a locked token rejects even the right code.
+///
+/// Returns the pre-consume record when this caller wins. The inner error says why the code was
+/// refused; the outer one is a persistence failure.
 #[cfg(feature = "ssr")]
-pub async fn try_consume_email_verification_token(
-    token_id: &str,
+pub async fn consume_email_verification_token(
     valence: &Valence,
-) -> Result<bool, ServerFnError> {
-    let token = EmailVerificationToken::get(token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    user: &RecordId,
+    otp_code: &str,
+) -> Result<Result<EmailVerificationToken, TokenLifecycleError>, ServerFnError> {
+    let token_id = email_verification_challenge_id(user);
+    let token = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
-        return Ok(false);
+        return Ok(Err(TokenLifecycleError::Invalid));
     };
 
-    if ready_to_consume(&token, token_id).is_err() {
-        return Ok(false);
+    if let Err(err) = ensure_token_lifecycle_valid(&token) {
+        return Ok(Err(err));
+    }
+    let now = Utc::now();
+    if is_locked(token.locked_until(), now) {
+        return Ok(Err(TokenLifecycleError::Locked));
+    }
+    if verify_token_secret(otp_code.trim(), token.token_hash()).is_err() {
+        let (failed, locked_until) =
+            record_failure(token.failed_attempts().copied().unwrap_or(0), now);
+        let mut mutable = token
+            .get_mutable(valence, valence::use_!(r"When an **emailed verification code is wrong**, we **record the failed attempt** on that code and lock it after too many misses, so repeated guesses get rate-limited."))
+            .set_failed_attempts(failed)
+            .map_err(|_| token_store_error("mark_failed"))?;
+        mutable = match locked_until {
+            Some(until) => mutable
+                .set_locked_until(until)
+                .map_err(|_| token_store_error("mark_locked"))?,
+            None => mutable.clear_locked_until(),
+        };
+        mutable
+            .commit()
+            .await
+            .map_err(|_| token_store_error("persist"))?;
+        return Ok(Err(if locked_until.is_some() {
+            TokenLifecycleError::Locked
+        } else {
+            TokenLifecycleError::Invalid
+        }));
     }
 
     let consume_marker = new_consume_marker();
     token
         .get_mutable(valence, valence::use_!(r"In **token helpers**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **token helpers** use the updated data; this is not a public export of unrelated fields."))
-        .set_used_at(Utc::now())
+        .set_used_at(now)
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
         .map_err(|_| token_store_error("mark_hash"))?
@@ -185,13 +231,16 @@ pub async fn try_consume_email_verification_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = EmailVerificationToken::get(token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let latest = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
-        return Ok(false);
+        return Ok(Err(TokenLifecycleError::Invalid));
     };
-    Ok(consume_marker_won(latest.token_hash(), &consume_marker))
+    if !consume_marker_won(latest.token_hash(), &consume_marker) {
+        return Ok(Err(TokenLifecycleError::Used));
+    }
+    Ok(Ok(token))
 }
 
 /// Validate, then unique-marker-consume a password reset token before any password write.
@@ -241,26 +290,102 @@ pub async fn try_consume_password_reset_token(
     Ok(Some(token))
 }
 
-/// Generate, hash, and persist a fresh email verification token for `user_email` (30 min TTL).
+/// Seconds a user must wait between emailed verification codes.
+#[cfg(feature = "ssr")]
+pub const EMAIL_RESEND_COOLDOWN_SECS: i64 = 60;
+
+/// Digits in an emailed verification code.
+#[cfg(feature = "ssr")]
+pub const EMAIL_OTP_DIGIT_LEN: usize = 6;
+
+/// Record id of a user's email verification token, also its challenge id.
 ///
-/// Returns the plaintext token id (also the URL fragment secret).
+/// It keys [`crate::verification::verification_status`] and the completed event. It is the bare
+/// user id, so each user has one live code and issuing a new one replaces the old. The id is
+/// public; the code is the secret.
+#[cfg(feature = "ssr")]
+#[must_use]
+pub fn email_verification_challenge_id(user: &RecordId) -> String {
+    valence::extract_id_from_record(user).unwrap_or_else(|_| user.id().to_string())
+}
+
+/// Cryptographically random [`EMAIL_OTP_DIGIT_LEN`]-digit code (zero-padded).
+#[cfg(feature = "ssr")]
+#[must_use]
+pub fn generate_email_otp_code() -> String {
+    random_six_digit_code()
+}
+
+/// Zero-padded 6-digit code from the OS RNG (shared by the email and phone OTPs).
+#[cfg(feature = "ssr")]
+fn random_six_digit_code() -> String {
+    use rand_core::RngCore;
+
+    let mut bytes = [0u8; 4];
+    rand_core::OsRng.fill_bytes(&mut bytes);
+    let n = u32::from_le_bytes(bytes) % 1_000_000;
+    format!("{n:06}")
+}
+
+/// Seconds left before another code may be sent, or `None` when sending is allowed.
+#[cfg(feature = "ssr")]
+#[must_use]
+pub fn resend_wait_secs(
+    last_issued_at: chrono::DateTime<Utc>,
+    now: chrono::DateTime<Utc>,
+) -> Option<i64> {
+    let ready_at = last_issued_at + Duration::seconds(EMAIL_RESEND_COOLDOWN_SECS);
+    (ready_at > now).then(|| (ready_at - now).num_seconds().max(1))
+}
+
+/// Seconds `user` must still wait before another verification email, or `None` when a new
+/// code may be issued (no token yet, or the last one is older than the cooldown).
+#[cfg(feature = "ssr")]
+pub async fn email_resend_wait_secs(
+    valence: &Valence,
+    user: &RecordId,
+) -> Result<Option<i64>, ServerFnError> {
+    let token = EmailVerificationToken::get(&email_verification_challenge_id(user), valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        .await
+        .map_err(|_| token_store_error("load"))?;
+    Ok(token.and_then(|t| resend_wait_secs(*t.created_at(), Utc::now())))
+}
+
+/// Generate a fresh 6-digit code for `user_email`, hash it, and persist it (30 min TTL).
+///
+/// Returns the plaintext code to put in the email. It replaces any earlier code for `user`.
+/// A lockout still running on the replaced code carries over, so requesting a new code does
+/// not reset the attempt budget.
 #[cfg(feature = "ssr")]
 pub async fn issue_email_verification_token(
     valence: &Valence,
     user: RecordId,
     user_email: RecordId,
 ) -> Result<String, ServerFnError> {
-    let token_id = random_token_part(12);
-    let token_hash = lepton_host_adapter::auth::hash_password(&token_id)
+    let token_id = email_verification_challenge_id(&user);
+    let otp_code = generate_email_otp_code();
+    let token_hash = lepton_host_adapter::auth::hash_password(&otp_code)
         .map_err(|_| token_store_error("hash"))?;
+
+    let now = Utc::now();
+    let previous = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        .await
+        .map_err(|_| token_store_error("load"))?;
+    let (failed_attempts, locked_until) = previous
+        .filter(|t| is_locked(t.locked_until(), now))
+        .map_or((None, None), |t| {
+            (t.failed_attempts().copied(), t.locked_until().copied())
+        });
 
     let token = EmailVerificationToken::new(
         user,
         user_email,
+        failed_attempts,
+        locked_until,
         token_hash,
-        Utc::now() + Duration::minutes(30),
+        now + Duration::minutes(30),
         None,
-        Utc::now(),
+        now,
     )
     .map_err(|_| token_store_error("build"))?;
 
@@ -268,7 +393,7 @@ pub async fn issue_email_verification_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    Ok(token_id)
+    Ok(otp_code)
 }
 
 #[cfg(all(test, feature = "ssr"))]
@@ -328,6 +453,42 @@ mod tests {
         assert!(verify_token_secret(secret, &hash).is_ok());
         let marker = new_consume_marker();
         assert!(consume_marker_won(&marker, &marker));
+    }
+
+    #[test]
+    fn email_otp_is_six_digits() {
+        for _ in 0..50 {
+            let code = generate_email_otp_code();
+            assert_eq!(code.len(), EMAIL_OTP_DIGIT_LEN);
+            assert!(code.chars().all(|c| c.is_ascii_digit()));
+        }
+    }
+
+    #[test]
+    fn resend_wait_counts_down_then_clears() {
+        let sent = Utc::now();
+        assert_eq!(
+            resend_wait_secs(sent, sent),
+            Some(EMAIL_RESEND_COOLDOWN_SECS)
+        );
+        assert_eq!(
+            resend_wait_secs(sent, sent + Duration::seconds(45)),
+            Some(15)
+        );
+        assert_eq!(
+            resend_wait_secs(sent, sent + Duration::seconds(EMAIL_RESEND_COOLDOWN_SECS)),
+            None
+        );
+        assert_eq!(resend_wait_secs(sent, sent + Duration::hours(1)), None);
+    }
+
+    #[test]
+    fn locked_error_maps_to_rate_limited() {
+        assert_eq!(TokenLifecycleError::Locked.reason_class(), "rate_limited");
+        assert_eq!(
+            TokenLifecycleError::Locked.message(),
+            "Too many attempts; try again later"
+        );
     }
 
     #[test]

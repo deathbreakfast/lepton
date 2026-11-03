@@ -96,6 +96,9 @@ Auth library (includes Photon publish capture helpers under `test-utils`):
 
 ```bash
 cargo test -p lepton-auth --features ssr,full,test-utils
+# Email verification codes: 6-digit code, five-miss lockout, resend cooldown
+cargo test -p lepton-auth --features ssr,full,test-utils --test verification_tokens
+
 # Service users: lifecycle, privacy rules, unwired gate (own binary), owner deletion, quota, activity history
 cargo test -p lepton-auth --features ssr --test service_users_lifecycle --test service_users_privacy \
   --test service_users_gate_unwired --test service_users_owner_delete --test service_users_quota --test service_users_activity

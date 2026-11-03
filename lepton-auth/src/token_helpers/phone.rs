@@ -3,7 +3,6 @@
 use chrono::{Duration, Utc};
 use lepton_host_adapter::generated::PhoneVerificationToken;
 use leptos::prelude::ServerFnError;
-use rand_core::RngCore;
 use valence::{Model, RecordId, Valence};
 
 use super::{consume_marker_won, new_consume_marker, ready_to_consume, token_store_error};
@@ -24,10 +23,7 @@ pub struct IssuedPhoneChallenge {
 /// Cryptographically random [`PHONE_OTP_DIGIT_LEN`]-digit OTP (zero-padded).
 #[must_use]
 pub fn generate_phone_otp_code() -> String {
-    let mut bytes = [0u8; 4];
-    rand_core::OsRng.fill_bytes(&mut bytes);
-    let n = u32::from_le_bytes(bytes) % 1_000_000;
-    format!("{n:0PHONE_OTP_DIGIT_LEN$}")
+    super::random_six_digit_code()
 }
 
 /// Validate and consume a phone verification token using the SMS OTP (not the record id).

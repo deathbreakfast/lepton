@@ -321,9 +321,14 @@ pub mod ssr {
         {
             use crate::contacts::{account_for_user, add_account_email};
             use crate::email_delivery::ssr::send_verification_token_email;
-            use crate::token_helpers::issue_email_verification_token;
+            use crate::token_helpers::{email_resend_wait_secs, issue_email_verification_token};
             use lepton_smtp::VerificationEmailFlow;
 
+            if let Some(wait) = email_resend_wait_secs(valence, &auth_user.id).await? {
+                return Err(ServerFnError::new(format!(
+                    "reason_class=resend_throttled: wait {wait} seconds before requesting another code"
+                )));
+            }
             let account = account_for_user(valence, &auth_user.id)
                 .await
                 .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -351,7 +356,9 @@ pub mod ssr {
         }
     }
 
-    /// Issue and email a fresh verification token for the signed-in user's current email.
+    /// Issue and email a fresh verification code for the signed-in user's current email.
+    ///
+    /// Inside the resend cooldown this returns `Ok(())` without sending.
     #[allow(clippy::unused_async)] // awaits only when the `email` feature is enabled
     pub async fn execute_request_email_verification(
         valence: &Valence,
@@ -367,10 +374,21 @@ pub mod ssr {
         #[cfg(feature = "email")]
         {
             use crate::email_delivery::ssr::send_verification_token_email_quiet;
-            use crate::token_helpers::issue_email_verification_token;
+            use crate::token_helpers::{email_resend_wait_secs, issue_email_verification_token};
             use lepton_smtp::VerificationEmailFlow;
 
             use crate::contacts::find_account_email_by_address;
+
+            // A repeat request inside the cooldown is a no-op: the code already sent is
+            // still valid, so the caller sees the same success as the first request.
+            if let Some(wait) = email_resend_wait_secs(valence, &auth_user.id).await? {
+                tracing::info!(
+                    reason_class = "resend_throttled",
+                    wait_secs = wait,
+                    "email verification resend skipped inside cooldown (recipient omitted)"
+                );
+                return Ok(());
+            }
             let email_row = find_account_email_by_address(valence, &auth_user.email)
                 .await
                 .map_err(|e| ServerFnError::new(e.to_string()))?

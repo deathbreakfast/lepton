@@ -103,19 +103,50 @@ test.describe("pw-confirm funnel + re-entry", () => {
     await expect(page.getByTestId("confirm-step-phone")).toHaveCount(0);
   });
 
-  test("pw-confirm-email-resend-happy", async ({ page, request }) => {
+  test("pw-confirm-email-resend-inside-cooldown-happy", async ({
+    page,
+    request,
+  }) => {
     const email = `confirm-resend-${Date.now()}@example.com`;
     await signupNewUser(page, email);
     await expectEmailStep(page);
+    const code = await waitMailpitCode(request, email);
     await clearMailpit(request);
+    // Signup just sent a code, so the resend is a no-op that still reports success
+    // and leaves the first code valid.
     await clickTestId(page, "confirm-email-resend");
     await expect(page.getByTestId("confirm-email-success")).toBeVisible({
       timeout: 30_000,
     });
-    const code = await waitMailpitCode(request, email);
     await page.getByTestId("confirm-email-token").locator("input").fill(code);
     await clickTestId(page, "confirm-email-verify");
     await expectPhoneStep(page);
+  });
+
+  test("pw-confirm-email-lockout-sad", async ({ page, request }) => {
+    const email = `confirm-lockout-${Date.now()}@example.com`;
+    await signupNewUser(page, email);
+    await expectEmailStep(page);
+    const code = await waitMailpitCode(request, email);
+    const wrong = code === "000000" ? "111111" : "000000";
+    const input = page.getByTestId("confirm-email-token").locator("input");
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await input.fill(wrong);
+      await clickTestId(page, "confirm-email-verify");
+      await expect(page.getByTestId("confirm-email-error")).toBeVisible({
+        timeout: 30_000,
+      });
+    }
+    await expect(page.getByTestId("confirm-email-error")).toContainText(
+      "Too many attempts",
+    );
+    // Locked: the right code is refused too.
+    await input.fill(code);
+    await clickTestId(page, "confirm-email-verify");
+    await expect(page.getByTestId("confirm-email-error")).toContainText(
+      "Too many attempts",
+    );
+    await expect(page.getByTestId("confirm-step-phone")).toHaveCount(0);
   });
 
   test("pw-confirm-email-step-locked-after-verified-happy", async ({
