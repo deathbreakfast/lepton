@@ -54,7 +54,19 @@
 //! user. Lepton mints no tokens, so the host reports token events with
 //! [`record_service_user_token_activity`]. Rows never change after they are saved.
 //!
+//! # Access tokens
+//!
+//! A service user calls in with a personal access token its owner creates with
+//! [`create_service_user_token`]. The plaintext token comes back once; Lepton keeps a hash.
+//! [`list_service_user_tokens`] shows labels and times, [`revoke_service_user_token`] stops a
+//! token at once, and the host (or `lepton_host_adapter::bearer_middleware`) checks a presented
+//! token with [`verify_bearer_token`](lepton_identity::service_users::verify_bearer_token).
+//! Only the owner creates tokens; users the gate grants manage-any can list and revoke. A
+//! service user can hold [`MAX_TOKENS_PER_SERVICE_USER`] live tokens, each valid for at most
+//! [`MAX_TOKEN_LIFETIME_DAYS`] days. Deleting a service user or its owner deletes its tokens.
+//!
 //! # Deletion
+//!
 //!
 //! [`delete_service_user`] uses the standard Valence delete: the service user disappears from reads
 //! at once, and the deletion run the host's dispatcher starts (valence-platform's
@@ -66,6 +78,7 @@ mod api;
 pub(crate) mod erase;
 mod error;
 mod handle_lookup;
+mod tokens;
 
 pub use activity::{
     list_service_user_activity, record_service_user_token_activity, ServiceUserTokenEvent,
@@ -77,3 +90,8 @@ pub use api::{
     update_service_user, NewServiceUser, ServiceUserProfileUpdate, MAX_SERVICE_USERS_PER_OWNER,
 };
 pub use error::ServiceUserError;
+pub use tokens::{
+    create_service_user_token, list_service_user_tokens, revoke_service_user_token,
+    CreatedServiceUserToken, NewServiceUserToken, MAX_TOKENS_PER_SERVICE_USER,
+    MAX_TOKEN_LIFETIME_DAYS,
+};

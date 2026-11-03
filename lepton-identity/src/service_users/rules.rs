@@ -17,7 +17,7 @@ use super::gate::installed_service_user_gate;
 use super::id::ServiceUserId;
 use super::resolve::active_service_user_owner;
 
-const SERVICE_USER_TABLE: &str = "service_user_account";
+pub(super) const SERVICE_USER_TABLE: &str = "service_user_account";
 
 /// Fields that never change after a service user is created.
 const IMMUTABLE_FIELDS: &[&str] = &["user", "owner_kind", "created_by", "handle", "handle_key"];
@@ -88,7 +88,7 @@ pub struct ServiceUserIdentityImmutableRule;
 pub struct ServiceUserActiveRule;
 
 /// The calling user, or `None` for every other kind of actor.
-fn user_actor(actor: &dyn ActorContext) -> Option<Actor> {
+pub(super) fn user_actor(actor: &dyn ActorContext) -> Option<Actor> {
     let parsed: Actor = serde_json::from_value(actor.actor_json().clone()).ok()?;
     parsed.is_user().then_some(parsed)
 }
@@ -355,7 +355,13 @@ pub fn ref_id(value: &Value) -> Option<String> {
 }
 
 fn identity_changed(proposed: &Value, stored: &Value) -> bool {
-    IMMUTABLE_FIELDS.iter().any(|field| {
+    identity_fields_changed(IMMUTABLE_FIELDS, proposed, stored)
+}
+
+/// Whether any of `fields` differs between the proposed and stored rows, comparing
+/// references by bare id.
+pub(super) fn identity_fields_changed(fields: &[&str], proposed: &Value, stored: &Value) -> bool {
+    fields.iter().any(|field| {
         let read = |row: &Value| row.get(*field).and_then(ref_id);
         read(proposed) != read(stored)
     })

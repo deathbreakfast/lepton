@@ -15,6 +15,11 @@ All notable changes to `lepton-identity` are recorded here.
 - `protected_fields` update rules keep `User.status`, `user_type`, `confirmed_at`,
   `id_verified_at`, `password_hash` and `Account.plan`, `status` system-only to write.
   `stored_password_hash` reads the stored hash for the signed-in user's own password checks.
+- Personal access tokens for service users: the `service_user_token` table,
+  `service_users::verify_bearer_token` (shape, hash, revoked, expiry, and the
+  service user's active status), and the `SERVICE_USER_TOKEN_CREATE` and
+  `SERVICE_USER_TOKEN_IMMUTABLE` privacy rules. Only a SHA-256 hash of the
+  secret is stored.
 - `config::install_service_users_per_owner` lets a host set the service user
   limit per owner once at boot; `config::service_users_per_owner` reads it and
   falls back to `DEFAULT_SERVICE_USERS_PER_OWNER` (10).

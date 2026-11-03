@@ -107,6 +107,10 @@ mod schemas;
 #[cfg(feature = "ssr")]
 pub mod auth;
 
+/// Bearer-token middleware that identifies a service user from `Authorization: Bearer`.
+#[cfg(feature = "ssr")]
+pub mod bearer;
+
 /// Middleware mirroring the axum-login session into `higgs_identity::SessionSnapshot`.
 #[cfg(feature = "ssr")]
 pub mod session;
