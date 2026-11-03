@@ -82,6 +82,7 @@ pub use gate::{
 pub use handle::{ServiceUserHandle, ServiceUserHandleError, MAX_HANDLE_LEN, MIN_HANDLE_LEN};
 pub use id::{is_managed_service_name, InvalidServiceUserId, ServiceUserId, SERVICE_USER_PREFIX};
 pub use resolve::active_service_user_owner;
+pub(crate) use rules::ref_id;
 pub use rules::{
     ServiceUserActiveRule, ServiceUserActivityAppendOnlyRule, ServiceUserActivityWriteRule,
     ServiceUserCreateGateRule, ServiceUserIdentityImmutableRule, ServiceUserManageAnyRule,

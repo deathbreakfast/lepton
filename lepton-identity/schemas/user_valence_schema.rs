@@ -2,11 +2,13 @@ use valence::prelude::*;
 use valence::privacy_policies::common::{AUTHENTICATED, SYSTEM_ONLY};
 use valence::privacy_policies::owner::OWNER_BY_ID;
 
+use crate::protected_fields::USER_PROTECTED_FIELDS;
+
 valence_schema! {
     User {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "user",
-        version: "0.3.0",
+        version: "0.4.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "User identity - person or service (login / persona under an Account)",
 
@@ -27,10 +29,13 @@ valence_schema! {
                 block: [],
                 always_block: [],
             },
+            // Status, user type, verification stamps, and the password hash are
+            // system-only to write: System skips the block rule via always_allow, the
+            // owner passes `allow` only while those fields are unchanged.
             update: {
-                always_allow: [],
-                allow: [OWNER_BY_ID, SYSTEM_ONLY],
-                block: [],
+                always_allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_ID],
+                block: [USER_PROTECTED_FIELDS],
                 always_block: [],
             },
             delete: {
@@ -58,9 +63,9 @@ valence_schema! {
                 r#type: FieldType::String,
                 required: false,
                 policies: {
-                    // Owner: change-password / email re-auth via session user_valence.
-                    // System: pre-session authenticate, get_user stamp, reset/signup.
-                    read: { allow: [OWNER_BY_ID, SYSTEM_ONLY] },
+                    // System only (also the only writer). Owner re-auth reads the hash
+                    // through `protected_fields::stored_password_hash`.
+                    read: { allow: [SYSTEM_ONLY] },
                 },
             },
             status: {

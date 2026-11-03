@@ -12,6 +12,9 @@ All notable changes to `lepton-identity` are recorded here.
   `SERVICE_USER_ACTIVITY_APPEND_ONLY` guard it.
 - `LinkedIdentity` and `OauthPendingState` accept `microsoft` as a provider
   (schema version 0.2.0).
+- `protected_fields` update rules keep `User.status`, `user_type`, `confirmed_at`,
+  `id_verified_at`, `password_hash` and `Account.plan`, `status` system-only to write.
+  `stored_password_hash` reads the stored hash for the signed-in user's own password checks.
 - `config::install_service_users_per_owner` lets a host set the service user
   limit per owner once at boot; `config::service_users_per_owner` reads it and
   falls back to `DEFAULT_SERVICE_USERS_PER_OWNER` (10).
@@ -24,6 +27,8 @@ All notable changes to `lepton-identity` are recorded here.
 - `ProfilePhoto` update and delete now match the session user against `uploaded_by`
   through `OWNER_BY_UPLOADED_BY`. The old rule read a `user` field the table
   doesn't have, so owners were refused. The schema version is 0.2.0.
+- `User.password_hash` is system-only to read; the owner no longer sees it on a loaded
+  `User`. `User` is now schema 0.4.0 and `Account` 0.6.0.
 - `ServiceUserHandle::parse` refuses handles that end in a dash, such as
   `spectra-` (`InvalidChar`).
 
