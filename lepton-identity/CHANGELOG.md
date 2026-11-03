@@ -15,6 +15,9 @@ All notable changes to `lepton-identity` are recorded here.
 
 ### Changed
 
+- `ProfilePhoto` update and delete now match the session user against `uploaded_by`
+  through `OWNER_BY_UPLOADED_BY`. The old rule read a `user` field the table
+  doesn't have, so owners were refused. The schema version is 0.2.0.
 - `ServiceUserHandle::parse` refuses handles that end in a dash, such as
   `spectra-` (`InvalidChar`).
 
