@@ -71,7 +71,7 @@ async fn owner_erasure_cascades_service_user_rows() {
     assert_eq!(stored_service_user_count(&sys, "maker-alice").await, 0);
 }
 
-/// **Test:** an account owned by `owner` with `members` as members, via System fixtures.
+/// **Test:** an account owned by `members[0]` with every entry in `members` as a member, created through System fixtures.
 async fn seed_account_with_members(sys: &Valence, name: &str, members: &[&str]) -> RecordId {
     let now = Utc::now();
     let owner = RecordId::new("user", members[0]);
