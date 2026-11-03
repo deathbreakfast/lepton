@@ -1,5 +1,6 @@
 //! Guided account confirm funnel (email → phone → confirm).
 
+use super::auth_page_layout::AuthPageLayout;
 use lepton_auth::account_api::ConfirmAccountStatus;
 use lepton_auth::actions::account::{RequestEmailVerification, VerifyEmailToken};
 use lepton_auth::actions::confirm_account::{
@@ -19,7 +20,7 @@ use leptos_router::NavigateOptions;
 use orbital_core_components::{
     Badge, BadgeAppearance, Body1, Button, ButtonAppearance, ButtonType, Card, CardContent,
     CardHeader, Field, Flex, FlexAlign, FlexGap, FlexWrap, Input, InputAppearance, InputBind,
-    InputType, MessageBar, MessageBarIntent, Text, Title3,
+    InputType, MessageBar, MessageBarIntent, Text,
 };
 
 /// Active step in the confirm funnel.
@@ -162,10 +163,7 @@ pub fn ConfirmAccountPage() -> impl IntoView {
     });
 
     view! {
-        <div data-testid="confirm-account-container">
-            <Flex vertical=true gap=FlexGap::Large>
-                <Title3>"Confirm your account"</Title3>
-
+        <AuthPageLayout title="Confirm your account" test_id="confirm-account-container">
                 <Suspense fallback=move || {
                     view! { <Body1>"Loading…"</Body1> }
                 }>
@@ -468,7 +466,6 @@ pub fn ConfirmAccountPage() -> impl IntoView {
                         }
                     }}
                 </Suspense>
-            </Flex>
-        </div>
+        </AuthPageLayout>
     }
 }

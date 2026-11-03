@@ -5,6 +5,7 @@
 
 mod auth_dialog;
 mod auth_modal_shell;
+mod auth_page_layout;
 mod brand_icons;
 mod confirm_account_page;
 mod confirm_account_prompt;
@@ -22,6 +23,7 @@ mod step_up_dialog;
 
 pub use auth_dialog::{AuthDialog, AuthDialogCallbacks, AuthDialogKind};
 pub use auth_modal_shell::AuthModalShell;
+pub use auth_page_layout::AuthPageLayout;
 pub use brand_icons::{GitHubMark, GoogleMark, MicrosoftMark};
 pub use confirm_account_page::ConfirmAccountPage;
 pub use confirm_account_prompt::{
