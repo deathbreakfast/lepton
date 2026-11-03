@@ -24,6 +24,11 @@ fn live_google_cfg() -> OAuthClientConfig {
         github_token_url: None,
         github_user_url: None,
         github_emails_url: None,
+        microsoft_client_id: None,
+        microsoft_client_secret: None,
+        microsoft_tenant: None,
+        microsoft_token_url: None,
+        microsoft_userinfo_url: None,
     }
 }
 
@@ -42,6 +47,11 @@ fn mock_cfg() -> OAuthClientConfig {
         github_token_url: None,
         github_user_url: None,
         github_emails_url: None,
+        microsoft_client_id: None,
+        microsoft_client_secret: None,
+        microsoft_tenant: None,
+        microsoft_token_url: None,
+        microsoft_userinfo_url: None,
     }
 }
 
@@ -77,6 +87,51 @@ async fn begin_oauth_live_google_scope_profile_and_pkce_happy() {
         !start.authorize_url.contains("code_verifier"),
         "verifier must not appear on authorize URL"
     );
+}
+
+fn live_microsoft_cfg() -> OAuthClientConfig {
+    OAuthClientConfig {
+        microsoft_client_id: Some("test-ms-client-id".into()),
+        microsoft_client_secret: Some("test-ms-client-secret".into()),
+        microsoft_tenant: Some("organizations".into()),
+        google_client_id: None,
+        google_client_secret: None,
+        ..live_google_cfg()
+    }
+}
+
+#[tokio::test]
+async fn begin_oauth_live_microsoft_tenant_scope_and_pkce_happy() {
+    let valence = system_valence("oauth_pkce_begin_ms").await;
+    let start = begin_oauth(
+        &live_microsoft_cfg(),
+        &valence,
+        OAuthProvider::Microsoft,
+        OAuthIntent::Signup,
+    )
+    .await
+    .expect("begin");
+    let url = &start.authorize_url;
+    assert!(
+        url.starts_with("https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?"),
+        "tenant segment missing: {url}"
+    );
+    assert!(url.contains("scope=openid%20email%20profile"), "{url}");
+    assert!(url.contains("code_challenge_method=S256"), "{url}");
+    assert!(!url.contains("test-ms-client-secret"), "{url}");
+}
+
+#[tokio::test]
+async fn begin_oauth_live_microsoft_without_client_id_config_sad() {
+    let valence = system_valence("oauth_pkce_begin_ms_cfg").await;
+    let cfg = OAuthClientConfig {
+        microsoft_client_id: None,
+        ..live_microsoft_cfg()
+    };
+    let err = begin_oauth(&cfg, &valence, OAuthProvider::Microsoft, OAuthIntent::Login)
+        .await
+        .expect_err("config");
+    assert_eq!(err.reason_class(), "oauth_config");
 }
 
 #[tokio::test]

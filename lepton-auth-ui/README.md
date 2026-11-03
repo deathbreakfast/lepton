@@ -27,6 +27,7 @@ crate rustdoc (**Getting started** / Mount `AuthDialog`).
 | `hydrate` | Client hydration |
 | `oauth-google` | Continue with Google and the “or” divider |
 | `oauth-github` | Continue with GitHub and the “or” divider |
+| `oauth-microsoft` | Continue with Microsoft and the “or” divider |
 
 Hosts must enable matching `oauth-*` features on both SSR and hydrate graphs.
 

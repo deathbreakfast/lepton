@@ -21,15 +21,18 @@ pub enum OAuthProvider {
     Google,
     /// GitHub.
     GitHub,
+    /// Microsoft (Entra ID).
+    Microsoft,
 }
 
 impl OAuthProvider {
-    /// Stable lowercase provider key (`google` / `github`).
+    /// Stable lowercase provider key (`google` / `github` / `microsoft`).
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Google => "google",
             Self::GitHub => "github",
+            Self::Microsoft => "microsoft",
         }
     }
 
@@ -37,6 +40,7 @@ impl OAuthProvider {
         match self {
             Self::Google => LinkedIdentityProvider::Google,
             Self::GitHub => LinkedIdentityProvider::Github,
+            Self::Microsoft => LinkedIdentityProvider::Microsoft,
         }
     }
 
@@ -44,6 +48,7 @@ impl OAuthProvider {
         match self {
             Self::Google => cfg!(feature = "oauth-google"),
             Self::GitHub => cfg!(feature = "oauth-github"),
+            Self::Microsoft => cfg!(feature = "oauth-microsoft"),
         }
     }
 }
@@ -92,9 +97,30 @@ pub struct OAuthClientConfig {
     pub github_user_url: Option<String>,
     /// Override GitHub emails endpoint (wiremock / tests). Default: production GitHub.
     pub github_emails_url: Option<String>,
+    /// Microsoft client id (optional).
+    pub microsoft_client_id: Option<String>,
+    /// Microsoft client secret (optional).
+    pub microsoft_client_secret: Option<String>,
+    /// Entra tenant segment (`common`, `organizations`, `consumers`, a tenant id or domain).
+    /// Default: `common`.
+    pub microsoft_tenant: Option<String>,
+    /// Override Microsoft token endpoint (wiremock / tests). Default: production Microsoft.
+    pub microsoft_token_url: Option<String>,
+    /// Override Microsoft userinfo endpoint (wiremock / tests). Default: production Microsoft.
+    pub microsoft_userinfo_url: Option<String>,
 }
 
 impl OAuthClientConfig {
+    /// Entra tenant segment for Microsoft endpoints (`common` when unset or empty).
+    #[must_use]
+    pub fn microsoft_tenant_or_default(&self) -> &str {
+        self.microsoft_tenant
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .unwrap_or("common")
+    }
+
     /// Absolute redirect URI (`public_base_url` + `redirect_path`).
     #[must_use]
     pub fn redirect_uri(&self) -> String {
@@ -312,8 +338,30 @@ fn live_authorize_url(
                 urlencoding::encode(state),
             )
         }
+        OAuthProvider::Microsoft => {
+            let client_id = cfg
+                .microsoft_client_id
+                .as_deref()
+                .ok_or(OAuthError::Config)?;
+            format!(
+                "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize?client_id={}&redirect_uri={}&response_type=code&response_mode=query&scope=openid%20email%20profile&state={}",
+                urlencoding::encode(cfg.microsoft_tenant_or_default()),
+                urlencoding::encode(client_id),
+                urlencoding::encode(&redirect),
+                urlencoding::encode(state),
+            )
+        }
     };
     Ok(append_pkce_params(&base, code_challenge))
+}
+
+#[cfg(all(test, feature = "oauth-microsoft"))]
+pub(super) fn begin_oauth_url_for_tests(
+    cfg: &OAuthClientConfig,
+    state: &str,
+    code_challenge: &str,
+) -> Result<String, OAuthError> {
+    live_authorize_url(cfg, OAuthProvider::Microsoft, state, code_challenge)
 }
 
 /// Complete OAuth using authorization `code` + CSRF `state`.
@@ -518,7 +566,7 @@ pub async fn complete_oauth(
     }
 }
 
-#[allow(clippy::unused_async)] // awaits only when oauth-google / oauth-github are enabled
+#[allow(clippy::unused_async)] // awaits only when oauth-google / oauth-github / oauth-microsoft are enabled
 async fn exchange_live_code(
     cfg: &OAuthClientConfig,
     provider: OAuthProvider,
@@ -543,6 +591,17 @@ async fn exchange_live_code(
                 super::github::exchange_github_code(cfg, code, code_verifier).await
             }
             #[cfg(not(feature = "oauth-github"))]
+            {
+                let _ = (cfg, code, code_verifier);
+                Err(OAuthError::Config)
+            }
+        }
+        OAuthProvider::Microsoft => {
+            #[cfg(feature = "oauth-microsoft")]
+            {
+                super::microsoft::exchange_microsoft_code(cfg, code, code_verifier).await
+            }
+            #[cfg(not(feature = "oauth-microsoft"))]
             {
                 let _ = (cfg, code, code_verifier);
                 Err(OAuthError::Config)
@@ -687,6 +746,11 @@ mod tests {
             github_token_url: None,
             github_user_url: None,
             github_emails_url: None,
+            microsoft_client_id: None,
+            microsoft_client_secret: None,
+            microsoft_tenant: None,
+            microsoft_token_url: None,
+            microsoft_userinfo_url: None,
         };
         let err = exchange_live_code(&cfg, OAuthProvider::GitHub, "code", "verifier")
             .await

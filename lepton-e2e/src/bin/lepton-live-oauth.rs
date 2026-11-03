@@ -126,6 +126,11 @@ async fn run() -> Result<OAuthProvider, LiveVerifyError> {
                 github_token_url: None,
                 github_user_url: None,
                 github_emails_url: None,
+                microsoft_client_id: None,
+                microsoft_client_secret: None,
+                microsoft_tenant: None,
+                microsoft_token_url: None,
+                microsoft_userinfo_url: None,
             }
         }
         OAuthProvider::GitHub => {
@@ -147,6 +152,11 @@ async fn run() -> Result<OAuthProvider, LiveVerifyError> {
                 github_token_url: None,
                 github_user_url: None,
                 github_emails_url: None,
+                microsoft_client_id: None,
+                microsoft_client_secret: None,
+                microsoft_tenant: None,
+                microsoft_token_url: None,
+                microsoft_userinfo_url: None,
             }
         }
     };

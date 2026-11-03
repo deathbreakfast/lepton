@@ -36,6 +36,7 @@ See crate rustdoc **Getting started** (Boot delivery) for the in-docs first-succ
 | `webauthn` | WebAuthn passkey ceremony for `AuthDevice` (`webauthn-rs`) |
 | `oauth-google` | Live Google authorize URL + token/userinfo exchange |
 | `oauth-github` | Live GitHub authorize URL + token/user/emails exchange |
+| `oauth-microsoft` | Live Microsoft (Entra ID) authorize URL + token/userinfo exchange; tenant via `microsoft_tenant` (default `common`) |
 | `full` | `email` + `phone` + `totp` + oauth flags + `webauthn` |
 | `boson-delivery` | Durable email/SMS send + attempt log |
 | `spectra` | Auth funnel Spectra counters via `lepton-spectra-telemetry` |

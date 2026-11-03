@@ -22,7 +22,7 @@ mod step_up_dialog;
 
 pub use auth_dialog::{AuthDialog, AuthDialogCallbacks, AuthDialogKind};
 pub use auth_modal_shell::AuthModalShell;
-pub use brand_icons::{GitHubMark, GoogleMark};
+pub use brand_icons::{GitHubMark, GoogleMark, MicrosoftMark};
 pub use confirm_account_page::ConfirmAccountPage;
 pub use confirm_account_prompt::{
     confirm_account_status_resource, ConfirmAccountPrompt, ConfirmAccountPromptVariant,
