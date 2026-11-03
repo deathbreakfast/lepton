@@ -3,9 +3,9 @@
 use lepton_auth::paths::{LOGOUT, SIGNIN, SIGNUP};
 use lepton_auth::routes::parse_token_from_url_parts;
 use lepton_auth_ui::{
-    provide_step_up_controller, use_step_up_controller, AuthDialog, AuthDialogCallbacks,
-    AuthDialogKind, AuthModalShell, AuthPageLayout, ConfirmAccountPage, ConfirmAccountPrompt,
-    ConfirmAccountPromptVariant, OAuthCallbackContent, PasswordResetDialog,
+    provide_step_up_controller, use_step_up_controller, AllServiceUsersPage, AuthDialog,
+    AuthDialogCallbacks, AuthDialogKind, AuthModalShell, AuthPageLayout, ConfirmAccountPage,
+    ConfirmAccountPrompt, ConfirmAccountPromptVariant, OAuthCallbackContent, PasswordResetDialog,
     PasswordResetDialogKind,
 };
 use leptos::prelude::*;
@@ -52,9 +52,19 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/user/account-settings") view=AccountSettingsPage/>
                     <Route path=path!("/user/confirm-account") view=ConfirmAccountRoute/>
                     <Route path=path!("/user/step-up-demo") view=StepUpDemoPage/>
+                    <Route path=path!("/user/bots/all") view=AllServiceUsersRoute/>
                 </Routes>
             </Router>
         </OrbitalThemeProvider>
+    }
+}
+
+#[component]
+fn AllServiceUsersRoute() -> impl IntoView {
+    view! {
+        <E2ePageShell data_testid="all-service-users-container">
+            <AllServiceUsersPage/>
+        </E2ePageShell>
     }
 }
 
