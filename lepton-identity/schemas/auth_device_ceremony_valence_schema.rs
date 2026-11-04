@@ -17,7 +17,7 @@ valence_schema! {
         policies: {
             read: {
                 always_allow: [],
-                allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
