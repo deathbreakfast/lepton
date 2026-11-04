@@ -54,9 +54,8 @@ jobs:
           CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
         run: >
           cargo test -p lepton-auth --features ssr,full,test-utils
-          --test verification_tokens
+          --test auth
           --test membership_primary_clear
-          --test service_users_events
       - name: Clippy Twilio adapters
         run: >
           cargo clippy -p lepton-sms -p lepton-smtp --all-targets
