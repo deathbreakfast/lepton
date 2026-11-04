@@ -12,7 +12,8 @@ use valence::privacy_policies::owner::{OWNER_BY_ID, OWNER_BY_USER_FIELD};
 
 use crate::privacy_policies::OWNER_BY_UPLOADED_BY;
 use crate::service_users::{
-    SERVICE_USER_CREATE_GATE, SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
+    SERVICE_USER_ACTIVITY_APPEND_ONLY, SERVICE_USER_ACTIVITY_WRITE, SERVICE_USER_CREATE_GATE,
+    SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
 };
 use crate::side_effects::ClearAccountPrimaryOnMembershipDelete;
 

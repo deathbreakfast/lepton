@@ -83,7 +83,8 @@ pub use handle::{ServiceUserHandle, ServiceUserHandleError, MAX_HANDLE_LEN, MIN_
 pub use id::{is_managed_service_name, InvalidServiceUserId, ServiceUserId, SERVICE_USER_PREFIX};
 pub use resolve::active_service_user_owner;
 pub use rules::{
-    ServiceUserActiveRule, ServiceUserCreateGateRule, ServiceUserIdentityImmutableRule,
-    ServiceUserManageAnyRule, SERVICE_USER_ACTIVE, SERVICE_USER_CREATE_GATE,
-    SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
+    ServiceUserActiveRule, ServiceUserActivityAppendOnlyRule, ServiceUserActivityWriteRule,
+    ServiceUserCreateGateRule, ServiceUserIdentityImmutableRule, ServiceUserManageAnyRule,
+    SERVICE_USER_ACTIVE, SERVICE_USER_ACTIVITY_APPEND_ONLY, SERVICE_USER_ACTIVITY_WRITE,
+    SERVICE_USER_CREATE_GATE, SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
 };
