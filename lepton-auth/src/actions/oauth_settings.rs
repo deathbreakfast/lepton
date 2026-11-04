@@ -34,7 +34,7 @@ use serde::{Deserialize, Serialize};
 pub struct LinkedIdentityView {
     /// Valence `linked_identity` id.
     pub id: String,
-    /// Provider key: `google` or `github`.
+    /// Provider key: `google`, `github` or `microsoft`.
     pub provider: String,
     /// Optional email hint from the identity provider (owner-visible).
     pub email_hint: Option<String>,
@@ -71,6 +71,7 @@ fn parse_provider(provider: &str) -> Result<crate::oauth::OAuthProvider, ServerF
     match provider.trim().to_ascii_lowercase().as_str() {
         "google" => Ok(crate::oauth::OAuthProvider::Google),
         "github" => Ok(crate::oauth::OAuthProvider::GitHub),
+        "microsoft" => Ok(crate::oauth::OAuthProvider::Microsoft),
         _ => Err(ServerFnError::Args("Unknown OAuth provider".into())),
     }
 }
@@ -165,7 +166,7 @@ pub async fn list_linked_identities_ui() -> Result<Vec<LinkedIdentityView>, Serv
 /// user bound into CSRF state (never a client-supplied user id).
 #[server(BeginOAuthLink)]
 pub async fn begin_oauth_link(
-    /// Provider key: `google` or `github`.
+    /// Provider key: `google`, `github` or `microsoft`.
     provider: String,
     /// Post-link redirect path (defaults to account settings when unset).
     referer: Option<String>,

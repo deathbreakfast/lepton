@@ -6,7 +6,7 @@ valence_schema! {
     LinkedIdentity {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "linked_identity",
-        version: "0.1.0",
+        version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "OAuth / external identity linked to a user (provider + subject)",
 
@@ -52,7 +52,7 @@ valence_schema! {
                 required: true,
             },
             provider: {
-                r#type: FieldType::Enum(&["google", "github"]),
+                r#type: FieldType::Enum(&["google", "github", "microsoft"]),
                 required: true,
             },
             provider_subject: {

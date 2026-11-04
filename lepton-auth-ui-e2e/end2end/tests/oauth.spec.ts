@@ -9,6 +9,7 @@ test.describe("pw-oauth", () => {
     const root = authDialog(page);
     await expect(root.getByTestId("oauth-continue-google")).toBeVisible();
     await expect(root.getByTestId("oauth-continue-github")).toBeVisible();
+    await expect(root.getByTestId("oauth-continue-microsoft")).toBeVisible();
 
     await page.goto("/auth/signin");
     await expect(page.getByTestId("signin-container")).toBeVisible({
@@ -17,6 +18,7 @@ test.describe("pw-oauth", () => {
     const signin = authDialog(page);
     await expect(signin.getByTestId("oauth-continue-google")).toBeVisible();
     await expect(signin.getByTestId("oauth-continue-github")).toBeVisible();
+    await expect(signin.getByTestId("oauth-continue-microsoft")).toBeVisible();
   });
 
   test("pw-oauth-signup-happy", async ({ page }) => {

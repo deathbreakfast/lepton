@@ -23,7 +23,7 @@ fn map_complete_oauth_err(err: crate::oauth::OAuthError) -> ServerFnError {
 /// Uses `OAuthIntent::Signup` so first-time users provision from either sign-in or sign-up.
 #[server(BeginOAuth)]
 pub async fn begin_oauth(
-    /// Provider key: `google` or `github`.
+    /// Provider key: `google`, `github` or `microsoft`.
     provider: String,
     /// Optional post-login redirect path (passed through to callback via query when supported).
     referer: Option<String>,
@@ -39,6 +39,7 @@ pub async fn begin_oauth(
     let provider = match provider.trim().to_ascii_lowercase().as_str() {
         "google" => OAuthProvider::Google,
         "github" => OAuthProvider::GitHub,
+        "microsoft" => OAuthProvider::Microsoft,
         _ => return Err(ServerFnError::Args("Unknown OAuth provider".into())),
     };
     let services = auth_services().map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -81,7 +82,7 @@ pub async fn begin_oauth(
 #[server(CompleteOAuthCallback)]
 #[allow(clippy::too_many_lines)] // provider resolve + session MFA + redirect ladder
 pub async fn complete_oauth_callback(
-    /// Provider key: `google` or `github` (optional when resolvable from `state`).
+    /// Provider key: `google`, `github` or `microsoft` (optional when resolvable from `state`).
     provider: String,
     /// Authorization code from the provider.
     code: String,
@@ -117,6 +118,7 @@ pub async fn complete_oauth_callback(
         match provider.trim().to_ascii_lowercase().as_str() {
             "google" => OAuthProvider::Google,
             "github" => OAuthProvider::GitHub,
+            "microsoft" => OAuthProvider::Microsoft,
             _ => return Err(ServerFnError::Args("Unknown OAuth provider".into())),
         }
     };

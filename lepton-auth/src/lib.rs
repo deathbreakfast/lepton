@@ -282,6 +282,7 @@
 //! | `webauthn` | `WebAuthn` passkey ceremony for `AuthDevice` (`webauthn-rs`) |
 //! | `oauth-google` | Live Google authorize URL + token/userinfo exchange; mock provider via `use_mock_provider` |
 //! | `oauth-github` | Live GitHub authorize URL + token/user/emails exchange; mock provider via `use_mock_provider` |
+//! | `oauth-microsoft` | Live Microsoft (Entra ID) authorize URL + token/userinfo exchange; mock provider via `use_mock_provider` |
 //! | `full` | `email` + `phone` + `totp` + oauth flags + `webauthn` |
 //! | `boson-delivery` | Durable email/SMS send + attempt log (`delivery` module, TTL 7d) |
 //! | `spectra` | Emit auth funnel Spectra counters / `lepton_auth_failure` via `lepton-spectra-telemetry` (label tokens only; never emails, codes, or free-form errors) |

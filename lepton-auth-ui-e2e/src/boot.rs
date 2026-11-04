@@ -330,6 +330,11 @@ pub fn boot_platform() -> anyhow::Result<(
         github_token_url: None,
         github_user_url: None,
         github_emails_url: None,
+        microsoft_client_id: None,
+        microsoft_client_secret: None,
+        microsoft_tenant: None,
+        microsoft_token_url: None,
+        microsoft_userinfo_url: None,
     };
     let auth_services = Arc::new(
         LeptonAuthServicesBuilder::new()

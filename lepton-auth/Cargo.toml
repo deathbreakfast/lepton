@@ -179,6 +179,7 @@ webauthn = ["dep:webauthn-rs", "dep:uuid"]
 # `OAuthClientConfig::use_mock_provider`.
 oauth-google = []
 oauth-github = []
+oauth-microsoft = []
 # Durable Boson delivery + DeliveryAttempt log (requires host Boson + DeliveryRuntime).
 boson-delivery = [
     "dep:boson-core",
@@ -189,7 +190,7 @@ boson-delivery = [
     "dep:uuid",
 ]
 # All Ship channels + OAuth flags + WebAuthn.
-full = ["email", "phone", "totp", "oauth-google", "oauth-github", "webauthn"]
+full = ["email", "phone", "totp", "oauth-google", "oauth-github", "oauth-microsoft", "webauthn"]
 # Emit auth funnel Spectra counters / failure events via lepton-spectra-telemetry.
 spectra = ["dep:lepton-spectra-telemetry"]
 

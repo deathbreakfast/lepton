@@ -37,8 +37,9 @@ live-twilio = ["lepton-smtp/twilio", "lepton-sms/twilio"]
 live-oauth-google = ["lepton-auth/oauth-google"]
 # Live GitHub OAuth token exchange (never CI).
 live-oauth-github = ["lepton-auth/oauth-github"]
+live-oauth-microsoft = ["lepton-auth/oauth-microsoft"]
 # Operator CLI: Google and/or GitHub live OAuth.
-live-oauth = ["live-oauth-google", "live-oauth-github"]
+live-oauth = ["live-oauth-google", "live-oauth-github", "live-oauth-microsoft"]
 # Durable Boson delivery: shared Valence + MemQueue worker via boot_lab.
 boson-delivery = [
     "lepton-auth/boson-delivery",
