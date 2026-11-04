@@ -54,8 +54,9 @@ pub const SERVICE_USER_IDENTITY_IMMUTABLE: ServiceUserIdentityImmutableRule =
 /// listed under.
 pub const SERVICE_USER_ACTIVE: ServiceUserActiveRule = ServiceUserActiveRule;
 
-/// `create` rule for `service_user_activity`: the caller is the owner named on the row, or
-/// the host's [`ServiceUserGate`](super::ServiceUserGate) lets it manage any service user.
+/// `create` rule for `service_user_activity`: the row's `user` is the stored owner of the service
+/// user it names, and the caller is that owner or a user the host's
+/// [`ServiceUserGate`](super::ServiceUserGate) lets manage any service user.
 pub const SERVICE_USER_ACTIVITY_WRITE: ServiceUserActivityWriteRule = ServiceUserActivityWriteRule;
 
 /// `update` `always_block` rule for `service_user_activity`: history rows never change.
@@ -151,7 +152,7 @@ impl PolicyEvaluator for ServiceUserActivityWriteRule {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Caller owns the service user the history row names, or the host's ServiceUserGate lets it manage any service user")
+        Some("The history row names the stored owner of its service user, and the caller is that owner or the host's ServiceUserGate lets it manage any service user")
     }
 
     async fn evaluate(
@@ -167,7 +168,26 @@ impl PolicyEvaluator for ServiceUserActivityWriteRule {
         let Some(user) = user_actor(actor) else {
             return Ok(false);
         };
-        if check_owner_by_field(record, &user, "user") {
+        // The row must name the real owner of the service user it is filed under.
+        let Some(service_user) = record.get("service_user").and_then(ref_id) else {
+            return Ok(false);
+        };
+        let backend = v.backend_for_table(SERVICE_USER_TABLE)?;
+        let stored = valence::get_record(
+            backend.as_ref(),
+            SERVICE_USER_TABLE,
+            &service_user,
+            valence::use_!(r"Before a **service user's history entry** is saved, we **read the service user's stored owner** to make sure the entry is filed under the person who really owns it. Nothing is shown to anyone; a mismatch blocks the save."),
+        )
+        .await?;
+        let Some(stored) = stored else {
+            return Ok(false);
+        };
+        let owner = stored.get("user").and_then(ref_id);
+        if owner.is_none() || owner != record.get("user").and_then(ref_id) {
+            return Ok(false);
+        }
+        if check_owner_by_field(&stored, &user, "user") {
             return Ok(true);
         }
         let Some(gate) = installed_service_user_gate() else {

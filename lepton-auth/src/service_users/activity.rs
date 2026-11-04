@@ -136,6 +136,8 @@ pub async fn list_service_user_activity(
 ) -> Result<Vec<ServiceUserActivity>, ServiceUserError> {
     caller_user(valence)?;
     load(valence, id).await?;
+    // The generated query's `order_by_id` and `limit` are not honored by the backend today
+    // (rows come back in storage order), so sort and cut here. Ids start with the write time.
     let mut rows = ServiceUserActivity::get_from_service_user_id(
         id.as_str(),
         valence,

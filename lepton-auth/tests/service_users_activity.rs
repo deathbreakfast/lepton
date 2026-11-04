@@ -17,7 +17,7 @@ use lepton_auth::service_users::{
 use lepton_host_adapter::generated::{ServiceUserActivity, ServiceUserActivityKind as Kind};
 use service_users_support::{install_test_gate, seed_service_user, seed_user};
 use support::{system_valence, user_valence};
-use valence::{Actor, RecordId};
+use valence::{Actor, Model, RecordId};
 
 fn setup() {
     install_test_gate();
@@ -213,4 +213,36 @@ async fn owner_erasure_removes_history_happy() {
     .await
     .expect("read");
     assert!(left.is_empty(), "history must go with the owner: {left:?}");
+}
+
+#[tokio::test]
+async fn forged_row_against_another_owners_service_user_is_refused_sad() {
+    setup();
+    let sys = system_valence("su_activity_forged").await;
+    let (_, id, _) = seed_service_user(&sys, "maker-act10", "act-ten").await;
+    seed_user(&sys, "maker-mallory10").await;
+    let mallory = user_valence(&sys, "maker-mallory10");
+
+    for claimed_owner in ["maker-mallory10", "maker-act10"] {
+        let row = ServiceUserActivity::new(
+            RecordId::new("service_user_account", id.as_str()),
+            Some(RecordId::new("user", claimed_owner)),
+            Kind::TokenCreated,
+            Some(RecordId::new("user", "maker-mallory10")),
+            None,
+            chrono::Utc::now(),
+        )
+        .expect("row");
+        let saved = ServiceUserActivity::upsert(
+            "forged",
+            row,
+            &mallory,
+            valence::use_!(r"**Test:** Direct **service user history** save so the suite can prove a row cannot be filed under someone else's service user. CI and developers running the suite only."),
+        )
+        .await;
+        assert!(
+            saved.is_err(),
+            "forged row naming {claimed_owner} must be refused"
+        );
+    }
 }

@@ -69,7 +69,6 @@ valence_schema! {
                     "updated",
                     "suspended",
                     "resumed",
-                    "deleted",
                     "token_created",
                     "token_revoked",
                     "token_rotated",
