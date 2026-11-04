@@ -1,7 +1,8 @@
 //! Live Microsoft (Entra ID) OAuth authorization-code exchange (token + `OpenID` userinfo).
 //!
-//! The subject is the OIDC `sub` claim, which Microsoft scopes per application. The email is a
-//! hint only: Microsoft does not verify it, so it must never be the identity key.
+//! The subject is the OIDC `sub` claim, which Microsoft scopes per application. The `email`
+//! claim is never read: Microsoft does not verify it (a user in any Entra tenant can set it to
+//! another person's address), and OAuth sign-up stores the hint as a verified `AccountEmail`.
 
 use serde::Deserialize;
 use std::time::Duration;
@@ -22,11 +23,12 @@ struct TokenResponse {
 #[derive(Debug, Deserialize)]
 struct UserInfoResponse {
     sub: Option<String>,
-    email: Option<String>,
     name: Option<String>,
 }
 
 /// Exchange an authorization `code` for `(provider_subject, email_hint, name_hint)`.
+///
+/// `email_hint` is always `None`; see the module docs.
 ///
 /// # Errors
 ///
@@ -155,9 +157,8 @@ async fn fetch_userinfo(
         .sub
         .filter(|s| !s.is_empty())
         .ok_or_else(provider_fail)?;
-    let email_hint = info.email.filter(|s| !s.is_empty());
     let name_hint = info.name.filter(|s| !s.is_empty());
-    Ok((sub, email_hint, name_hint))
+    Ok((sub, None, name_hint))
 }
 
 fn provider_fail() -> OAuthError {
@@ -231,7 +232,7 @@ mod tests {
             .await
             .expect("exchange");
         assert_eq!(sub, "microsoft-sub-123");
-        assert_eq!(email.as_deref(), Some("user@example.test"));
+        assert_eq!(email, None, "unverified Entra email must not become a hint");
         assert_eq!(name.as_deref(), Some("Test User"));
     }
 
@@ -323,7 +324,7 @@ mod tests {
         assert!(url.starts_with(
             "https://login.microsoftonline.com/contoso.example/oauth2/v2.0/authorize?client_id=test-client-id"
         ));
-        assert!(url.contains("scope=openid%20email%20profile"));
+        assert!(url.contains("scope=openid%20profile"));
         assert!(url.contains("code_challenge=chal"));
         assert!(!url.contains("test-client-secret"));
     }

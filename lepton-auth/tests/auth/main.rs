@@ -26,6 +26,8 @@ mod delivery_attempt;
 mod email_change_account_primary;
 mod forbidden_deps;
 mod oauth_link_settings;
+#[cfg(feature = "oauth-microsoft")]
+mod oauth_microsoft_signup;
 #[cfg(feature = "oauth-google")]
 mod oauth_pkce_state;
 mod oauth_signup_collision;

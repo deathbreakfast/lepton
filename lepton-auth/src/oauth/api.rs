@@ -344,7 +344,7 @@ fn live_authorize_url(
                 .as_deref()
                 .ok_or(OAuthError::Config)?;
             format!(
-                "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize?client_id={}&redirect_uri={}&response_type=code&response_mode=query&scope=openid%20email%20profile&state={}",
+                "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize?client_id={}&redirect_uri={}&response_type=code&response_mode=query&scope=openid%20profile&state={}",
                 urlencoding::encode(cfg.microsoft_tenant_or_default()),
                 urlencoding::encode(client_id),
                 urlencoding::encode(&redirect),

@@ -116,7 +116,7 @@ async fn begin_oauth_live_microsoft_tenant_scope_and_pkce_happy() {
         url.starts_with("https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?"),
         "tenant segment missing: {url}"
     );
-    assert!(url.contains("scope=openid%20email%20profile"), "{url}");
+    assert!(url.contains("scope=openid%20profile"), "{url}");
     assert!(url.contains("code_challenge_method=S256"), "{url}");
     assert!(!url.contains("test-ms-client-secret"), "{url}");
 }
