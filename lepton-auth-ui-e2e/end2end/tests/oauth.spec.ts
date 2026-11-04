@@ -43,6 +43,8 @@ test.describe("pw-oauth", () => {
       .getByRole("button")
       .click();
     await expect(page).toHaveURL(/\/welcome(?:\?|$)/, { timeout: 60_000 });
+    // Let the post-callback navigation settle; leaving early aborts it.
+    await expect(page.getByTestId("welcome-authenticated")).toBeVisible();
 
     // Sign out, then sign in again with the same mock identity.
     await page.goto("/auth/logout");
