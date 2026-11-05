@@ -23,6 +23,7 @@ mod confirm_account_status;
 mod contact_validators;
 #[cfg(all(feature = "boson-delivery", feature = "email"))]
 mod delivery_attempt;
+mod device_owner_privacy;
 mod email_change_account_primary;
 mod forbidden_deps;
 mod oauth_link_settings;

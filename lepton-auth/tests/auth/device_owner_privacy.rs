@@ -3,8 +3,7 @@
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
-#[path = "support/mod.rs"]
-mod support;
+use crate::support;
 
 use chrono::Utc;
 use lepton_auth::devices::{
