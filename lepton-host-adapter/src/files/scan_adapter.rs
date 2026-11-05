@@ -38,6 +38,7 @@ impl FileScanAdapter for ProfilePhotoScanAdapter {
             storage_path: row.storage_path().clone(),
             file_status: to_meson_status(row.file_status())?,
             uploaded_by: row.uploaded_by().clone(),
+            uploaded_at: *row.uploaded_at(),
         })
     }
 
