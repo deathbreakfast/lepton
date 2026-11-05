@@ -170,7 +170,7 @@ pub(super) fn ready_to_consume(
 ///
 /// The record is keyed by `user`, so the 6-digit `otp_code` is checked against that user's
 /// single live token. A wrong code counts toward the attempt budget
-/// ([`crate::attempt_throttle`]); the miss that exhausts it locks the token until the lockout
+/// (five misses); the miss that exhausts it locks the token until the lockout
 /// ends, and a locked token rejects even the right code.
 ///
 /// Returns the pre-consume record when this caller wins. The inner error says why the code was
