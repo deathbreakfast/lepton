@@ -112,6 +112,8 @@
 //! [`RESET_PASSWORD_CONFIRM`](lepton_auth::paths::RESET_PASSWORD_CONFIRM),
 //! [`OAUTH_CALLBACK`](lepton_auth::paths::OAUTH_CALLBACK).
 //!
+//! Wrap each page body in [`AuthPageLayout`] so titles and spacing match across pages.
+//!
 //! ```rust,ignore
 //! use leptos_router::components::{Route, Routes};
 //! use leptos_router::path;
@@ -200,10 +202,10 @@ pub mod components;
 
 pub use components::{
     confirm_account_status_resource, provide_step_up_controller, use_step_up_controller,
-    AuthDialog, AuthDialogCallbacks, AuthDialogKind, AuthModalShell, ConfirmAccountPage,
-    ConfirmAccountPrompt, ConfirmAccountPromptVariant, GitHubMark, GoogleMark, LogoutContent,
-    MicrosoftMark, OAuthCallbackContent, OAuthProviderButtons, PasswordResetConfirmContent,
-    PasswordResetDialog, PasswordResetDialogKind, PasswordResetRequestContent, SigninContent,
-    SignupContent, StepUpContent, StepUpController, StepUpDialog, StepUpFactors, StepUpPolicy,
-    StepUpRequest,
+    AuthDialog, AuthDialogCallbacks, AuthDialogKind, AuthModalShell, AuthPageLayout,
+    ConfirmAccountPage, ConfirmAccountPrompt, ConfirmAccountPromptVariant, GitHubMark, GoogleMark,
+    LogoutContent, MicrosoftMark, OAuthCallbackContent, OAuthProviderButtons,
+    PasswordResetConfirmContent, PasswordResetDialog, PasswordResetDialogKind,
+    PasswordResetRequestContent, SigninContent, SignupContent, StepUpContent, StepUpController,
+    StepUpDialog, StepUpFactors, StepUpPolicy, StepUpRequest,
 };

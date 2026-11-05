@@ -33,7 +33,7 @@ Hosts must enable matching `oauth-*` features on both SSR and hydrate graphs.
 
 ## Public components
 
-`AuthDialog`, `AuthModalShell`, `SigninContent`, `SignupContent`, `LogoutContent`,
+`AuthDialog`, `AuthModalShell`, `AuthPageLayout`, `SigninContent`, `SignupContent`, `LogoutContent`,
 `OAuthProviderButtons`, `OAuthCallbackContent`, `PasswordResetDialog`,
 `PasswordResetRequestContent`, `PasswordResetConfirmContent`,
 `provide_step_up_controller`, `StepUpDialog`, `StepUpController`, `StepUpPolicy`,
