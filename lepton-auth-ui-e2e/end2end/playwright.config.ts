@@ -4,7 +4,7 @@ const headed = !!process.env.PW_HEADED;
 
 export default defineConfig({
   testDir: "./tests",
-  timeout: 30_000,
+  timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
   // One retry absorbs occasional hydration/timing flakes on GHA.

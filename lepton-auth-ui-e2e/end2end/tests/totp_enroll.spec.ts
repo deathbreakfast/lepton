@@ -7,6 +7,7 @@ import {
 import { totpCode, totpSecretFromManualLocator } from "./helpers/totp";
 import {
   enrollTotpToEnabled,
+  startTotpSetup,
   parseRecoveryCodes,
 } from "./helpers/totp_settings";
 
@@ -80,14 +81,7 @@ test.describe("pw-totp enroll account settings", () => {
     await gotoAccountSettingsSignedIn(page, auth, email, password);
 
     await expect(page.getByTestId("totp-settings-idle")).toBeVisible();
-    await clickTestId(page, "totp-settings-setup");
-    // Setup is async; surface either the QR step or an enroll error.
-    await expect(
-      page
-        .getByTestId("totp-settings-scan")
-        .or(page.getByTestId("totp-settings-error")),
-    ).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId("totp-settings-scan")).toBeVisible();
+    await startTotpSetup(page);
     const secret = await totpSecretFromManualLocator(
       page.getByTestId("totp-settings-manual-secret"),
     );
@@ -103,7 +97,7 @@ test.describe("pw-totp enroll account settings", () => {
     );
     await expect(page.getByTestId("totp-settings-confirm")).toBeVisible();
 
-    await page.getByTestId("totp-settings-code").fill(totpCode(secret));
+    await page.getByTestId("totp-settings-code").fill(await totpCode(secret));
     await clickTestId(page, "totp-settings-confirm-submit");
     await expect(page.getByTestId("totp-settings-recovery")).toBeVisible({
       timeout: 30_000,
@@ -120,7 +114,7 @@ test.describe("pw-totp enroll account settings", () => {
     await expect(page.getByTestId("totp-settings-disable")).toBeVisible();
     await page
       .getByTestId("totp-settings-disable-code")
-      .fill(totpCode(secret));
+      .fill(await totpCode(secret));
     await clickTestId(page, "totp-settings-disable-submit");
     await expect(page.getByTestId("totp-settings-idle")).toBeVisible({
       timeout: 30_000,
@@ -135,7 +129,7 @@ test.describe("pw-totp enroll account settings", () => {
 
     await clickTestId(page, "totp-settings-regen-start");
     await expect(page.getByTestId("totp-settings-regen")).toBeVisible();
-    await page.getByTestId("totp-settings-regen-code").fill(totpCode(secret));
+    await page.getByTestId("totp-settings-regen-code").fill(await totpCode(secret));
     await clickTestId(page, "totp-settings-regen-submit");
 
     await expect(page.getByTestId("totp-settings-recovery")).toBeVisible({
