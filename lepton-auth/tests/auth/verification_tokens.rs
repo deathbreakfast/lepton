@@ -115,7 +115,7 @@ async fn stored_token(
     valence: &valence::Valence,
     user: &valence::RecordId,
 ) -> EmailVerificationToken {
-    EmailVerificationToken::get(&email_verification_challenge_id(user), valence, valence::use_!(r#"**Test:** Fixture **Email Verification Token** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+    EmailVerificationToken::get(&email_verification_challenge_id(user), valence, valence::use_!(r"**Test:** Fixture **Email Verification Token** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .await
         .expect("get")
         .expect("token exists")
@@ -194,7 +194,7 @@ async fn lockout_ends_and_right_code_then_works() {
     }
     stored_token(&valence, &user)
         .await
-        .get_mutable(&valence, valence::use_!(r#"**Test:** Fixture **Email Verification Token** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+        .get_mutable(&valence, valence::use_!(r"**Test:** Fixture **Email Verification Token** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .set_locked_until(Utc::now() - Duration::seconds(1))
         .expect("set")
         .commit()
@@ -245,7 +245,7 @@ async fn expired_code_is_refused() {
         .expect("issue");
     stored_token(&valence, &user)
         .await
-        .get_mutable(&valence, valence::use_!(r#"**Test:** Fixture **Email Verification Token** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+        .get_mutable(&valence, valence::use_!(r"**Test:** Fixture **Email Verification Token** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .set_expires_at(Utc::now() - Duration::seconds(1))
         .expect("set")
         .commit()
@@ -275,7 +275,7 @@ async fn resend_waits_out_the_cooldown() {
     assert!((1..=EMAIL_RESEND_COOLDOWN_SECS).contains(&wait));
     stored_token(&valence, &user)
         .await
-        .get_mutable(&valence, valence::use_!(r#"**Test:** Fixture **Email Verification Token** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+        .get_mutable(&valence, valence::use_!(r"**Test:** Fixture **Email Verification Token** save for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
         .set_created_at(Utc::now() - Duration::seconds(EMAIL_RESEND_COOLDOWN_SECS + 1))
         .expect("set")
         .commit()
