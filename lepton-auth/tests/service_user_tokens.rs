@@ -359,3 +359,34 @@ async fn forged_row_for_foreign_service_user_refused_sad() {
         .await;
     assert!(saved.is_err(), "create rule checks service user ownership");
 }
+
+#[tokio::test]
+async fn token_create_and_revoke_land_in_history_happy() {
+    use lepton_auth::service_users::list_service_user_activity;
+    use lepton_host_adapter::generated::ServiceUserActivityKind as Kind;
+
+    setup();
+    let sys = system_valence("tokens_history").await;
+    let (alice, id, _) = seed_service_user(&sys, "maker-tok-o", "tok-history").await;
+    let created = create_service_user_token(&alice, &id, new_token("deploy"))
+        .await
+        .expect("create");
+    let token_id = created.row.id().expect("id").id().to_string();
+    revoke_service_user_token(&alice, &id, &token_id)
+        .await
+        .expect("revoke");
+    // A second revoke changes nothing and adds no entry.
+    revoke_service_user_token(&alice, &id, &token_id)
+        .await
+        .expect("revoke again");
+
+    let rows = list_service_user_activity(&alice, &id, None)
+        .await
+        .expect("history");
+    let kinds: Vec<_> = rows.iter().map(|r| r.kind().clone()).collect();
+    assert_eq!(
+        kinds,
+        [Kind::TokenRevoked, Kind::TokenCreated, Kind::Created]
+    );
+    assert_eq!(rows[0].detail().map(String::as_str), Some("deploy"));
+}

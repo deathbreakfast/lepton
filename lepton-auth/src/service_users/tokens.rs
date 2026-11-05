@@ -6,6 +6,7 @@ use lepton_identity::service_users::{ServiceUserId, ServiceUserToken};
 use tokio::sync::Mutex;
 use valence::{Actor, Model, RecordId, Valence};
 
+use super::activity::{record_service_user_token_activity, ServiceUserTokenEvent};
 use super::api::get_service_user;
 use super::ServiceUserError;
 
@@ -107,6 +108,15 @@ pub async fn create_service_user_token(
 ) -> Result<CreatedServiceUserToken, ServiceUserError> {
     let result = create_inner(valence, id, input).await;
     log("token_create", result.as_ref().map(|_| ()), id);
+    if let Ok(created) = &result {
+        record_event(
+            valence,
+            id,
+            ServiceUserTokenEvent::Created,
+            created.row.label(),
+        )
+        .await;
+    }
     result
 }
 
@@ -165,6 +175,22 @@ async fn create_inner(
     })
 }
 
+/// Add a token event to the service user's history. Best-effort; never fails the call.
+async fn record_event(
+    valence: &Valence,
+    id: &ServiceUserId,
+    event: ServiceUserTokenEvent,
+    label: &str,
+) {
+    if let Err(e) = record_service_user_token_activity(valence, id, event, Some(label)).await {
+        tracing::warn!(
+            target: "lepton.service_user",
+            reason_class = e.reason_class(),
+            "service user history entry not saved"
+        );
+    }
+}
+
 async fn list_rows(
     valence: &Valence,
     service_user: &lepton_host_adapter::generated::ServiceUserAccount,
@@ -210,14 +236,18 @@ pub async fn revoke_service_user_token(
 ) -> Result<TokenRow, ServiceUserError> {
     let result = revoke_inner(valence, id, token_id).await;
     log("token_revoke", result.as_ref().map(|_| ()), id);
-    result
+    if let Ok((row, true)) = &result {
+        record_event(valence, id, ServiceUserTokenEvent::Revoked, row.label()).await;
+    }
+    result.map(|(row, _)| row)
 }
 
+/// Revoke and report whether this call changed the token (`false` when already revoked).
 async fn revoke_inner(
     valence: &Valence,
     id: &ServiceUserId,
     token_id: &str,
-) -> Result<TokenRow, ServiceUserError> {
+) -> Result<(TokenRow, bool), ServiceUserError> {
     caller_bare(valence)?;
     let service_user = get_service_user(valence, id).await?;
     let row = list_rows(valence, &service_user)
@@ -226,7 +256,7 @@ async fn revoke_inner(
         .find(|r| r.id().is_some_and(|rid| rid.id() == token_id))
         .ok_or(ServiceUserError::NotFound)?;
     if row.revoked_at().is_some() {
-        return Ok(row);
+        return Ok((row, false));
     }
     row.get_mutable(
         valence,
@@ -236,5 +266,6 @@ async fn revoke_inner(
     .map_err(|_| ServiceUserError::Store)?
     .commit()
     .await
+    .map(|row| (row, true))
     .map_err(|e| write_error(&e))
 }

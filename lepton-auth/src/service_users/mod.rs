@@ -51,8 +51,8 @@
 //! with the caller's own Valence. A failed write is logged and never fails the change.
 //! Deleting writes none; the history goes with the service user.
 //! [`list_service_user_activity`] returns the newest entries to whoever can see the service
-//! user. Lepton mints no tokens, so the host reports token events with
-//! [`record_service_user_token_activity`]. Rows never change after they are saved.
+//! user. Creating and revoking a token (see below) adds its own entry; a host
+//! that issues tokens another way reports them with [`record_service_user_token_activity`]. Rows never change after they are saved.
 //!
 //! # Access tokens
 //!
