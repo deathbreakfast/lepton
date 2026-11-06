@@ -52,3 +52,5 @@ pub use qr::{format_manual_secret, manual_secret_from_otpauth_uri, qr_svg_for_ot
 
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub use crate::factor::verify_totp_against_sealed;
+#[cfg(all(feature = "ssr", feature = "totp"))]
+pub use seal::{envelope_key_version, seal_totp_secret};

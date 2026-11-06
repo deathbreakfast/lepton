@@ -125,6 +125,10 @@ required-features = ["ssr"]
 name = "membership_primary_clear"
 required-features = ["ssr", "test-utils", "phone"]
 
+[[test]]
+name = "totp_key_rotation"
+required-features = ["ssr", "totp"]
+
 [features]
 default = []
 hydrate = [
@@ -190,12 +194,14 @@ boson-delivery = [
     "dep:uuid",
 ]
 # All Ship channels + OAuth flags + WebAuthn.
-full = ["email", "phone", "totp", "oauth-google", "oauth-github", "oauth-microsoft", "webauthn"]
+# Live Twilio drivers (SendGrid email, Verify and Messages SMS) for settings-built services.
+twilio = ["lepton-smtp?/twilio", "lepton-sms?/twilio"]
+full = ["email", "phone", "totp", "oauth-google", "oauth-github", "oauth-microsoft", "webauthn", "twilio"]
 # Emit auth funnel Spectra counters / failure events via lepton-spectra-telemetry.
 spectra = ["dep:lepton-spectra-telemetry"]
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "io-util"] }
 wiremock = "0.6"
 serde_json = { workspace = true }
 webauthn-authenticator-rs = { version = "0.5.5", default-features = false, features = ["softpasskey"] }
