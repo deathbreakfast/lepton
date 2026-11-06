@@ -11,15 +11,23 @@
 //!   adapters they wrap, so [`crate::services::LeptonAuthServices`] and every
 //!   send path keep calling `services.email.send(..)` unchanged. A send already
 //!   in flight finishes on the adapter it started with.
+//! - `build_email_service` / `build_sms_service` (`ssr`): turn a saved
+//!   candidate plus host-resolved secrets into a service for those adapters.
 
 #[cfg(feature = "ssr")]
 pub mod admin;
+#[cfg(feature = "ssr")]
+mod rebuild;
 pub mod settings;
 #[cfg(feature = "ssr")]
 mod swap;
 
 #[cfg(feature = "ssr")]
 pub use admin::DeliverySettingsBackend;
+#[cfg(all(feature = "ssr", feature = "email"))]
+pub use rebuild::build_email_service;
+#[cfg(all(feature = "ssr", feature = "phone"))]
+pub use rebuild::build_sms_service;
 pub use settings::{
     Channel, DeliveryError, DeliverySettingsView, EmailCandidate, EmailDriverChoice,
     EmailSettingsView, OAuthCandidate, OAuthProviderView, OAuthSettingsView, SecretStatus,

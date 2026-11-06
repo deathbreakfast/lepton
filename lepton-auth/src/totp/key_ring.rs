@@ -102,6 +102,14 @@ pub fn install_key_ring(ring: TotpKeyRing) {
     *slot = Some(Arc::new(ring));
 }
 
+/// Remove the process-wide ring, returning sealing to the single env key.
+pub fn clear_key_ring() {
+    let mut slot = RING
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    *slot = None;
+}
+
 /// The installed ring, if any.
 #[must_use]
 pub fn installed_key_ring() -> Option<Arc<TotpKeyRing>> {
