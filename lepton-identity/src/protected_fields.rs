@@ -134,13 +134,31 @@ impl PolicyEvaluator for ProtectedFieldsRule {
 /// The stored password hash of `user_id`, read from the backend without field privacy.
 ///
 /// This is a documented exception under the no-actor-elevation rule. The operation is
-/// "verify the signed-in user's own current password" (change password, email change, TOTP
-/// and device enrolment). Field read policies cannot express it: `password_hash` is
-/// system-only to read, so the session actor's `User` holds `None`. The caller does not
-/// switch actors. It must pass the id of the authenticated session user and never an id taken
-/// from request input, and it must only compare the hash, never return or log it.
+/// "verify the signed-in user's own current password" (change password, email change,
+/// account wipe) plus the presence check behind the OAuth unlink guard. Field read policies
+/// cannot express it: `password_hash` is system-only to read, so the session actor's `User`
+/// holds `None`. The caller does not switch actors, and callers should only compare the
+/// hash, never return or log it.
+///
+/// The read is refused unless `valence` acts as System or as the `User` whose bare id is
+/// `user_id`, so a future caller that passes a request-supplied id gets an error instead of
+/// someone else's hash.
+///
+/// # Errors
+///
+/// [`valence::Error::Validation`] when the actor is neither System nor that user, plus any
+/// backend error.
 pub async fn stored_password_hash(valence: &Valence, user_id: &str) -> Result<Option<String>> {
     let bare = user_id.split_once(':').map_or(user_id, |(_, id)| id);
+    let actor = valence.actor();
+    let own_row = actor
+        .user_id()
+        .is_some_and(|id| id.split_once(':').map_or(id, |(_, rest)| rest) == bare);
+    if !actor.is_system() && !own_row {
+        return Err(valence::Error::Validation(
+            "stored_password_hash is limited to System or the user's own row".to_string(),
+        ));
+    }
     let backend = valence.backend_for_table(USER_TABLE)?;
     let row = valence::get_record(
         backend.as_ref(),

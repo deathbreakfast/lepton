@@ -244,7 +244,7 @@ pub mod ssr {
         let system = valence.with_actor(valence::Actor::System {
             operation: "change_password".to_string(),
         });
-        user.get_mutable(&system, valence::use_!(r"In **lepton auth**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **lepton auth** use the updated data; this is not a public export of unrelated fields."))
+        user.get_mutable(&system, valence::use_!(r"After you confirm your **current password**, we **save your new password hash** so you can sign in with the new password. Only the hash is stored, and nothing is shown to anyone."))
             .set_password_hash(new_hash)
             .map_err(|e| ServerFnError::new(format!("Failed to set new hash: {e}")))?
             .set_updated_at(Utc::now())

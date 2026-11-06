@@ -127,3 +127,28 @@ async fn password_hash_system_read_happy_path() {
         .expect("bob");
     assert_eq!(bob_row.password_hash(), Some(&bob.phc));
 }
+
+#[tokio::test]
+async fn stored_password_hash_refuses_other_users_sad() {
+    let sys = system_valence("password_hash_stored_peer").await;
+    let alice = seed_user_with_password(&sys, "AlicePassword1!").await;
+    let bob = seed_user_with_password(&sys, "BobPassword1!!").await;
+
+    let bob_v = user_valence(&sys, &bob.bare);
+    let err = lepton_identity::protected_fields::stored_password_hash(&bob_v, &alice.bare)
+        .await
+        .expect_err("peer id must be refused");
+    assert!(err.to_string().contains("own row"), "{err}");
+
+    let anon = sys.with_actor(valence::Actor::Anonymous);
+    assert!(
+        lepton_identity::protected_fields::stored_password_hash(&anon, &alice.bare)
+            .await
+            .is_err()
+    );
+
+    let from_system = lepton_identity::protected_fields::stored_password_hash(&sys, &alice.bare)
+        .await
+        .expect("system");
+    assert_eq!(from_system.as_deref(), Some(alice.phc.as_str()));
+}
