@@ -7,7 +7,7 @@ valence_schema! {
         table: "email_verification_token",
         version: "0.3.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
-        description: "One-time token metadata for signup and email-change verification",
+        description: "One-time token metadata for signup and email-change verification, with failed-attempt count and lockout",
         traits: [OneTimeTokenLifecycle],
         ttl: {
             seconds: 1800,

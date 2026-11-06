@@ -11,6 +11,22 @@ import {
   clickTestId,
 } from "./fixtures";
 
+/**
+ * Click Continue on the account-settings prompt until the confirm page opens.
+ * A click made before the page hydrates is dropped, so retry while the prompt
+ * is still showing.
+ */
+async function continueFromPrompt(page: import("@playwright/test").Page) {
+  await expect(async () => {
+    if (!/\/user\/confirm-account/.test(page.url())) {
+      await clickTestId(page, "confirm-account-prompt-continue");
+    }
+    await expect(page).toHaveURL(/\/user\/confirm-account/, {
+      timeout: 10_000,
+    });
+  }).toPass({ timeout: 60_000 });
+}
+
 async function expectEmailStep(page: import("@playwright/test").Page) {
   await expect(page.getByTestId("confirm-account-container")).toBeVisible({
     timeout: 60_000,
@@ -328,7 +344,7 @@ test.describe("pw-confirm funnel + re-entry", () => {
     await expectPhoneStep(page);
     await clickTestId(page, "confirm-skip");
     await page.goto("/user/account-settings");
-    await clickTestId(page, "confirm-account-prompt-continue");
+    await continueFromPrompt(page);
     await expect(page).toHaveURL(/\/user\/confirm-account/, { timeout: 60_000 });
     await expectPhoneStep(page);
   });
@@ -382,7 +398,7 @@ test.describe("pw-confirm funnel + re-entry", () => {
     await seedTestData(request, "auth_confirm_email_only", { email, password });
     await signInAs(page, email, password, "/welcome");
     await page.goto("/user/account-settings");
-    await clickTestId(page, "confirm-account-prompt-continue");
+    await continueFromPrompt(page);
     await expect(page).toHaveURL(/\/user\/confirm-account/, { timeout: 60_000 });
   });
 
@@ -392,7 +408,7 @@ test.describe("pw-confirm funnel + re-entry", () => {
     await seedTestData(request, "auth_unverified_user", { email, password });
     await signInAs(page, email, password, "/welcome");
     await page.goto("/user/account-settings");
-    await clickTestId(page, "confirm-account-prompt-continue");
+    await continueFromPrompt(page);
     await expectEmailStep(page);
   });
 
@@ -402,7 +418,7 @@ test.describe("pw-confirm funnel + re-entry", () => {
     await seedTestData(request, "auth_confirm_email_only", { email, password });
     await signInAs(page, email, password, "/welcome");
     await page.goto("/user/account-settings");
-    await clickTestId(page, "confirm-account-prompt-continue");
+    await continueFromPrompt(page);
     await expectPhoneStep(page);
   });
 
@@ -412,7 +428,7 @@ test.describe("pw-confirm funnel + re-entry", () => {
     await seedTestData(request, "auth_confirm_ready", { email, password });
     await signInAs(page, email, password, "/welcome");
     await page.goto("/user/account-settings");
-    await clickTestId(page, "confirm-account-prompt-continue");
+    await continueFromPrompt(page);
     await expectConfirmStep(page);
     await expect(page.getByTestId("confirm-account-submit")).toBeVisible();
   });
@@ -449,7 +465,7 @@ test.describe("pw-confirm funnel + re-entry", () => {
     await signupNewUser(page, email);
     await clickTestId(page, "confirm-skip");
     await page.goto("/user/account-settings");
-    await clickTestId(page, "confirm-account-prompt-continue");
+    await continueFromPrompt(page);
     await expectEmailStep(page);
     const code = await waitMailpitCode(request, email);
     await page.getByTestId("confirm-email-token").locator("input").fill(code);

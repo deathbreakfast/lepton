@@ -182,7 +182,7 @@ pub async fn consume_email_verification_token(
     otp_code: &str,
 ) -> Result<Result<EmailVerificationToken, TokenLifecycleError>, ServerFnError> {
     let token_id = email_verification_challenge_id(user);
-    let token = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let token = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"When you **enter an emailed verification code**, we **load your pending code record** to check the code, its expiry and any lockout. Only the signed-in user's own code is checked, and nothing from the record is shown back."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -345,7 +345,7 @@ pub async fn email_resend_wait_secs(
     valence: &Valence,
     user: &RecordId,
 ) -> Result<Option<i64>, ServerFnError> {
-    let token = EmailVerificationToken::get(&email_verification_challenge_id(user), valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let token = EmailVerificationToken::get(&email_verification_challenge_id(user), valence, valence::use_!(r"When you **ask for another verification email**, we **load when your last code was issued** to decide whether the 60-second wait is over. Only the issue time is read, and it is not shown to anyone."))
         .await
         .map_err(|_| token_store_error("load"))?;
     Ok(token.and_then(|t| resend_wait_secs(*t.created_at(), Utc::now())))
@@ -368,7 +368,7 @@ pub async fn issue_email_verification_token(
         .map_err(|_| token_store_error("hash"))?;
 
     let now = Utc::now();
-    let previous = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let previous = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"When we **issue a new verification code**, we **load your previous code record** to carry over a lockout that is still running, so asking for a new code cannot reset the attempt limit."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let (failed_attempts, locked_until) = previous
@@ -389,7 +389,7 @@ pub async fn issue_email_verification_token(
     )
     .map_err(|_| token_store_error("build"))?;
 
-    EmailVerificationToken::upsert(&token_id, token, valence, valence::use_!(r"When **token_helpers** needs to persist work, we **save Email Verification Token** so the next step in that feature can continue with the latest values. People and services allowed for **token_helpers** use this data for that workflow—not as a general export of unrelated personal fields."))
+    EmailVerificationToken::upsert(&token_id, token, valence, valence::use_!(r"When we **issue a new verification code**, we **save its hash, expiry and any carried-over lockout** for your email address so you can confirm it later. The code itself is only sent to you by email."))
         .await
         .map_err(|_| token_store_error("persist"))?;
 
