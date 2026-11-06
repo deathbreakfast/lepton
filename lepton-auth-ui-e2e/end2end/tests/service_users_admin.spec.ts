@@ -3,6 +3,7 @@ import { test, expect, signInAs } from "./fixtures";
 type Seeded = {
   password: string;
   owner_ids: string[];
+  tag: string;
   admin: string;
   plain: string;
   handles: [string[], string[]];
@@ -29,7 +30,7 @@ async function seedServiceUsers(
   });
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = (await res.json()) as { password: string; owner_ids: string[] };
-  return { ...body, admin, plain, handles };
+  return { ...body, tag, admin, plain, handles };
 }
 
 async function openAllServiceUsers(
@@ -76,6 +77,14 @@ test.describe("pw-service-users-admin all service users page", () => {
   }) => {
     const seeded = await seedServiceUsers(request);
     await openAllServiceUsers(page, seeded.admin, seeded.password);
+    // The host is shared across tests, so narrow to this test's own handles.
+    await expect(page.getByTestId("all-service-users-list")).toBeVisible({
+      timeout: 30_000,
+    });
+    await page
+      .getByTestId("all-service-users-filter")
+      .locator("input")
+      .fill(seeded.tag);
     const rows = page.getByTestId("all-service-users-row");
     await expect(rows).toHaveCount(3, { timeout: 30_000 });
     for (const handle of [...seeded.handles[0], ...seeded.handles[1]]) {
@@ -96,11 +105,15 @@ test.describe("pw-service-users-admin all service users page", () => {
     const seeded = await seedServiceUsers(request);
     await openAllServiceUsers(page, seeded.admin, seeded.password);
     const rows = page.getByTestId("all-service-users-row");
-    await expect(rows).toHaveCount(3, { timeout: 30_000 });
     const filter = page.getByTestId("all-service-users-filter").locator("input");
+    await expect(page.getByTestId("all-service-users-list")).toBeVisible({
+      timeout: 30_000,
+    });
+    await filter.fill(seeded.tag);
+    await expect(rows).toHaveCount(3, { timeout: 30_000 });
 
     // Case and dashes are ignored.
-    await filter.fill("MAILBOT");
+    await filter.fill(`MAILBOT${seeded.tag}`);
     await expect(rows).toHaveCount(1);
     await expect(
       page.getByTestId("all-service-users-handle"),
@@ -110,7 +123,7 @@ test.describe("pw-service-users-admin all service users page", () => {
     await expect(page.getByTestId("all-service-users-empty")).toBeVisible();
     await expect(rows).toHaveCount(0);
 
-    await filter.fill("");
+    await filter.fill(seeded.tag);
     await expect(rows).toHaveCount(3);
   });
 });
