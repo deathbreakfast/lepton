@@ -90,13 +90,14 @@ impl std::str::FromStr for EmailDriver {
     }
 }
 
+/// One lock for every test that sets or clears `UF_SMTP_*` / `UF_EMAIL_*` process env vars.
+#[cfg(test)]
+pub static EMAIL_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static EMAIL_ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn from_env_uses_smtp_host_when_driver_unset() {

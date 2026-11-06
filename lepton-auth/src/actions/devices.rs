@@ -8,15 +8,13 @@ fn map_device_err(err: crate::devices::DeviceError) -> ServerFnError {
     ServerFnError::new(err.to_string())
 }
 
-/// System Valence for device CUD (schema is `SYSTEM_ONLY`); authz is still
-/// `require_auth_user` + library owner checks on `auth_user.id`.
+/// Session-actor Valence for device CUD; owner policies on `AuthDevice` and
+/// `AuthDeviceCeremony` scope every row to `auth_user.id`.
 #[cfg(feature = "ssr")]
 async fn device_valence(
 ) -> Result<(higgs::Higgs, lepton_host_adapter::User, valence::Valence), ServerFnError> {
     let (ctx, auth_user) = crate::ssr_support::require_auth_user().await?;
-    let valence = ctx
-        .unsafe_system_valence()
-        .map_err(|e| crate::ssr_support::map_higgs_err(&e))?;
+    let valence = crate::ssr_support::user_valence(&ctx)?;
     Ok((ctx, auth_user, valence))
 }
 

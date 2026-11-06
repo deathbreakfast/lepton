@@ -6,7 +6,7 @@ valence_schema! {
     AuthDevice {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "auth_device",
-        version: "0.3.0",
+        version: "0.4.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Trusted browser or WebAuthn device registered for a user",
 
@@ -23,19 +23,19 @@ valence_schema! {
             },
             create: {
                 always_allow: [],
-                allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
             update: {
                 always_allow: [],
-                allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
             delete: {
                 always_allow: [],
-                allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
                 block: [],
                 always_block: [],
             },
@@ -67,7 +67,7 @@ valence_schema! {
                 r#type: FieldType::String,
                 required: false,
                 policies: {
-                    read: { allow: [SYSTEM_ONLY] },
+                    read: { allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY] },
                 },
             },
             binding_secret_hash: {
@@ -88,7 +88,7 @@ valence_schema! {
                 r#type: FieldType::Json,
                 required: false,
                 policies: {
-                    read: { allow: [SYSTEM_ONLY] },
+                    read: { allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY] },
                 },
             },
             sign_count: {

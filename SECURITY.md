@@ -47,7 +47,11 @@ the session id on login. Inspect production `Set-Cookie` responses to confirm
 
 When a user completes login MFA with “Remember this browser,” the server sets an
 HttpOnly cookie named `lepton_device` (`device_id.secret`). The secret is stored
-only as an Argon2 hash on `AuthDevice.binding_secret_hash` (SYSTEM_ONLY). Hosts
+only as an Argon2 hash on `AuthDevice.binding_secret_hash` (SYSTEM_ONLY). Device
+register, confirm, passkey and revoke server functions run as the signed-in user:
+`AuthDevice` and `AuthDeviceCeremony` writes are owner-scoped, and the confirm
+hash, passkey and ceremony state are owner-readable but never returned to the
+client. Only `binding_secret_hash` stays System-only. Hosts
 should mirror session cookie flags (`Secure` in production, `SameSite=Lax` or
 stricter). Revoking the device clears the hash so the cookie no longer skips MFA.
 TrustedBrowser skip is intentionally weaker than WebAuthn assertion skip.

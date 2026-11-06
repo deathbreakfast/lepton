@@ -14,7 +14,7 @@ use lepton_host_adapter::auth::hash_password;
 use lepton_host_adapter::generated::AuthDeviceCeremony;
 use lepton_identity::generated::{User as IdentityUser, UserStatus, UserUserType};
 use serde_json::json;
-use support::system_valence;
+use support::{system_valence, user_valence};
 use url::Url;
 use valence::Model;
 use webauthn_authenticator_rs::prelude::WebauthnAuthenticator;
@@ -301,4 +301,34 @@ async fn webauthn_ceremony_consume_twice_sad() {
             .await
             .expect_err("second finish");
     assert_eq!(err.reason_class(), "ceremony_invalid");
+}
+
+/// Same ceremony as the happy path, but on the signed-in user's Valence (no System).
+#[tokio::test]
+async fn webauthn_reg_assert_under_session_actor() {
+    let sys = system_valence("webauthn_session_seed").await;
+    let user = seed_user(&sys).await;
+    let valence = user_valence(
+        &sys,
+        valence::extract_id_from_record(&user).expect("bare id"),
+    );
+    let rp = test_rp();
+    let origin = Url::parse(&rp.rp_origin).unwrap();
+    let mut wa = soft_authenticator();
+
+    let pending = begin_webauthn_registration(&valence, &rp, &user, "SoftKey")
+        .await
+        .expect("begin reg");
+    let attestation = do_register(&mut wa, &origin, pending.creation_options);
+    finish_webauthn_registration(&valence, &rp, &user, &pending.ceremony_id, &attestation)
+        .await
+        .expect("finish reg");
+
+    let assert_start = begin_webauthn_assertion(&valence, &rp, &user)
+        .await
+        .expect("begin assert");
+    let assertion = do_assert(&mut wa, &origin, assert_start.request_options);
+    finish_webauthn_assertion(&valence, &rp, &user, &assert_start.ceremony_id, &assertion)
+        .await
+        .expect("finish assert");
 }
