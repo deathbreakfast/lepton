@@ -25,8 +25,8 @@ pub use lepton_identity::generated::{
     ProfilePhotoReference, ServiceUserAccount, ServiceUserAccountOwnerKind,
     ServiceUserAccountQuery, ServiceUserAccountReference, ServiceUserAccountStatus,
     ServiceUserActivity, ServiceUserActivityKind, ServiceUserActivityReference, ServiceUserToken,
-    ServiceUserTokenReference, User, UserAppearance, UserAppearanceReference, UserProfile,
-    UserProfileReference, UserQuery, UserReference, UserStatus, UserUserType,
+    User, UserAppearance, UserAppearanceReference, UserProfile, UserProfileReference, UserQuery,
+    UserReference, UserStatus, UserUserType,
 };
 
 #[cfg(feature = "ssr")]
