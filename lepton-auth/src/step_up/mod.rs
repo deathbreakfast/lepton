@@ -7,7 +7,6 @@
 
 mod error;
 mod scope;
-mod throttle;
 mod verify;
 mod window;
 

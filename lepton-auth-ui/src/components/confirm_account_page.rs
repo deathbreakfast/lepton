@@ -269,7 +269,7 @@ pub fn ConfirmAccountPage() -> impl IntoView {
                                                                                 bind.name = "token".into();
                                                                                 bind
                                                                             }
-                                                                            appearance=InputAppearance::with_placeholder("Paste code")
+                                                                            appearance=InputAppearance::with_placeholder("6-digit code")
                                                                         />
                                                                     </div>
                                                                 </Field>

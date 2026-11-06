@@ -92,16 +92,13 @@ pub async fn verify_email_token(
         mark_account_email_verified, set_account_primary_email, set_primary_email, ContactError,
     };
     use crate::security::log_credential_audit;
-    use crate::token_helpers::{
-        ensure_token_lifecycle_valid, try_consume_email_verification_token, verify_token_secret,
-        TokenLifecycleError,
-    };
+    use crate::token_helpers::consume_email_verification_token;
     use chrono::Utc;
-    use lepton_host_adapter::generated::{AccountEmail, EmailVerificationToken, UserStatus};
+    use lepton_host_adapter::generated::{AccountEmail, UserStatus};
     use valence::Model;
 
-    let token_id = token.trim().to_string();
-    if token_id.is_empty() {
+    let otp_code = token.trim().to_string();
+    if otp_code.is_empty() {
         return Err(ServerFnError::Args("Missing token".into()));
     }
 
@@ -111,78 +108,19 @@ pub async fn verify_email_token(
         .unsafe_system_valence()
         .map_err(|e| crate::ssr_support::map_higgs_err(&e))?;
 
-    let token_record = EmailVerificationToken::get(&token_id, &valence, valence::use_!(r"In **actions**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **actions** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
-        .await
-        .map_err(|e| ServerFnError::new(format!("Failed to load verification token: {e}")))?
-        .ok_or_else(|| {
-            log_credential_audit(
-                "email_verification",
-                Some(auth_user.email.as_str()),
-                "failure",
-                Some("invalid"),
-            );
-            ServerFnError::new(TokenLifecycleError::Invalid.message().to_string())
-        })?;
-
-    if token_record.user() != &auth_user.id {
-        log_credential_audit(
-            "email_verification",
-            Some(auth_user.email.as_str()),
-            "failure",
-            Some("token_user_mismatch"),
-        );
-        return Err(ServerFnError::new(
-            TokenLifecycleError::Invalid.message().to_string(),
-        ));
-    }
-
-    if let Err(err) = ensure_token_lifecycle_valid(&token_record) {
-        let detail = match err {
-            TokenLifecycleError::Used => "used",
-            TokenLifecycleError::Expired => "expired",
-            TokenLifecycleError::Invalid => "invalid",
+    let token_record =
+        match consume_email_verification_token(&valence, &auth_user.id, &otp_code).await? {
+            Ok(record) => record,
+            Err(err) => {
+                log_credential_audit(
+                    "email_verification",
+                    Some(auth_user.email.as_str()),
+                    "failure",
+                    Some(err.reason_class()),
+                );
+                return Err(ServerFnError::new(err.message().to_string()));
+            }
         };
-        log_credential_audit(
-            "email_verification",
-            Some(auth_user.email.as_str()),
-            "failure",
-            Some(detail),
-        );
-        return Err(ServerFnError::new(err.message().to_string()));
-    }
-    if let Err(err) = verify_token_secret(&token_id, token_record.token_hash()) {
-        log_credential_audit(
-            "email_verification",
-            Some(auth_user.email.as_str()),
-            "failure",
-            Some("invalid"),
-        );
-        return Err(ServerFnError::new(err.message().to_string()));
-    }
-
-    let consumed = try_consume_email_verification_token(&token_id, &valence).await?;
-    if !consumed {
-        let latest = EmailVerificationToken::get(&token_id, &valence, valence::use_!(r"In **actions**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **actions** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
-            .await
-            .map_err(|e| ServerFnError::new(format!("Failed to reload verification token: {e}")))?;
-        let err = latest.map_or(TokenLifecycleError::Invalid, |latest_token| {
-            ensure_token_lifecycle_valid(&latest_token)
-                .err()
-                .unwrap_or(TokenLifecycleError::Used)
-        });
-        let detail = match err {
-            TokenLifecycleError::Used => "used",
-            TokenLifecycleError::Expired => "expired",
-            TokenLifecycleError::Invalid => "invalid",
-        };
-        log_credential_audit(
-            "email_verification",
-            Some(auth_user.email.as_str()),
-            "failure",
-            Some(detail),
-        );
-        return Err(ServerFnError::new(err.message().to_string()));
-    }
 
     let email_bare = valence::extract_id_from_record(token_record.user_email())
         .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -218,8 +156,11 @@ pub async fn verify_email_token(
         Some("verified"),
     );
 
-    crate::events::publish_verification_completed(token_id, crate::events::VerificationKind::Email)
-        .await;
+    crate::events::publish_verification_completed(
+        crate::token_helpers::email_verification_challenge_id(&auth_user.id),
+        crate::events::VerificationKind::Email,
+    )
+    .await;
 
     Ok(())
 }

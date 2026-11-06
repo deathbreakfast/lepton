@@ -156,7 +156,7 @@ async fn ci_e2e_sms_otp_rejected() {
         ))
         .await
         .expect("email");
-    verify_email_token(&lab.valence, &pending.email_token_id)
+    verify_email_token(&lab.valence, &pending.user_id, &pending.email_token_id)
         .await
         .expect("email verify");
 

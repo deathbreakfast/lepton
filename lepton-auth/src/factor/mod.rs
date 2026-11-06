@@ -112,6 +112,9 @@ pub enum FactorChallengeError {
     /// Sealed secret could not be decoded / used (never includes the secret or code).
     #[error("reason_class=totp_secret: totp secret error")]
     TotpSecret,
+    /// Too many wrong email codes; the token is locked until the lockout ends.
+    #[error("reason_class=rate_limited: too many attempts; try again later")]
+    RateLimited,
     /// User row missing after a successful phone consume.
     #[error("reason_class=user: user not found")]
     UserMissing,
@@ -126,6 +129,7 @@ impl FactorChallengeError {
             Self::UnsupportedKind(_) => "unsupported_kind",
             Self::Services => "services",
             Self::Token => "token",
+            Self::RateLimited => "rate_limited",
             Self::InvalidPhone => "invalid_phone",
             Self::Delivery(_) => "delivery",
             Self::TotpUnavailable => "totp_unavailable",
@@ -154,7 +158,7 @@ impl FactorChallengeService {
         Self { services }
     }
 
-    /// Issue an email OTP challenge (`email` feature). Returns the token id.
+    /// Issue an email OTP challenge (`email` feature). Returns the challenge id (not the code).
     #[cfg(feature = "email")]
     pub async fn issue_email_otp(
         &self,
@@ -257,14 +261,16 @@ impl FactorChallengeService {
         }
     }
 
-    /// Consume an email verification token (`email` feature).
+    /// Consume `user`'s emailed code (`email` feature). Returns `Ok(false)` for a wrong, used
+    /// or expired code and [`FactorChallengeError::RateLimited`] once the attempt budget is spent.
     #[cfg(feature = "email")]
     pub async fn verify_email_otp(
         &self,
-        token_id: &str,
+        user: &RecordId,
+        otp_code: &str,
         valence: &Valence,
     ) -> Result<bool, FactorChallengeError> {
-        let result = email_otp::verify(token_id, valence).await;
+        let result = email_otp::verify(user, otp_code, valence).await;
         #[cfg(feature = "spectra")]
         match &result {
             Ok(true) => crate::spectra_emit::verify(

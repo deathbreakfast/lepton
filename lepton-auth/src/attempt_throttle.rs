@@ -1,4 +1,4 @@
-//! Attempt throttle and lockout helpers for TOTP verify.
+//! Attempt throttle and lockout helpers shared by TOTP verify and email code verify.
 
 use chrono::{DateTime, Duration, Utc};
 
@@ -27,7 +27,8 @@ pub fn record_failure(failed_attempts: i64, now: DateTime<Utc>) -> (i64, Option<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::step_up::error::StepUpError;
+    #[cfg(feature = "totp")]
+    use crate::step_up::StepUpError;
 
     #[test]
     fn lockout_after_budget() {
@@ -37,6 +38,7 @@ mod tests {
         assert!(until.is_some());
         assert!(is_locked(until.as_ref(), now));
         // verify path maps lockout / budget exhaustion to this reason_class.
+        #[cfg(feature = "totp")]
         assert_eq!(
             StepUpError::StepUpRateLimited.reason_class(),
             "step_up_rate_limited"
@@ -49,6 +51,7 @@ mod tests {
         let (n, until) = record_failure(1, now);
         assert_eq!(n, 2);
         assert!(until.is_none());
+        #[cfg(feature = "totp")]
         assert_eq!(StepUpError::StepUpInvalid.reason_class(), "step_up_invalid");
     }
 }
