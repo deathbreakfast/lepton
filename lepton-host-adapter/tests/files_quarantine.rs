@@ -376,6 +376,11 @@ async fn upload_lands_in_quarantine_and_is_not_served_happy() {
         FileFileStatus::PendingVirusScan
     ));
     assert_eq!(photo.uploaded_by(), &h.user.id);
+    let snap = meson::load_file_for_scan(&h.system, PROFILE_PHOTO_TABLE, &id)
+        .await
+        .unwrap();
+    assert_eq!(snap.uploaded_at, *photo.uploaded_at());
+    assert!(snap.uploaded_at <= Utc::now());
     let key = photo.storage_path().clone();
     assert_eq!(
         read_store(&h.quarantine_root, &key).await.unwrap(),
