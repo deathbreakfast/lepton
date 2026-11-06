@@ -182,7 +182,7 @@ pub async fn consume_email_verification_token(
     otp_code: &str,
 ) -> Result<Result<EmailVerificationToken, TokenLifecycleError>, ServerFnError> {
     let token_id = email_verification_challenge_id(user);
-    let token = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"When you **enter an emailed verification code**, we **load your pending code record** to check the code, its expiry and any lockout. Only the signed-in user's own code is checked, and nothing from the record is shown back."))
+    let token = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"When you **enter the code from your verification email**, we **load your email verification token**, the stored record for the code we last sent you. We compare your code with its hash, check that it is unused, unexpired and not locked, and then confirm your email or turn the code down. The record is not shown to anyone."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let Some(token) = token else {
@@ -200,7 +200,7 @@ pub async fn consume_email_verification_token(
         let (failed, locked_until) =
             record_failure(token.failed_attempts().copied().unwrap_or(0), now);
         let mut mutable = token
-            .get_mutable(valence, valence::use_!(r"When an **emailed verification code is wrong**, we **record the failed attempt** on that code and lock it after too many misses, so repeated guesses get rate-limited."))
+            .get_mutable(valence, valence::use_!(r"When the code you entered **does not match**, we **add one failed attempt to your email verification token** and lock it for five minutes after five misses. The count only decides whether further codes are accepted, and the next screen tells you the code was wrong or that you have to wait."))
             .set_failed_attempts(failed)
             .map_err(|_| token_store_error("mark_failed"))?;
         mutable = match locked_until {
@@ -222,7 +222,7 @@ pub async fn consume_email_verification_token(
 
     let consume_marker = new_consume_marker();
     token
-        .get_mutable(valence, valence::use_!(r"In **token helpers**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **token helpers** use the updated data; this is not a public export of unrelated fields."))
+        .get_mutable(valence, valence::use_!(r"When the code you entered **matches**, we **mark your email verification token as used** and replace its hash, so the same code cannot confirm your email a second time."))
         .set_used_at(now)
         .map_err(|_| token_store_error("mark_used"))?
         .set_token_hash(consume_marker.clone())
@@ -231,7 +231,7 @@ pub async fn consume_email_verification_token(
         .await
         .map_err(|_| token_store_error("persist"))?;
 
-    let latest = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"In **token_helpers**, we **load Email Verification Token** so the application can decide what to do next in this workflow. The result is used by **token_helpers** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let latest = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"Right after marking your **email verification token** used, we **load it again** to check that our write is the one that stuck. If a second request used the same code at the same moment, only one of them confirms your email and the other is turned down."))
         .await
         .map_err(|_| token_store_error("reload"))?;
     let Some(latest) = latest else {
@@ -345,7 +345,7 @@ pub async fn email_resend_wait_secs(
     valence: &Valence,
     user: &RecordId,
 ) -> Result<Option<i64>, ServerFnError> {
-    let token = EmailVerificationToken::get(&email_verification_challenge_id(user), valence, valence::use_!(r"When you **ask for another verification email**, we **load when your last code was issued** to decide whether the 60-second wait is over. Only the issue time is read, and it is not shown to anyone."))
+    let token = EmailVerificationToken::get(&email_verification_challenge_id(user), valence, valence::use_!(r"When you **ask for another verification email**, we **load your email verification token** only to read when the last code was sent. If that was less than a minute ago, we do not send another one yet. The time is not shown to anyone."))
         .await
         .map_err(|_| token_store_error("load"))?;
     Ok(token.and_then(|t| resend_wait_secs(*t.created_at(), Utc::now())))
@@ -368,7 +368,7 @@ pub async fn issue_email_verification_token(
         .map_err(|_| token_store_error("hash"))?;
 
     let now = Utc::now();
-    let previous = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"When we **issue a new verification code**, we **load your previous code record** to carry over a lockout that is still running, so asking for a new code cannot reset the attempt limit."))
+    let previous = EmailVerificationToken::get(&token_id, valence, valence::use_!(r"Before we **send you a new verification code**, we **load your previous email verification token** to see whether a lockout from too many wrong codes is still running. If it is, the new token keeps that lockout, so asking for a new code does not give you more guesses."))
         .await
         .map_err(|_| token_store_error("load"))?;
     let (failed_attempts, locked_until) = previous
@@ -389,7 +389,7 @@ pub async fn issue_email_verification_token(
     )
     .map_err(|_| token_store_error("build"))?;
 
-    EmailVerificationToken::upsert(&token_id, token, valence, valence::use_!(r"When we **issue a new verification code**, we **save its hash, expiry and any carried-over lockout** for your email address so you can confirm it later. The code itself is only sent to you by email."))
+    EmailVerificationToken::upsert(&token_id, token, valence, valence::use_!(r"When we **send you a new verification code**, we **save a new email verification token** for your email address. It holds a hash of the code (never the code itself), its 30-minute expiry and any lockout carried over, and it replaces your previous token. The code itself goes out only in the email."))
         .await
         .map_err(|_| token_store_error("persist"))?;
 
