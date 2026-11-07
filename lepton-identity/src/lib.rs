@@ -169,6 +169,23 @@
 //! - `AccountEmail` / `AccountPhone` — contacts owned by `Account` (unique `address` /
 //!   `e164`, per-row `verified_at`).
 //!
+//! ### Protected fields (system-only to write)
+//!
+//! The owner can edit their own `User` and `Account` rows, except these fields, which only
+//! System writes. `update.always_allow` holds `SYSTEM_ONLY`, and
+//! [`protected_fields::USER_PROTECTED_FIELDS`] / [`protected_fields::ACCOUNT_PROTECTED_FIELDS`]
+//! sit in `update.block`, so an owner save that changes one is refused.
+//!
+//! | Table | System-only to write |
+//! |-------|----------------------|
+//! | `User` | `status`, `user_type`, `confirmed_at`, `id_verified_at`, `password_hash` |
+//! | `Account` | `plan`, `status` |
+//!
+//! `User.password_hash` is also system-only to read, so a session `User` holds `None` there.
+//! Check a typed password against it with [`protected_fields::stored_password_hash`], which
+//! reads the stored hash without switching actors. Validating tests: `lepton-auth`
+//! `protected_fields` and `password_hash_privacy`.
+//!
 //! ### `AccountEmail` read privacy
 //!
 //! Email addresses are owner and System readable. Entity `read` uses
@@ -285,6 +302,7 @@ pub mod generated;
 /// Signup-time row ownership assignment for identity models.
 pub mod ownership;
 pub mod privacy_policies;
+pub mod protected_fields;
 pub mod service_users;
 /// Valence mutation side effects for identity models.
 pub mod side_effects;

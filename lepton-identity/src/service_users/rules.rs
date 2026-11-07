@@ -340,7 +340,7 @@ impl PolicyEvaluator for ServiceUserActiveRule {
 
 /// Bare id from a string (`table:id` or `id`), `{ "id": "…" }`, or
 /// `{ "id": { "String": "…" } }`; the shapes Valence uses for record links.
-pub(super) fn ref_id(value: &Value) -> Option<String> {
+pub fn ref_id(value: &Value) -> Option<String> {
     let text = match value {
         Value::String(s) => s.as_str(),
         Value::Object(obj) => match obj.get("id")? {

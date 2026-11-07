@@ -33,6 +33,7 @@ mod oauth_microsoft_signup;
 mod oauth_pkce_state;
 mod oauth_signup_collision;
 mod password_hash_privacy;
+mod protected_fields;
 mod service_users_concurrency;
 #[cfg(feature = "test-utils")]
 mod service_users_events;

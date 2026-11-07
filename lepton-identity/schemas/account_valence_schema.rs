@@ -2,11 +2,13 @@ use valence::prelude::*;
 use valence::privacy_policies::common::{PUBLIC_READ, SYSTEM_ONLY};
 use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
+use crate::protected_fields::ACCOUNT_PROTECTED_FIELDS;
+
 valence_schema! {
     Account {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "account",
-        version: "0.5.0",
+        version: "0.6.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Account — plan, status, and contacts for a legal identity (1:1 with founding user)",
 
@@ -30,10 +32,11 @@ valence_schema! {
                 block: [],
                 always_block: [],
             },
+            // `plan` and `status` are system-only to write.
             update: {
-                always_allow: [],
-                allow: [OWNER_BY_USER_FIELD, SYSTEM_ONLY],
-                block: [],
+                always_allow: [SYSTEM_ONLY],
+                allow: [OWNER_BY_USER_FIELD],
+                block: [ACCOUNT_PROTECTED_FIELDS],
                 always_block: [],
             },
             delete: {

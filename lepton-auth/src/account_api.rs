@@ -159,9 +159,11 @@ pub mod ssr {
     ///
     /// # Contract
     ///
-    /// `valence` must be allowed to read `User.password_hash` for `auth_user`'s
-    /// row (session User actor via `OWNER_BY_ID`, or System). Peer User actors
-    /// see a stripped field and fail with "Current password is incorrect".
+    /// `auth_user` must be the authenticated session user. `User.password_hash` is
+    /// system-only to read, so the stored hash comes from
+    /// `lepton_identity::protected_fields::stored_password_hash`, and the write goes
+    /// through a System handle after the current password verified (the `User` update rule
+    /// makes `password_hash` system-only to write).
     pub async fn execute_change_password(
         valence: &Valence,
         auth_user: &lepton_host_adapter::auth::User,
@@ -203,7 +205,11 @@ pub mod ssr {
             return Err(ServerFnError::new("User not found"));
         };
 
-        let Some(phc) = user.password_hash() else {
+        let stored_phc =
+            lepton_identity::protected_fields::stored_password_hash(valence, record_id)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Failed to load password: {e}")))?;
+        let Some(phc) = stored_phc.as_deref() else {
             return Err(ServerFnError::Args("Current password is incorrect".into()));
         };
         let parsed_hash = PasswordHash::new(phc)
@@ -230,7 +236,15 @@ pub mod ssr {
         let new_hash = lepton_host_adapter::auth::hash_password(&req.new_password)
             .map_err(|e| ServerFnError::new(format!("Failed to hash password: {e}")))?;
 
-        user.get_mutable(valence, valence::use_!(r"In **lepton auth**, we **update this data** so later steps see the latest values for this workflow. Callers allowed for **lepton auth** use the updated data; this is not a public export of unrelated fields."))
+        // Documented exception to no-actor-elevation: `User.password_hash` is system-only to
+        // write, and the session actor cannot express "the verified owner changes their own
+        // password" in a privacy rule. Only this one write is rebound to System, after the
+        // current password for `auth_user` verified above; everything before it ran as the
+        // session actor.
+        let system = valence.with_actor(valence::Actor::System {
+            operation: "change_password".to_string(),
+        });
+        user.get_mutable(&system, valence::use_!(r"After you confirm your **current password**, we **save your new password hash** so you can sign in with the new password. Only the hash is stored, and nothing is shown to anyone."))
             .set_password_hash(new_hash)
             .map_err(|e| ServerFnError::new(format!("Failed to set new hash: {e}")))?
             .set_updated_at(Utc::now())
@@ -283,12 +297,16 @@ pub mod ssr {
 
         let user_id = auth_user.id.to_string();
         let record_id = user_id.split(':').next_back().unwrap_or(&user_id);
-        let user = User::get(record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        User::get(record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found"))?;
 
-        let Some(phc) = user.password_hash() else {
+        let stored_phc =
+            lepton_identity::protected_fields::stored_password_hash(valence, record_id)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Failed to load password: {e}")))?;
+        let Some(phc) = stored_phc.as_deref() else {
             return Err(ServerFnError::Args("Current password is incorrect".into()));
         };
         let parsed_hash = PasswordHash::new(phc)
@@ -443,12 +461,16 @@ pub mod ssr {
         audit_flow: &str,
     ) -> Result<(), ServerFnError> {
         let record_id = user_bare_id(auth_user);
-        let user = User::get(&record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        User::get(&record_id, valence, valence::use_!(r"In **lepton auth**, we **load User** so the application can decide what to do next in this workflow. The result is used by **lepton auth** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
             .await
             .map_err(|e| ServerFnError::new(format!("Failed to load user: {e}")))?
             .ok_or_else(|| ServerFnError::new("User not found"))?;
 
-        let Some(phc) = user.password_hash() else {
+        let stored_phc =
+            lepton_identity::protected_fields::stored_password_hash(valence, &record_id)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Failed to load password: {e}")))?;
+        let Some(phc) = stored_phc.as_deref() else {
             return Err(ServerFnError::Args("Current password is incorrect".into()));
         };
         let parsed_hash = PasswordHash::new(phc)

@@ -1,4 +1,4 @@
-//! `execute_change_password` under session User valence (owner PHC read).
+//! `execute_change_password` under session User valence (hash read through the narrow stored-hash path).
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 

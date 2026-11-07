@@ -101,11 +101,15 @@ pub async fn user_has_password(
     use valence::Model;
 
     let bare = valence::extract_id_from_record(user).unwrap_or_else(|_| user.id().to_string());
-    let row = User::get(&bare, valence, valence::use_!(r"In **OAuth account linking**, we **load User** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    User::get(&bare, valence, valence::use_!(r"In **OAuth account linking**, we **load User** so the application can decide what to do next in this workflow. The result is used by **OAuth account linking** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .map_err(|_| crate::oauth::OAuthError::Store)?
         .ok_or(crate::oauth::OAuthError::UserMissing)?;
-    Ok(row.password_hash().is_some_and(|h| !h.trim().is_empty()))
+    // `password_hash` is system-only to read; the stored value is only tested for presence.
+    let hash = lepton_identity::protected_fields::stored_password_hash(valence, &bare)
+        .await
+        .map_err(|_| crate::oauth::OAuthError::Store)?;
+    Ok(hash.is_some())
 }
 
 /// True when unlinking `linked_id` would remove the only OAuth link and the user
