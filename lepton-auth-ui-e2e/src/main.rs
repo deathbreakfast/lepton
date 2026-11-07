@@ -12,7 +12,7 @@ use axum_login::AuthManagerLayerBuilder;
 use lepton_auth::services::provide_auth_services;
 use lepton_auth_ui_e2e::app::{shell, App};
 use lepton_auth_ui_e2e::boot::{boot_platform, lab_env};
-use lepton_auth_ui_e2e::seed::seed_data;
+use lepton_auth_ui_e2e::seed::{seed_data, seed_service_users};
 use lepton_host_adapter::session_snapshot_middleware;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
@@ -40,6 +40,7 @@ async fn main() -> anyhow::Result<()> {
     spawn_sms_sink_sidecar().await?;
 
     let (state, backend, auth_services) = boot_platform()?;
+    lepton_auth_ui_e2e::service_user_gate::install()?;
     let leptos_options = state.leptos_options.clone();
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
@@ -62,6 +63,7 @@ async fn main() -> anyhow::Result<()> {
             "/api/test/seed-data",
             post(seed_data::<lepton_auth_ui_e2e::boot::AppState>),
         )
+        .route("/api/test/seed-service-users", post(seed_service_users))
         .route(
             "/health",
             axum::routing::get(|| async { axum::http::StatusCode::OK }),

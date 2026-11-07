@@ -34,7 +34,10 @@
 //!
 //! [`list_my_service_users`] lists the caller's own. [`list_all_service_users`] lists every
 //! service user, whoever owns it, for callers the gate grants manage-any; anyone else gets
-//! [`ServiceUserError::Forbidden`].
+//! [`ServiceUserError::Forbidden`]. The `lepton-auth-ui` crate's `AllServiceUsersPage` shows
+//! this list with each owner and a handle filter; it calls the
+//! [`list_all_service_users_admin`](crate::actions::service_users::list_all_service_users_admin)
+//! server function.
 //!
 //! # Events
 //!

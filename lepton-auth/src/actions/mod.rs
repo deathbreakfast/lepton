@@ -24,6 +24,8 @@ pub mod oauth;
 pub mod oauth_settings;
 /// Password reset request/completion server functions.
 pub mod password_reset;
+/// All-service-users admin list server function.
+pub mod service_users;
 /// Sign-in server function.
 pub mod signin;
 /// Signup server function.
