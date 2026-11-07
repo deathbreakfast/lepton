@@ -73,20 +73,26 @@ test.describe("pw-lepton-delivery-settings", () => {
     // Email off: sign-up sends nothing.
     await saveEmail(page, "off");
     await expect(page.getByTestId("delivery-summary")).toContainText("email=noop");
+    // Each sign-up gets its own browser context so one session never carries over.
     const baseURL = test.info().project.use.baseURL;
-    const ctx = await browser.newContext({ baseURL });
-    const guest = await ctx.newPage();
+    const signup = async (email: string) => {
+      const ctx = await browser.newContext({ baseURL });
+      try {
+        await signupNewUser(await ctx.newPage(), email);
+      } finally {
+        await ctx.close();
+      }
+    };
     const quiet = `delivery-quiet-${Date.now()}@example.com`;
-    await signupNewUser(guest, quiet);
+    await signup(quiet);
     await expect(waitMailpitCode(request, quiet, 3_000)).rejects.toThrow(/timed out/);
 
     // Save SMTP on the page: the next sign-up mails a code with no restart.
     await saveEmail(page, "smtp");
     await expect(page.getByTestId("delivery-summary")).toContainText("email=smtp");
     const loud = `delivery-loud-${Date.now()}@example.com`;
-    await signupNewUser(guest, loud);
+    await signup(loud);
     expect(await waitMailpitCode(request, loud)).toBeTruthy();
-    await ctx.close();
 
     // Text messages: off sends nothing, then saved settings deliver, and a rotated
     // secret keeps delivering.
@@ -94,19 +100,20 @@ test.describe("pw-lepton-delivery-settings", () => {
     await expect(page.getByTestId("delivery-summary")).toContainText("sms=noop");
     await saveSms(page, "verify", "first-secret");
     await expect(page.getByTestId("delivery-summary")).toContainText("sms=http_capture");
-    const sendCode = async () => {
+    // A fresh number each time, so the second send never depends on how a repeat add is handled.
+    const sendCode = async (phone: string) => {
       await clearSmsSink(request);
       await page.goto("/user/confirm-account");
       await expect(page.getByTestId("confirm-step-phone")).toBeVisible({ timeout: 60_000 });
-      await page.getByTestId("confirm-phone-e164").locator("input").fill("+15555550111");
+      await page.getByTestId("confirm-phone-e164").locator("input").fill(phone);
       await clickTestId(page, "confirm-phone-send");
       return waitSmsOtp(request);
     };
-    expect(await sendCode()).toMatch(/^\d{4,8}$/);
+    expect(await sendCode("+15555550111")).toMatch(/^\d{4,8}$/);
     await page.goto("/lab/delivery");
     await saveSms(page, "verify", "rotated-secret");
     await expect(page.getByTestId("delivery-summary")).toContainText("revision=");
-    expect(await sendCode()).toMatch(/^\d{4,8}$/);
+    expect(await sendCode("+15555550112")).toMatch(/^\d{4,8}$/);
   });
 
   test("pw-lepton-delivery-settings-denied-sad", async ({ page, request }) => {
