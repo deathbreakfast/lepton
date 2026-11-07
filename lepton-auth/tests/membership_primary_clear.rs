@@ -20,6 +20,9 @@ use lepton_identity::side_effects::force_primary_clear_failure;
 use support::system_valence;
 use valence::{Model, RecordId};
 
+/// `force_primary_clear_failure` is process-wide, so the tests in this binary take turns.
+static CLEAR_FAILURE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 async fn seed_user(valence: &valence::Valence) -> RecordId {
     let now = Utc::now();
     let user = User::new(
@@ -88,6 +91,7 @@ async fn seed_membership(
 
 #[tokio::test]
 async fn membership_delete_clears_matching_email_primary_happy() {
+    let _turn = CLEAR_FAILURE_LOCK.lock().await;
     let valence = system_valence("se_email_clear").await;
     let owner = seed_user(&valence).await;
     let persona = seed_user(&valence).await;
@@ -175,6 +179,7 @@ async fn membership_delete_clears_matching_email_primary_happy() {
 
 #[tokio::test]
 async fn membership_delete_unrelated_login_leaves_primary_happy() {
+    let _turn = CLEAR_FAILURE_LOCK.lock().await;
     let valence = system_valence("se_email_leave").await;
     let owner = seed_user(&valence).await;
     let persona = seed_user(&valence).await;
@@ -264,6 +269,7 @@ async fn membership_delete_unrelated_login_leaves_primary_happy() {
 
 #[tokio::test]
 async fn membership_delete_phone_primary_clears_when_match_happy() {
+    let _turn = CLEAR_FAILURE_LOCK.lock().await;
     let valence = system_valence("se_phone_clear").await;
     let owner = seed_user(&valence).await;
     let persona = seed_user(&valence).await;
@@ -298,6 +304,7 @@ async fn membership_delete_phone_primary_clears_when_match_happy() {
 
 #[tokio::test]
 async fn membership_delete_phone_primary_leaves_when_no_match_happy() {
+    let _turn = CLEAR_FAILURE_LOCK.lock().await;
     let valence = system_valence("se_phone_leave").await;
     let owner = seed_user(&valence).await;
     let persona = seed_user(&valence).await;
@@ -346,6 +353,7 @@ async fn membership_delete_phone_primary_leaves_when_no_match_happy() {
 
 #[tokio::test]
 async fn membership_delete_se_failure_still_deletes() {
+    let _turn = CLEAR_FAILURE_LOCK.lock().await;
     let valence = system_valence("se_fail_still_deletes").await;
     let owner = seed_user(&valence).await;
     let persona = seed_user(&valence).await;

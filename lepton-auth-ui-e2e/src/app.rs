@@ -19,6 +19,7 @@ use orbital_primitives::{Flex, FlexAlign, FlexGap, FlexWrap, Link, Title3};
 use orbital_theme::OrbitalThemeProvider;
 
 use crate::connected_accounts_section::E2eConnectedAccountsSection;
+use crate::delivery_section::E2eDeliverySection;
 use crate::devices_section::E2eDevicesSection;
 use crate::page_shell::E2ePageShell;
 use crate::step_up_demo::E2eStepUpDemo;
@@ -53,6 +54,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/user/confirm-account") view=ConfirmAccountRoute/>
                     <Route path=path!("/user/step-up-demo") view=StepUpDemoPage/>
                     <Route path=path!("/user/bots/all") view=AllServiceUsersRoute/>
+                    <Route path=path!("/lab/delivery") view=DeliveryRoute/>
                 </Routes>
             </Router>
         </OrbitalThemeProvider>
@@ -64,6 +66,16 @@ fn AllServiceUsersRoute() -> impl IntoView {
     view! {
         <E2ePageShell data_testid="all-service-users-container">
             <AllServiceUsersPage/>
+        </E2ePageShell>
+    }
+}
+
+#[component]
+fn DeliveryRoute() -> impl IntoView {
+    view! {
+        <E2ePageShell data_testid="delivery-settings-container">
+            <Title3>"Sign-in and delivery"</Title3>
+            <E2eDeliverySection/>
         </E2ePageShell>
     }
 }

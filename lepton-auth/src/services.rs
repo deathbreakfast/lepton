@@ -6,6 +6,15 @@
 //! from process environment — build the bundle with [`LeptonAuthServicesBuilder`]
 //! at boot (and optional [`lepton_smtp::EmailServiceBuilder::from_env`] for mail).
 //!
+//! Hosts whose delivery settings change while the process runs build the bundle with
+//! [`LeptonAuthServicesBuilder::email_swappable`] and
+//! [`LeptonAuthServicesBuilder::sms_swappable`], then call
+//! [`LeptonAuthServices::apply_email_settings`] or
+//! [`LeptonAuthServices::apply_sms_settings`] after a save. The next send uses the new
+//! settings; a send already in flight finishes on the old adapter. Secrets come from the
+//! host's vault as plain strings and are never stored here; see
+//! [`crate::delivery_settings`] for the page contract.
+//!
 //! Injects Leptos context for delivery adapters, public base URL, and optional OAuth /
 //! `WebAuthn` RP config. SMTP/SMS transport comes from `lepton-smtp` / `lepton-sms`;
 //! secret resolution and OAuth provider HTTP stay outside this module ([`crate::oauth`]).

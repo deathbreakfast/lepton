@@ -5,3 +5,6 @@ oauth.spec.ts › pw-oauth › pw-oauth-signup-happy
 oauth.spec.ts › pw-oauth › pw-oauth-signin-login-happy
 oauth.spec.ts › pw-oauth › pw-oauth-state-sad
 oauth.spec.ts › pw-oauth › pw-auth-modal-width
+delivery_settings.spec.ts › pw-lepton-delivery-settings › pw-lepton-delivery-settings-denied-sad
+delivery_settings.spec.ts › pw-lepton-delivery-settings › pw-lepton-delivery-settings-happy
+delivery_settings.spec.ts › pw-lepton-delivery-settings › pw-lepton-delivery-settings-invalid-sad
