@@ -118,6 +118,17 @@ pub struct SeedDeliveryRequest {
     pub plain_email: String,
 }
 
+/// Response of `POST /api/test/seed-delivery`.
+#[derive(Debug, Serialize)]
+pub struct SeedDeliveryResponse {
+    /// Plaintext password both seeded users sign in with.
+    pub password: String,
+    /// Bare user id of the delivery admin.
+    pub admin_id: String,
+    /// Bare user id of the user without access.
+    pub plain_id: String,
+}
+
 /// `POST /api/test/seed-delivery`: seed one delivery admin and one plain user.
 ///
 /// Harness only.
@@ -128,16 +139,17 @@ pub struct SeedDeliveryRequest {
 pub async fn seed_delivery(
     State(state): State<AppState>,
     Json(body): Json<SeedDeliveryRequest>,
-) -> Result<Json<SeedServiceUsersResponse>, (StatusCode, String)> {
+) -> Result<Json<SeedDeliveryResponse>, (StatusCode, String)> {
     let system = state.seed_valence().map_err(|e| seed_error_status(&e))?;
     let admin_id = seed_user(&system, &body.admin_email).await?;
     let plain_id = seed_user(&system, &body.plain_email).await?;
     crate::delivery_lab::lab()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .allow(&admin_id);
-    Ok(Json(SeedServiceUsersResponse {
+    Ok(Json(SeedDeliveryResponse {
         password: DEFAULT_PASSWORD.to_string(),
-        owner_ids: vec![admin_id, plain_id],
+        admin_id,
+        plain_id,
     }))
 }
 

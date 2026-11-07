@@ -32,7 +32,7 @@ pub async fn lab_delivery_summary() -> Result<String, ServerFnError> {
 pub async fn lab_delivery_save_email(
     driver: String,
     host: String,
-    port: u16,
+    port: String,
     from_email: String,
     password: String,
     sendgrid_key: String,
@@ -44,10 +44,16 @@ pub async fn lab_delivery_save_email(
     let secret = |s: String| (!s.trim().is_empty()).then(|| WriteOnlySecret::new(s));
     let fail = |e: lepton_auth::delivery_settings::DeliveryError| ServerFnError::new(e.to_string());
     let lab = crate::delivery_lab::lab().map_err(fail)?;
+    let smtp_port = port.trim().parse::<u16>().map_err(|_| {
+        fail(lepton_auth::delivery_settings::DeliveryError::Invalid {
+            field: "smtp_port",
+            reason: "must be between 1 and 65535",
+        })
+    })?;
     let candidate = EmailCandidate {
         driver: crate::delivery_lab::parse_driver(&driver).map_err(fail)?,
         smtp_host: host,
-        smtp_port: port,
+        smtp_port,
         smtp_tls: false,
         from_email,
         test_recipient: "lab@example.test".into(),
@@ -114,8 +120,8 @@ fn LabField(
 #[component]
 #[allow(clippy::too_many_lines)] // two forms and a status line
 pub fn E2eDeliverySection() -> impl IntoView {
-    let result = RwSignal::new(String::new());
-    let error = RwSignal::new(Option::<String>::None);
+    let saved_ok = RwSignal::new(Option::<String>::None);
+    let save_err = RwSignal::new(Option::<String>::None);
     let driver = RwSignal::new("smtp".to_string());
     let host = RwSignal::new("127.0.0.1".to_string());
     let port = RwSignal::new("1025".to_string());
@@ -129,29 +135,37 @@ pub fn E2eDeliverySection() -> impl IntoView {
     let secret = RwSignal::new(String::new());
 
     let summary = Resource::new(|| (), |()| async { lab_delivery_summary().await });
-    Effect::new(move |_| match summary.get() {
-        Some(Ok(s)) => result.set(s),
-        Some(Err(e)) => error.set(Some(e.to_string())),
-        None => {}
-    });
+    // A save's outcome wins over the first load; a failed save keeps the last good summary.
+    let result = move || {
+        saved_ok.get().or_else(|| match summary.get() {
+            Some(Ok(s)) => Some(s),
+            _ => None,
+        })
+    };
+    let error = move || {
+        save_err.get().or_else(|| match summary.get() {
+            Some(Err(e)) => Some(e.to_string()),
+            _ => None,
+        })
+    };
     let outcome = move |r: Result<String, ServerFnError>| match r {
         Ok(s) => {
-            error.set(None);
-            result.set(s);
+            save_err.set(None);
+            saved_ok.set(Some(s));
         }
-        Err(e) => error.set(Some(e.to_string())),
+        Err(e) => save_err.set(Some(e.to_string())),
     };
 
     view! {
         <Flex vertical=true gap=FlexGap::Medium>
-            <Show when=move || error.get().is_some()>
+            <Show when=move || error().is_some()>
                 <div data-testid="delivery-error">
                     <MessageBar intent=MessageBarIntent::Error>
-                        {move || error.get().unwrap_or_default()}
+                        {move || error().unwrap_or_default()}
                     </MessageBar>
                 </div>
             </Show>
-            <div data-testid="delivery-summary"><Body1>{move || result.get()}</Body1></div>
+            <div data-testid="delivery-summary"><Body1>{move || result().unwrap_or_default()}</Body1></div>
             <Card>
                 <CardHeader><Subtitle1>"Email"</Subtitle1></CardHeader>
                 <CardContent>
@@ -167,7 +181,7 @@ pub fn E2eDeliverySection() -> impl IntoView {
                             let args = (
                                 driver.get_untracked(),
                                 host.get_untracked(),
-                                port.get_untracked().trim().parse::<u16>().unwrap_or(0),
+                                port.get_untracked(),
                                 from.get_untracked(),
                                 password.get_untracked(),
                                 sendgrid.get_untracked(),
