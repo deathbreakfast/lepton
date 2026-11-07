@@ -190,26 +190,16 @@ jobs:
         working-directory: lepton-auth-ui-e2e/end2end
         run: npx playwright install-deps chromium
 
-      # Confirm-funnel Playwright needs SMTP capture (host dials 127.0.0.1:1025 / API :8025).
-      - name: Start Mailpit
-        run: docker compose -f infra/mailpit/docker-compose.yml up -d
-
-      - name: Wait for Mailpit API
-        run: |
-          for i in $(seq 1 30); do
-            if curl -sf "http://127.0.0.1:8025/api/v1/info" >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Mailpit did not become ready" >&2
-          exit 1
-
-      - name: cargo leptos end-to-end
+      # run-lanes.sh builds once, then starts a server, Mailpit, SMS sink and
+      # mock OIDC per lane. Its exit code fails on a failed build or any
+      # failed, missing or duplicated test.
+      - name: Playwright (parallel lanes)
+        working-directory: lepton-auth-ui-e2e/end2end
         env:
           CI: true
-          LEPTON_TOTP_ALLOW_TEST_SEAL_KEY: "1"
-        run: cargo leptos end-to-end --project lepton-auth-ui-e2e
+          LANES: "4"
+          CARGO_BUILD_JOBS: "4"
+        run: ./run-lanes.sh
 
       - name: Upload Playwright artifacts on failure
         if: failure()
@@ -217,6 +207,5 @@ jobs:
         with:
           name: playwright-artifacts-${{ github.run_id }}
           path: |
-            lepton-auth-ui-e2e/end2end/playwright-report/
-            lepton-auth-ui-e2e/end2end/test-results/
+            lepton-auth-ui-e2e/end2end/lanes-out/
           if-no-files-found: ignore
