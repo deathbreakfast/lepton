@@ -99,9 +99,10 @@ cargo test -p lepton-auth --features ssr,full,test-utils
 # Email verification codes: 6-digit code, five-miss lockout, resend cooldown
 cargo test -p lepton-auth --features ssr,full,test-utils --test auth verification_tokens
 
-# Service users: lifecycle, privacy rules, unwired gate (own binary), owner deletion, quota, activity history
+# Service users: lifecycle, privacy rules, unwired gate (own binary), owner deletion, quota, activity history, access tokens
 cargo test -p lepton-auth --features ssr --test service_users_lifecycle --test service_users_privacy \
-  --test service_users_gate_unwired --test service_users_owner_delete --test service_users_quota --test service_users_activity
+  --test service_users_gate_unwired --test service_users_owner_delete --test service_users_quota \
+  --test service_users_activity --test service_user_tokens
 cargo test -p lepton-e2e --lib --tests
 cargo test -p lepton-e2e --test ci_e2e
 cargo test -p lepton-test-support --all-features

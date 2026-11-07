@@ -24,8 +24,8 @@ pub use lepton_identity::generated::{
     OauthPendingStateIntent, OauthPendingStateProvider, OauthPendingStateReference, ProfilePhoto,
     ProfilePhotoReference, ServiceUserAccount, ServiceUserAccountOwnerKind,
     ServiceUserAccountQuery, ServiceUserAccountReference, ServiceUserAccountStatus,
-    ServiceUserActivity, ServiceUserActivityKind, ServiceUserActivityReference, User,
-    UserAppearance, UserAppearanceReference, UserProfile, UserProfileReference, UserQuery,
+    ServiceUserActivity, ServiceUserActivityKind, ServiceUserActivityReference, ServiceUserToken,
+    User, UserAppearance, UserAppearanceReference, UserProfile, UserProfileReference, UserQuery,
     UserReference, UserStatus, UserUserType,
 };
 
