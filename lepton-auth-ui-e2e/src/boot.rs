@@ -280,6 +280,7 @@ pub fn boot_platform() -> anyhow::Result<(
                 .build()?,
         )
         .build()?;
+    let initial_email = Arc::clone(&email);
     // SMS HTTP sink (spawned from main, `UF_SMS_SINK_URL`, default :8099);
     // HttpCapture adapter for OTP asserts.
     let sms = SmsServiceBuilder::new()
@@ -288,6 +289,7 @@ pub fn boot_platform() -> anyhow::Result<(
             "http://127.0.0.1:8099",
         ))?)
         .build()?;
+    let initial_sms = Arc::clone(&sms);
     #[cfg(feature = "boson-delivery")]
     {
         use boson_backend_mem::MemQueueBackend;
@@ -338,8 +340,8 @@ pub fn boot_platform() -> anyhow::Result<(
     };
     let auth_services = Arc::new(
         LeptonAuthServicesBuilder::new()
-            .email(email)
-            .sms(sms)
+            .email_swappable(email)
+            .sms_swappable(sms)
             .public_base_url(public_base_url.clone())
             .oauth(oauth)
             .webauthn_rp(lepton_auth::devices::WebauthnRpConfig {
@@ -350,6 +352,8 @@ pub fn boot_platform() -> anyhow::Result<(
             })
             .build()?,
     );
+
+    crate::delivery_lab::install(Arc::clone(&auth_services), initial_email, initial_sms)?;
 
     let auth_backend = Backend::new(factory);
 
