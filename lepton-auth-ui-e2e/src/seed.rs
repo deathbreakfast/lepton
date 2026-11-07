@@ -108,3 +108,50 @@ pub async fn seed_service_users(
         owner_ids,
     }))
 }
+
+/// Body of `POST /api/test/seed-delivery`.
+#[derive(Debug, Deserialize)]
+pub struct SeedDeliveryRequest {
+    /// Email of a seeded user who may manage delivery settings.
+    pub admin_email: String,
+    /// Email of a seeded user who may not.
+    pub plain_email: String,
+}
+
+/// `POST /api/test/seed-delivery`: seed one delivery admin and one plain user.
+///
+/// Harness only.
+///
+/// # Errors
+///
+/// A status and opaque message when seeding a user fails.
+pub async fn seed_delivery(
+    State(state): State<AppState>,
+    Json(body): Json<SeedDeliveryRequest>,
+) -> Result<Json<SeedServiceUsersResponse>, (StatusCode, String)> {
+    let system = state.seed_valence().map_err(|e| seed_error_status(&e))?;
+    let admin_id = seed_user(&system, &body.admin_email).await?;
+    let plain_id = seed_user(&system, &body.plain_email).await?;
+    crate::delivery_lab::lab()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .allow(&admin_id);
+    Ok(Json(SeedServiceUsersResponse {
+        password: DEFAULT_PASSWORD.to_string(),
+        owner_ids: vec![admin_id, plain_id],
+    }))
+}
+
+/// `POST /api/test/delivery-reset`: put the boot email and SMS adapters back.
+///
+/// Harness only.
+///
+/// # Errors
+///
+/// A status and opaque message when the services cannot be swapped.
+#[allow(clippy::unused_async)] // axum handler
+pub async fn delivery_reset() -> Result<StatusCode, (StatusCode, String)> {
+    crate::delivery_lab::lab()
+        .and_then(crate::delivery_lab::LabDelivery::reset)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(StatusCode::NO_CONTENT)
+}

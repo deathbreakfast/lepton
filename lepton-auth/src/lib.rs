@@ -138,7 +138,10 @@
 //! `uf_product::permissions::require_step_up`) on each request.
 //!
 //! Prerequisites: `features = ["ssr", "totp"]`, an enabled `TotpFactor`, and
-//! `LEPTON_TOTP_SEAL_KEY` (64 hex) or `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1` in tests.
+//! a seal key: `LEPTON_TOTP_SEAL_KEY` (64 hex) or `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1` in
+//! tests. Hosts that keep the key in a secret vault install a
+//! [`TotpKeyRing`](crate::totp::key_ring::TotpKeyRing) instead, so the key can rotate
+//! without a restart.
 //!
 //! 1. Prompt: [`verify_totp_for_session`] with [`StepUpScope::SensitiveMutation`] and the code.
 //! 2. Gate: [`require_recent_verification`] inside the mutation (or `step_up` / `require_step_up("window")`).

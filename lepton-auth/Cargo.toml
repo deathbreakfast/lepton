@@ -126,6 +126,10 @@ name = "membership_primary_clear"
 required-features = ["ssr", "test-utils", "phone"]
 
 [[test]]
+name = "delivery_secret_redaction"
+required-features = ["ssr"]
+
+[[test]]
 name = "totp_key_rotation"
 required-features = ["ssr", "totp"]
 
