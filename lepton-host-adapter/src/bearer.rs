@@ -1,7 +1,7 @@
 //! Bearer-token middleware for service users.
 //!
 //! [`bearer_middleware`] reads `Authorization: Bearer lpt_...`, checks it with
-//! [`verify_bearer_token`](lepton_identity::service_users::verify_bearer_token), and inserts a
+//! [the token check](lepton_identity::service_users::verify_bearer_token), and inserts a
 //! [`ServiceUserCaller`] request extension. It never inserts a
 //! [`SessionSnapshot`](higgs_identity::SessionSnapshot): that type means a signed-in person, and a
 //! service user is not one. Handlers (and Higgs, once it can build a request context from a
