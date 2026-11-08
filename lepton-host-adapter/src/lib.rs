@@ -91,6 +91,10 @@
 //! - [`lepton_identity`](../lepton_identity/index.html) — password hash and ownership helpers
 //! - [`lepton_auth`](../lepton_auth/index.html) — server functions and delivery
 
+// Nightly rustdoc (2026-11) reports a redundant explicit link with no source
+// span from docs it renders into this crate, so it can't be fixed at the link.
+#![allow(rustdoc::redundant_explicit_links)]
+
 /// Token lifecycle Valence models and identity table types used by SSR hosts
 /// (see the [crate-level walkthrough](self)).
 #[cfg(feature = "ssr")]
