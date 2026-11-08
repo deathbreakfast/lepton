@@ -34,7 +34,10 @@
 //!
 //! [`list_my_service_users`] lists the caller's own. [`list_all_service_users`] lists every
 //! service user, whoever owns it, for callers the gate grants manage-any; anyone else gets
-//! [`ServiceUserError::Forbidden`].
+//! [`ServiceUserError::Forbidden`]. The `lepton-auth-ui` crate's `AllServiceUsersPage` shows
+//! this list with each owner and a handle filter; it calls the
+//! [`list_all_service_users_admin`](crate::actions::service_users::list_all_service_users_admin)
+//! server function.
 //!
 //! # Events
 //!
@@ -42,21 +45,53 @@
 //! [`ServiceUserLifecycleChanged`](crate::events::ServiceUserLifecycleChanged), keyed by the
 //! owner and carrying ids only. Edits publish nothing.
 //!
+//! # Activity history
+//!
+//! Each create, edit, suspend, and resume saves one history row for the service user, saved
+//! with the caller's own Valence. A failed write is logged and never fails the change.
+//! Deleting writes none; the history goes with the service user.
+//! [`list_service_user_activity`] returns the newest entries to whoever can see the service
+//! user. Creating and revoking a token (see below) adds its own entry; a host
+//! that issues tokens another way reports them with [`record_service_user_token_activity`]. Rows never change after they are saved.
+//!
+//! # Access tokens
+//!
+//! A service user calls in with a personal access token its owner creates with
+//! [`create_service_user_token`]. The plaintext token comes back once; Lepton keeps a hash.
+//! [`list_service_user_tokens`] shows labels and times, [`revoke_service_user_token`] stops a
+//! token at once, and the host (or `lepton_host_adapter::bearer_middleware`) checks a presented
+//! token with [`verify_bearer_token`](lepton_identity::service_users::verify_bearer_token).
+//! Only the owner creates tokens; users the gate grants manage-any can list and revoke. A
+//! service user can hold [`MAX_TOKENS_PER_SERVICE_USER`] live tokens, each valid for at most
+//! [`MAX_TOKEN_LIFETIME_DAYS`] days. Deleting a service user or its owner deletes its tokens.
+//!
 //! # Deletion
+//!
 //!
 //! [`delete_service_user`] uses the standard Valence delete: the service user disappears from reads
 //! at once, and the deletion run the host's dispatcher starts (valence-platform's
 //! Chronon deletion orchestrator) removes the row. Deleting the owner's user
 //! ([`identity_delete`](crate::identity_delete)) deletes their service users too.
 
+mod activity;
 mod api;
 pub(crate) mod erase;
 mod error;
 mod handle_lookup;
+mod tokens;
 
+pub use activity::{
+    list_service_user_activity, record_service_user_token_activity, ServiceUserTokenEvent,
+    DEFAULT_ACTIVITY_LIMIT, MAX_ACTIVITY_LIMIT,
+};
 pub use api::{
     create_service_user, delete_service_user, get_service_user, list_all_service_users,
     list_my_service_users, resume_service_user, suggest_service_user_handle, suspend_service_user,
     update_service_user, NewServiceUser, ServiceUserProfileUpdate, MAX_SERVICE_USERS_PER_OWNER,
 };
 pub use error::ServiceUserError;
+pub use tokens::{
+    create_service_user_token, list_service_user_tokens, revoke_service_user_token,
+    CreatedServiceUserToken, NewServiceUserToken, MAX_TOKENS_PER_SERVICE_USER,
+    MAX_TOKEN_LIFETIME_DAYS,
+};

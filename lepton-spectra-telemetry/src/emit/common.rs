@@ -193,7 +193,7 @@ pub fn bound_error_class(raw: &str) -> &'static str {
         .unwrap_or("unknown")
 }
 
-const OPTIONAL_PROVIDERS: &[&str] = &["google", "github", "mock", "none"];
+const OPTIONAL_PROVIDERS: &[&str] = &["google", "github", "microsoft", "mock", "none"];
 const OPTIONAL_CHANNELS: &[&str] = &["email", "phone", "totp", "none"];
 
 /// Bound optional provider label (`none` when absent / unknown).

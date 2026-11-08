@@ -5,7 +5,7 @@ valence_schema! {
     OAuthPendingState {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "oauth_pending_state",
-        version: "0.1.0",
+        version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Short-lived OAuth CSRF + PKCE pending state (begin → callback)",
 
@@ -47,7 +47,7 @@ valence_schema! {
                 required: true,
             },
             provider: {
-                r#type: FieldType::Enum(&["google", "github"]),
+                r#type: FieldType::Enum(&["google", "github", "microsoft"]),
                 required: true,
             },
             intent: {

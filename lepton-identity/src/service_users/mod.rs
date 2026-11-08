@@ -74,6 +74,7 @@ mod handle;
 mod id;
 mod resolve;
 mod rules;
+mod token;
 
 pub use gate::{
     install_service_user_gate, installed_service_user_gate, ServiceUserGate,
@@ -82,8 +83,15 @@ pub use gate::{
 pub use handle::{ServiceUserHandle, ServiceUserHandleError, MAX_HANDLE_LEN, MIN_HANDLE_LEN};
 pub use id::{is_managed_service_name, InvalidServiceUserId, ServiceUserId, SERVICE_USER_PREFIX};
 pub use resolve::active_service_user_owner;
+pub(crate) use rules::ref_id;
 pub use rules::{
-    ServiceUserActiveRule, ServiceUserCreateGateRule, ServiceUserIdentityImmutableRule,
-    ServiceUserManageAnyRule, SERVICE_USER_ACTIVE, SERVICE_USER_CREATE_GATE,
-    SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
+    ServiceUserActiveRule, ServiceUserActivityAppendOnlyRule, ServiceUserActivityWriteRule,
+    ServiceUserCreateGateRule, ServiceUserIdentityImmutableRule, ServiceUserManageAnyRule,
+    SERVICE_USER_ACTIVE, SERVICE_USER_ACTIVITY_APPEND_ONLY, SERVICE_USER_ACTIVITY_WRITE,
+    SERVICE_USER_CREATE_GATE, SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
+};
+pub use token::{
+    hash_token_secret, verify_bearer_token, ServiceUserToken, ServiceUserTokenCreateRule,
+    ServiceUserTokenImmutableRule, ServiceUserTokenParseError, VerifiedServiceUser,
+    SERVICE_USER_TOKEN_CREATE, SERVICE_USER_TOKEN_IMMUTABLE, TOKEN_PREFIX,
 };

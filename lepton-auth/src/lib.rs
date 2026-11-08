@@ -138,7 +138,10 @@
 //! `uf_product::permissions::require_step_up`) on each request.
 //!
 //! Prerequisites: `features = ["ssr", "totp"]`, an enabled `TotpFactor`, and
-//! `LEPTON_TOTP_SEAL_KEY` (64 hex) or `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1` in tests.
+//! a seal key: `LEPTON_TOTP_SEAL_KEY` (64 hex) or `LEPTON_TOTP_ALLOW_TEST_SEAL_KEY=1` in
+//! tests. Hosts that keep the key in a secret vault install a
+//! [`TotpKeyRing`](crate::totp::key_ring::TotpKeyRing) instead, so the key can rotate
+//! without a restart.
 //!
 //! 1. Prompt: [`verify_totp_for_session`] with [`StepUpScope::SensitiveMutation`] and the code.
 //! 2. Gate: [`require_recent_verification`] inside the mutation (or `step_up` / `require_step_up("window")`).
@@ -282,6 +285,7 @@
 //! | `webauthn` | `WebAuthn` passkey ceremony for `AuthDevice` (`webauthn-rs`) |
 //! | `oauth-google` | Live Google authorize URL + token/userinfo exchange; mock provider via `use_mock_provider` |
 //! | `oauth-github` | Live GitHub authorize URL + token/user/emails exchange; mock provider via `use_mock_provider` |
+//! | `oauth-microsoft` | Live Microsoft (Entra ID) authorize URL + token/userinfo exchange; mock provider via `use_mock_provider` |
 //! | `full` | `email` + `phone` + `totp` + oauth flags + `webauthn` |
 //! | `boson-delivery` | Durable email/SMS send + attempt log (`delivery` module, TTL 7d) |
 //! | `spectra` | Emit auth funnel Spectra counters / `lepton_auth_failure` via `lepton-spectra-telemetry` (label tokens only; never emails, codes, or free-form errors) |
@@ -325,6 +329,8 @@
 /// Server-side account settings overview + mutation logic.
 pub mod account_api;
 pub mod actions;
+#[cfg(feature = "ssr")]
+pub(crate) mod attempt_throttle;
 #[cfg(feature = "ssr")]
 pub mod contacts;
 #[cfg(all(feature = "ssr", feature = "boson-delivery"))]

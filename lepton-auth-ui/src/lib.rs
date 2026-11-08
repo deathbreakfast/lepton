@@ -112,6 +112,8 @@
 //! [`RESET_PASSWORD_CONFIRM`](lepton_auth::paths::RESET_PASSWORD_CONFIRM),
 //! [`OAUTH_CALLBACK`](lepton_auth::paths::OAUTH_CALLBACK).
 //!
+//! Wrap each page body in [`AuthPageLayout`] so titles and spacing match across pages.
+//!
 //! ```rust,ignore
 //! use leptos_router::components::{Route, Routes};
 //! use leptos_router::path;
@@ -180,6 +182,7 @@
 //! | `hydrate` | Client hydration |
 //! | `oauth-google` | Continue with Google (and the “or” divider) in [`OAuthProviderButtons`] |
 //! | `oauth-github` | Continue with GitHub (and the “or” divider) in [`OAuthProviderButtons`] |
+//! | `oauth-microsoft` | Continue with Microsoft in [`OAuthProviderButtons`] |
 //!
 //! Account creation UI ([`SignupContent`]) is always included. OAuth buttons
 //! render only when the matching `oauth-*` features are enabled on this crate
@@ -199,9 +202,10 @@ pub mod components;
 
 pub use components::{
     confirm_account_status_resource, provide_step_up_controller, use_step_up_controller,
-    AuthDialog, AuthDialogCallbacks, AuthDialogKind, AuthModalShell, ConfirmAccountPage,
-    ConfirmAccountPrompt, ConfirmAccountPromptVariant, GitHubMark, GoogleMark, LogoutContent,
-    OAuthCallbackContent, OAuthProviderButtons, PasswordResetConfirmContent, PasswordResetDialog,
+    AllServiceUsersPage, AuthDialog, AuthDialogCallbacks, AuthDialogKind, AuthModalShell,
+    AuthPageLayout, ConfirmAccountPage, ConfirmAccountPrompt, ConfirmAccountPromptVariant,
+    GitHubMark, GoogleMark, LogoutContent, MicrosoftMark, OAuthCallbackContent,
+    OAuthProviderButtons, PasswordResetConfirmContent, PasswordResetDialog,
     PasswordResetDialogKind, PasswordResetRequestContent, SigninContent, SignupContent,
     StepUpContent, StepUpController, StepUpDialog, StepUpFactors, StepUpPolicy, StepUpRequest,
 };

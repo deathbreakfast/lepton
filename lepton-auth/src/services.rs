@@ -6,6 +6,15 @@
 //! from process environment — build the bundle with [`LeptonAuthServicesBuilder`]
 //! at boot (and optional [`lepton_smtp::EmailServiceBuilder::from_env`] for mail).
 //!
+//! Hosts whose delivery settings change while the process runs build the bundle with
+//! [`LeptonAuthServicesBuilder::email_swappable`] and
+//! [`LeptonAuthServicesBuilder::sms_swappable`], then call
+//! [`LeptonAuthServices::apply_email_settings`] or
+//! [`LeptonAuthServices::apply_sms_settings`] after a save. The next send uses the new
+//! settings; a send already in flight finishes on the old adapter. Secrets come from the
+//! host's vault as plain strings and are never stored here; see
+//! [`crate::delivery_settings`] for the page contract.
+//!
 //! Injects Leptos context for delivery adapters, public base URL, and optional OAuth /
 //! `WebAuthn` RP config. SMTP/SMS transport comes from `lepton-smtp` / `lepton-sms`;
 //! secret resolution and OAuth provider HTTP stay outside this module ([`crate::oauth`]).
@@ -66,6 +75,10 @@ use lepton_smtp::EmailDeliveryService;
 #[cfg(feature = "ssr")]
 use thiserror::Error;
 
+#[cfg(all(feature = "ssr", feature = "email"))]
+use crate::delivery_settings::SwappableEmail;
+#[cfg(all(feature = "ssr", feature = "phone"))]
+use crate::delivery_settings::SwappableSms;
 #[cfg(all(feature = "ssr", feature = "webauthn"))]
 use crate::devices::WebauthnRpConfig;
 #[cfg(feature = "ssr")]
@@ -127,6 +140,12 @@ pub struct LeptonAuthServices {
     /// Optional `WebAuthn` relying-party config. Absent when host omits `.webauthn_rp()`.
     #[cfg(feature = "webauthn")]
     pub webauthn_rp: Option<WebauthnRpConfig>,
+    /// Swap handle behind `email`; set by [`LeptonAuthServicesBuilder::email_swappable`].
+    #[cfg(feature = "email")]
+    email_swap: Option<Arc<SwappableEmail>>,
+    /// Swap handle behind `sms`; set by [`LeptonAuthServicesBuilder::sms_swappable`].
+    #[cfg(feature = "phone")]
+    sms_swap: Option<Arc<SwappableSms>>,
 }
 
 /// Builder for [`LeptonAuthServices`].
@@ -141,6 +160,10 @@ pub struct LeptonAuthServicesBuilder {
     oauth: OAuthHandle,
     #[cfg(feature = "webauthn")]
     webauthn_rp: Option<WebauthnRpConfig>,
+    #[cfg(feature = "email")]
+    email_swap: Option<Arc<SwappableEmail>>,
+    #[cfg(feature = "phone")]
+    sms_swap: Option<Arc<SwappableSms>>,
 }
 
 /// Errors from resolving or building [`LeptonAuthServices`].
@@ -158,6 +181,13 @@ pub enum LeptonAuthServicesError {
     #[cfg(feature = "phone")]
     #[error("sms service: {0}")]
     Sms(#[from] lepton_sms::SmsDeliveryError),
+    /// The bundle was built with a fixed adapter, so it cannot swap one in.
+    #[cfg(any(feature = "email", feature = "phone"))]
+    #[error("{channel} service was not built swappable (use the *_swappable builder method)")]
+    NotSwappable {
+        /// `email` or `sms`.
+        channel: &'static str,
+    },
 }
 
 #[cfg(feature = "ssr")]
@@ -173,6 +203,7 @@ impl LeptonAuthServicesBuilder {
     #[must_use]
     pub fn email(mut self, email: Arc<dyn EmailDeliveryService>) -> Self {
         self.email = Some(email);
+        self.email_swap = None;
         self
     }
 
@@ -181,6 +212,29 @@ impl LeptonAuthServicesBuilder {
     #[must_use]
     pub fn sms(mut self, sms: Arc<dyn SmsDeliveryService>) -> Self {
         self.sms = Some(sms);
+        self.sms_swap = None;
+        self
+    }
+
+    /// Set the email adapter behind a [`SwappableEmail`], so
+    /// [`LeptonAuthServices::replace_email`] can change it while the process runs.
+    #[cfg(feature = "email")]
+    #[must_use]
+    pub fn email_swappable(mut self, initial: Arc<dyn EmailDeliveryService>) -> Self {
+        let swap = Arc::new(SwappableEmail::new(initial));
+        self.email = Some(swap.clone());
+        self.email_swap = Some(swap);
+        self
+    }
+
+    /// Set the SMS adapter behind a [`SwappableSms`], so
+    /// [`LeptonAuthServices::replace_sms`] can change it while the process runs.
+    #[cfg(feature = "phone")]
+    #[must_use]
+    pub fn sms_swappable(mut self, initial: Arc<dyn SmsDeliveryService>) -> Self {
+        let swap = Arc::new(SwappableSms::new(initial));
+        self.sms = Some(swap.clone());
+        self.sms_swap = Some(swap);
         self
     }
 
@@ -243,6 +297,10 @@ impl LeptonAuthServicesBuilder {
             oauth: self.oauth,
             #[cfg(feature = "webauthn")]
             webauthn_rp: self.webauthn_rp,
+            #[cfg(feature = "email")]
+            email_swap: self.email_swap,
+            #[cfg(feature = "phone")]
+            sms_swap: self.sms_swap,
         })
     }
 }
@@ -260,6 +318,102 @@ impl LeptonAuthServices {
         self.webauthn_rp
             .as_ref()
             .ok_or(crate::devices::DeviceError::Config)
+    }
+}
+
+#[cfg(feature = "ssr")]
+impl LeptonAuthServices {
+    /// Route later email sends through `next`. Sends already in flight finish on the
+    /// previous adapter.
+    ///
+    /// # Errors
+    ///
+    /// [`LeptonAuthServicesError::NotSwappable`] unless the bundle was built with
+    /// [`LeptonAuthServicesBuilder::email_swappable`].
+    #[cfg(feature = "email")]
+    pub fn replace_email(
+        &self,
+        next: Arc<dyn EmailDeliveryService>,
+    ) -> Result<(), LeptonAuthServicesError> {
+        let swap = self
+            .email_swap
+            .as_ref()
+            .ok_or(LeptonAuthServicesError::NotSwappable { channel: "email" })?;
+        swap.swap(next);
+        Ok(())
+    }
+
+    /// Route later SMS sends through `next`. Sends already in flight finish on the
+    /// previous adapter.
+    ///
+    /// # Errors
+    ///
+    /// [`LeptonAuthServicesError::NotSwappable`] unless the bundle was built with
+    /// [`LeptonAuthServicesBuilder::sms_swappable`].
+    #[cfg(feature = "phone")]
+    pub fn replace_sms(
+        &self,
+        next: Arc<dyn SmsDeliveryService>,
+    ) -> Result<(), LeptonAuthServicesError> {
+        let swap = self
+            .sms_swap
+            .as_ref()
+            .ok_or(LeptonAuthServicesError::NotSwappable { channel: "sms" })?;
+        swap.swap(next);
+        Ok(())
+    }
+
+    /// Rebuild the email service from saved settings and swap it in, with no restart.
+    /// A candidate that does not build leaves the current service in place.
+    ///
+    /// # Errors
+    ///
+    /// [`DeliveryError::Invalid`](crate::delivery_settings::DeliveryError::Invalid) when the settings do not build or the bundle is not
+    /// swappable.
+    #[cfg(feature = "email")]
+    pub fn apply_email_settings(
+        &self,
+        candidate: &crate::delivery_settings::EmailCandidate,
+        smtp_password: Option<&str>,
+        sendgrid_api_key: Option<&str>,
+    ) -> Result<(), crate::delivery_settings::DeliveryError> {
+        let next = crate::delivery_settings::build_email_service(
+            candidate,
+            smtp_password,
+            sendgrid_api_key,
+        )?;
+        // Deliberate: `DeliveryError` is the settings-page wire type and has no variant for a
+        // host wiring mistake. Callers that must tell the two apart use `replace_email`,
+        // which returns `NotSwappable`.
+        self.replace_email(next)
+            .map_err(|_| crate::delivery_settings::DeliveryError::Invalid {
+                field: "email",
+                reason: "service is not swappable",
+            })
+    }
+
+    /// Rebuild the SMS service from saved settings and swap it in, with no restart.
+    /// A candidate that does not build leaves the current service in place.
+    ///
+    /// # Errors
+    ///
+    /// [`DeliveryError::Invalid`](crate::delivery_settings::DeliveryError::Invalid) when the settings do not build or the bundle is not
+    /// swappable.
+    #[cfg(feature = "phone")]
+    pub fn apply_sms_settings(
+        &self,
+        candidate: &crate::delivery_settings::SmsCandidate,
+        twilio_api_secret: Option<&str>,
+    ) -> Result<(), crate::delivery_settings::DeliveryError> {
+        let next = crate::delivery_settings::build_sms_service(candidate, twilio_api_secret)?;
+        // Deliberate: `DeliveryError` is the settings-page wire type and has no variant for a
+        // host wiring mistake. Callers that must tell the two apart use `replace_sms`,
+        // which returns `NotSwappable`.
+        self.replace_sms(next)
+            .map_err(|_| crate::delivery_settings::DeliveryError::Invalid {
+                field: "sms",
+                reason: "service is not swappable",
+            })
     }
 }
 
@@ -383,5 +537,199 @@ mod tests {
         #[cfg(not(feature = "email"))]
         let err = err.build();
         assert!(err.is_err());
+    }
+
+    #[cfg(all(feature = "email", feature = "phone"))]
+    mod swap {
+        use super::*;
+        use crate::delivery_settings::{
+            DeliveryError, EmailCandidate, EmailDriverChoice, SmsCandidate, SmsMode,
+            WriteOnlySecret,
+        };
+        use lepton_smtp::{EmailDriver, EmailEnvelope};
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        use tokio::net::TcpListener;
+
+        /// Minimal SMTP sink: accepts one message per connection and reports its text.
+        async fn smtp_sink() -> (u16, tokio::sync::mpsc::UnboundedReceiver<String>) {
+            let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+            let port = listener.local_addr().expect("addr").port();
+            let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+            tokio::spawn(async move {
+                loop {
+                    let Ok((sock, _)) = listener.accept().await else {
+                        return;
+                    };
+                    let tx = tx.clone();
+                    tokio::spawn(async move {
+                        let (r, mut w) = sock.into_split();
+                        let mut r = BufReader::new(r);
+                        let _ = w.write_all(b"220 sink ready\r\n").await;
+                        let mut in_data = false;
+                        let mut data = String::new();
+                        let mut line = String::new();
+                        loop {
+                            line.clear();
+                            if r.read_line(&mut line).await.unwrap_or(0) == 0 {
+                                return;
+                            }
+                            if in_data {
+                                if line == ".\r\n" {
+                                    in_data = false;
+                                    let _ = tx.send(std::mem::take(&mut data));
+                                    let _ = w.write_all(b"250 queued\r\n").await;
+                                } else {
+                                    data.push_str(&line);
+                                }
+                                continue;
+                            }
+                            let cmd = line.trim().to_ascii_uppercase();
+                            let reply: &[u8] = if cmd.starts_with("EHLO") {
+                                b"250 sink\r\n"
+                            } else if cmd.starts_with("DATA") {
+                                in_data = true;
+                                b"354 go\r\n"
+                            } else if cmd.starts_with("QUIT") {
+                                let _ = w.write_all(b"221 bye\r\n").await;
+                                return;
+                            } else {
+                                b"250 ok\r\n"
+                            };
+                            let _ = w.write_all(reply).await;
+                        }
+                    });
+                }
+            });
+            (port, rx)
+        }
+
+        fn envelope() -> EmailEnvelope {
+            EmailEnvelope {
+                to: "reader@example.test".into(),
+                subject: "swap-probe".into(),
+                text_body: "hello".into(),
+                html_body: "<p>hello</p>".into(),
+            }
+        }
+
+        fn smtp_candidate(port: u16, from: &str) -> EmailCandidate {
+            EmailCandidate {
+                driver: EmailDriverChoice::Smtp,
+                smtp_host: "127.0.0.1".into(),
+                smtp_port: port,
+                smtp_tls: false,
+                from_email: from.into(),
+                test_recipient: "ops@example.test".into(),
+                ..EmailCandidate::default()
+            }
+        }
+
+        fn bundle() -> LeptonAuthServices {
+            let email = lepton_smtp::EmailServiceBuilder::new()
+                .noop()
+                .build()
+                .expect("noop email");
+            let sms = lepton_sms::SmsServiceBuilder::new()
+                .noop()
+                .build()
+                .expect("noop sms");
+            LeptonAuthServicesBuilder::new()
+                .email_swappable(email)
+                .sms_swappable(sms)
+                .build()
+                .expect("bundle")
+        }
+
+        #[tokio::test]
+        async fn smtp_settings_change_sends_next_email_through_new_settings_happy() {
+            let (port_a, mut rx_a) = smtp_sink().await;
+            let (port_b, mut rx_b) = smtp_sink().await;
+            let services = bundle();
+            assert_eq!(services.email.driver(), EmailDriver::Noop);
+
+            services
+                .apply_email_settings(&smtp_candidate(port_a, "first@example.test"), None, None)
+                .expect("apply first");
+            assert_eq!(services.email.driver(), EmailDriver::Smtp);
+            services.email.send(&envelope()).await.expect("send first");
+            let got = rx_a.recv().await.expect("first sink got mail");
+            assert!(got.contains("first@example.test"), "{got}");
+
+            // Change the settings: the next send goes to the new relay, same bundle.
+            services
+                .apply_email_settings(&smtp_candidate(port_b, "second@example.test"), None, None)
+                .expect("apply second");
+            services.email.send(&envelope()).await.expect("send second");
+            let got = rx_b.recv().await.expect("second sink got mail");
+            assert!(got.contains("second@example.test"), "{got}");
+            assert!(rx_a.try_recv().is_err(), "old relay must not see the send");
+        }
+
+        #[tokio::test]
+        async fn invalid_email_settings_keep_current_service_sad() {
+            let services = bundle();
+            let bad = EmailCandidate {
+                driver: EmailDriverChoice::Smtp,
+                ..EmailCandidate::default()
+            };
+            let err = services
+                .apply_email_settings(&bad, None, None)
+                .expect_err("invalid");
+            assert!(matches!(err, DeliveryError::Invalid { .. }));
+            assert_eq!(services.email.driver(), EmailDriver::Noop);
+
+            // Username without a resolved password is refused, not sent unauthenticated.
+            let mut no_pw = smtp_candidate(2525, "a@example.test");
+            no_pw.smtp_username = "user".into();
+            assert!(services.apply_email_settings(&no_pw, None, None).is_err());
+            assert_eq!(services.email.driver(), EmailDriver::Noop);
+        }
+
+        #[test]
+        fn fixed_adapter_bundle_is_not_swappable_sad() {
+            let email = lepton_smtp::EmailServiceBuilder::new()
+                .noop()
+                .build()
+                .expect("noop email");
+            let sms = lepton_sms::SmsServiceBuilder::new()
+                .noop()
+                .build()
+                .expect("noop sms");
+            let fixed = LeptonAuthServicesBuilder::new()
+                .email(email.clone())
+                .sms(sms.clone())
+                .build()
+                .expect("fixed");
+            assert!(matches!(
+                fixed.replace_email(email),
+                Err(LeptonAuthServicesError::NotSwappable { channel: "email" })
+            ));
+            assert!(matches!(
+                fixed.replace_sms(sms),
+                Err(LeptonAuthServicesError::NotSwappable { channel: "sms" })
+            ));
+        }
+
+        #[test]
+        fn sms_settings_change_swaps_driver() {
+            let services = bundle();
+            assert_eq!(services.sms.driver_name(), "noop");
+            let candidate = SmsCandidate {
+                mode: SmsMode::Verify,
+                twilio_account_sid: "ACtest".into(),
+                twilio_api_key_sid: "SKtest".into(),
+                twilio_verify_service_sid: "VAtest".into(),
+                test_recipient: "+15550100".into(),
+                twilio_api_secret: Some(WriteOnlySecret::new("s3cret")),
+                ..SmsCandidate::default()
+            };
+            // Missing resolved secret: refused, driver unchanged.
+            assert!(services.apply_sms_settings(&candidate, None).is_err());
+            assert_eq!(services.sms.driver_name(), "noop");
+            services
+                .apply_sms_settings(&candidate, Some("s3cret"))
+                .expect("apply sms");
+            assert_ne!(services.sms.driver_name(), "noop");
+        }
     }
 }

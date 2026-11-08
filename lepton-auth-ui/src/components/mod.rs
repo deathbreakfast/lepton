@@ -3,8 +3,10 @@
 //! Submodules are private; only the re-exports below are part of the public API.
 //! See the [crate root](crate) for mount, routes, and step-up examples.
 
+mod all_service_users_page;
 mod auth_dialog;
 mod auth_modal_shell;
+mod auth_page_layout;
 mod brand_icons;
 mod confirm_account_page;
 mod confirm_account_prompt;
@@ -20,9 +22,11 @@ mod step_up_content;
 mod step_up_controller;
 mod step_up_dialog;
 
+pub use all_service_users_page::AllServiceUsersPage;
 pub use auth_dialog::{AuthDialog, AuthDialogCallbacks, AuthDialogKind};
 pub use auth_modal_shell::AuthModalShell;
-pub use brand_icons::{GitHubMark, GoogleMark};
+pub use auth_page_layout::AuthPageLayout;
+pub use brand_icons::{GitHubMark, GoogleMark, MicrosoftMark};
 pub use confirm_account_page::ConfirmAccountPage;
 pub use confirm_account_prompt::{
     confirm_account_status_resource, ConfirmAccountPrompt, ConfirmAccountPromptVariant,

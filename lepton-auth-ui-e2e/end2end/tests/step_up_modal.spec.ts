@@ -40,7 +40,7 @@ async function signInWithPassword(
     await root
       .getByTestId("signin-mfa-totp")
       .locator('input[name="code"]')
-      .fill(totpCode(totpSecret));
+      .fill(await totpCode(totpSecret));
     await root.getByTestId("signin-mfa-submit").getByRole("button").click();
   }
 
@@ -78,7 +78,7 @@ test.describe("pw-step-up-modal", () => {
     await root
       .getByTestId("step-up-totp")
       .locator("input")
-      .fill(totpCode(seeded.totp_secret!));
+      .fill(await totpCode(seeded.totp_secret!));
     await root.getByTestId("step-up-submit").getByRole("button").click();
 
     await expect(root).toBeHidden({ timeout: 30_000 });
@@ -227,7 +227,7 @@ test.describe("pw-step-up-modal", () => {
     await root
       .getByTestId("step-up-totp")
       .locator("input")
-      .fill(totpCode(seeded.totp_secret!));
+      .fill(await totpCode(seeded.totp_secret!));
     await root.getByTestId("step-up-submit").getByRole("button").click();
 
     await expect(page.getByTestId("step-up-demo-success")).toBeVisible({
@@ -259,7 +259,7 @@ test.describe("pw-step-up-modal", () => {
     await root
       .getByTestId("step-up-totp")
       .locator("input")
-      .fill(totpCode(seeded.totp_secret!));
+      .fill(await totpCode(seeded.totp_secret!));
     await root.getByTestId("step-up-submit").getByRole("button").click();
 
     await expect(root.getByTestId("step-up-error")).toBeVisible({

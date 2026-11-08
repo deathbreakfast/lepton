@@ -11,12 +11,10 @@ use lepton_auth::devices::{
 use lepton_auth::factor::FactorChallengeService;
 use lepton_auth::services::LeptonAuthServices;
 use lepton_auth::signup_api::ssr::{create_pending_user, SignupRequest};
-use lepton_auth::token_helpers::{
-    ensure_token_lifecycle_valid, try_consume_email_verification_token, verify_token_secret,
-};
+use lepton_auth::token_helpers::consume_email_verification_token;
 use lepton_auth::totp::{begin_totp_enroll, confirm_totp_enroll};
 use lepton_auth::trust::{confirm_user, primary_email_verified, primary_phone_verified};
-use lepton_host_adapter::generated::{AccountEmail, EmailVerificationToken, User, UserStatus};
+use lepton_host_adapter::generated::{AccountEmail, User, UserStatus};
 use lepton_sms::TestSmsAdapter;
 use lepton_smtp::{verification_email_envelope_named, VerificationEmailFlow};
 use totp_rs::{Algorithm, Secret, TOTP};
@@ -263,7 +261,7 @@ pub async fn run_signup_verify_flow(
 
     if opts.auto_verify_email {
         info!(phase = "email_auto_verify", "live_verify");
-        verify_email_token(valence, &pending.email_token_id).await?;
+        verify_email_token(valence, &pending.user_id, &pending.email_token_id).await?;
     } else {
         info!(phase = "email_issue", "live_verify");
         let envelope = verification_email_envelope_named(
@@ -279,7 +277,7 @@ pub async fn run_signup_verify_flow(
 
         info!(phase = "email_verify", "live_verify");
         let presented = codes.email_token(&pending.email_token_id).await?;
-        verify_email_token(valence, &presented).await?;
+        verify_email_token(valence, &pending.user_id, &presented).await?;
     }
 
     let factors = FactorChallengeService::new(Arc::clone(services));
@@ -444,27 +442,20 @@ pub async fn issue_sms_challenge(
         .map_err(|e| LiveVerifyError::delivery("sms", e.to_string()))
 }
 
-/// Consume an email verification token and mark the contact + user Active (CI e2e / CLI).
-pub async fn verify_email_token(valence: &Valence, token_id: &str) -> Result<(), LiveVerifyError> {
-    let token_id = token_id.trim();
-    if token_id.is_empty() {
+/// Consume `user`'s emailed verification code and mark the contact + user Active (CI e2e / CLI).
+pub async fn verify_email_token(
+    valence: &Valence,
+    user: &RecordId,
+    otp_code: &str,
+) -> Result<(), LiveVerifyError> {
+    let otp_code = otp_code.trim();
+    if otp_code.is_empty() {
         return Err(LiveVerifyError::CodeRejected);
     }
-    let token_record = EmailVerificationToken::get(token_id, valence, valence::use_!(r#"**Test:** Fixture **Email Verification Token** load for `flow` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."#))
+    let token_record = consume_email_verification_token(valence, user, otp_code)
         .await
         .map_err(|_| LiveVerifyError::Token)?
-        .ok_or(LiveVerifyError::CodeRejected)?;
-
-    ensure_token_lifecycle_valid(&token_record).map_err(|_| LiveVerifyError::CodeRejected)?;
-    verify_token_secret(token_id, token_record.token_hash())
         .map_err(|_| LiveVerifyError::CodeRejected)?;
-
-    let consumed = try_consume_email_verification_token(token_id, valence)
-        .await
-        .map_err(|_| LiveVerifyError::Token)?;
-    if !consumed {
-        return Err(LiveVerifyError::CodeRejected);
-    }
 
     let email_bare = valence::extract_id_from_record(token_record.user_email())
         .map_err(|_| LiveVerifyError::UserMissing)?;

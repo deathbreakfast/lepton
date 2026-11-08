@@ -3,9 +3,9 @@
 use lepton_auth::paths::{LOGOUT, SIGNIN, SIGNUP};
 use lepton_auth::routes::parse_token_from_url_parts;
 use lepton_auth_ui::{
-    provide_step_up_controller, use_step_up_controller, AuthDialog, AuthDialogCallbacks,
-    AuthDialogKind, AuthModalShell, ConfirmAccountPage, ConfirmAccountPrompt,
-    ConfirmAccountPromptVariant, OAuthCallbackContent, PasswordResetDialog,
+    provide_step_up_controller, use_step_up_controller, AllServiceUsersPage, AuthDialog,
+    AuthDialogCallbacks, AuthDialogKind, AuthModalShell, AuthPageLayout, ConfirmAccountPage,
+    ConfirmAccountPrompt, ConfirmAccountPromptVariant, OAuthCallbackContent, PasswordResetDialog,
     PasswordResetDialogKind,
 };
 use leptos::prelude::*;
@@ -19,6 +19,7 @@ use orbital_primitives::{Flex, FlexAlign, FlexGap, FlexWrap, Link, Title3};
 use orbital_theme::OrbitalThemeProvider;
 
 use crate::connected_accounts_section::E2eConnectedAccountsSection;
+use crate::delivery_section::E2eDeliverySection;
 use crate::devices_section::E2eDevicesSection;
 use crate::page_shell::E2ePageShell;
 use crate::step_up_demo::E2eStepUpDemo;
@@ -52,9 +53,30 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/user/account-settings") view=AccountSettingsPage/>
                     <Route path=path!("/user/confirm-account") view=ConfirmAccountRoute/>
                     <Route path=path!("/user/step-up-demo") view=StepUpDemoPage/>
+                    <Route path=path!("/user/bots/all") view=AllServiceUsersRoute/>
+                    <Route path=path!("/lab/delivery") view=DeliveryRoute/>
                 </Routes>
             </Router>
         </OrbitalThemeProvider>
+    }
+}
+
+#[component]
+fn AllServiceUsersRoute() -> impl IntoView {
+    view! {
+        <E2ePageShell data_testid="all-service-users-container">
+            <AllServiceUsersPage/>
+        </E2ePageShell>
+    }
+}
+
+#[component]
+fn DeliveryRoute() -> impl IntoView {
+    view! {
+        <E2ePageShell data_testid="delivery-settings-container">
+            <Title3>"Sign-in and delivery"</Title3>
+            <E2eDeliverySection/>
+        </E2ePageShell>
     }
 }
 
@@ -186,26 +208,27 @@ fn AuthRouteHost(initial_kind: AuthDialogKind, test_id: &'static str) -> impl In
     view! {
         <E2ePageShell data_testid=test_id>
             <div data-testid="auth-page-shell-root">
-                <Title3>{move || match kind.get() {
-                    AuthDialogKind::Signin => "Sign in",
-                    AuthDialogKind::Signup => "Sign up",
-                    AuthDialogKind::Logout => "Sign out",
-                }}</Title3>
-                <AuthDialog
-                    open=open.into()
-                    kind=kind.into()
-                    referer=referer.into()
-                    callbacks=AuthDialogCallbacks {
-                        on_close: Some(Callback::new(move |()| open.set(false))),
-                        on_success: Some(Callback::new(move |()| {
-                            auth_finished.set(true);
-                            open.set(false);
-                        })),
-                        // Leave switch callbacks unset so content uses `<Link href=…>`
-                        // for signin↔signup URL navigation (Playwright nav scenario).
-                        ..Default::default()
-                    }
-                />
+                <AuthPageLayout title=Signal::derive(move || match kind.get() {
+                    AuthDialogKind::Signin => "Sign in".to_string(),
+                    AuthDialogKind::Signup => "Sign up".to_string(),
+                    AuthDialogKind::Logout => "Sign out".to_string(),
+                })>
+                    <AuthDialog
+                        open=open.into()
+                        kind=kind.into()
+                        referer=referer.into()
+                        callbacks=AuthDialogCallbacks {
+                            on_close: Some(Callback::new(move |()| open.set(false))),
+                            on_success: Some(Callback::new(move |()| {
+                                auth_finished.set(true);
+                                open.set(false);
+                            })),
+                            // Leave switch callbacks unset so content uses `<Link href=…>`
+                            // for signin↔signup URL navigation (Playwright nav scenario).
+                            ..Default::default()
+                        }
+                    />
+                </AuthPageLayout>
             </div>
         </E2ePageShell>
     }
@@ -217,12 +240,13 @@ fn ResetRequestPage() -> impl IntoView {
     let empty = Signal::derive(String::new);
     view! {
         <E2ePageShell data_testid="password-reset-request-container">
-            <Title3>"Reset password"</Title3>
-            <PasswordResetDialog
-                open=open.into()
-                kind=Signal::derive(|| PasswordResetDialogKind::Request)
-                token_from_query=empty
-            />
+            <AuthPageLayout title="Reset password">
+                <PasswordResetDialog
+                    open=open.into()
+                    kind=Signal::derive(|| PasswordResetDialogKind::Request)
+                    token_from_query=empty
+                />
+            </AuthPageLayout>
         </E2ePageShell>
     }
 }
@@ -239,12 +263,13 @@ fn ResetConfirmPage() -> impl IntoView {
 
     view! {
         <E2ePageShell data_testid="password-reset-confirm-container">
-            <Title3>"Choose a new password"</Title3>
-            <PasswordResetDialog
-                open=open.into()
-                kind=Signal::derive(|| PasswordResetDialogKind::Confirm)
-                token_from_query=Signal::derive(move || token.get())
-            />
+            <AuthPageLayout title="Choose a new password">
+                <PasswordResetDialog
+                    open=open.into()
+                    kind=Signal::derive(|| PasswordResetDialogKind::Confirm)
+                    token_from_query=Signal::derive(move || token.get())
+                />
+            </AuthPageLayout>
         </E2ePageShell>
     }
 }

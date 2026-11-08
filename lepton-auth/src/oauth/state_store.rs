@@ -26,6 +26,7 @@ const fn to_provider(p: OAuthProvider) -> OauthPendingStateProvider {
     match p {
         OAuthProvider::Google => OauthPendingStateProvider::Google,
         OAuthProvider::GitHub => OauthPendingStateProvider::Github,
+        OAuthProvider::Microsoft => OauthPendingStateProvider::Microsoft,
     }
 }
 
@@ -33,6 +34,7 @@ const fn from_provider(p: &OauthPendingStateProvider) -> OAuthProvider {
     match p {
         OauthPendingStateProvider::Google => OAuthProvider::Google,
         OauthPendingStateProvider::Github => OAuthProvider::GitHub,
+        OauthPendingStateProvider::Microsoft => OAuthProvider::Microsoft,
     }
 }
 

@@ -6,6 +6,10 @@
 //! `lepton_smtp::EmailEnvelope` and call `auth_services()?.email.send(&envelope)`.
 //! Quiet helpers never log recipient addresses.
 //!
+//! The verification code is 6 digits from [`crate::token_helpers::issue_email_verification_token`].
+//! Pass it as `token_id`. A user gets one live code at a time, five wrong entries lock it for
+//! five minutes, and the resend actions wait 60 seconds between emails.
+//!
 //! Sends verification and password-reset mail through the injected email adapter.
 //! SMTP transport config, Twilio adapters, and template engines configure elsewhere.
 //!
@@ -79,7 +83,8 @@ pub mod ssr {
 
     /// Build and send a verification-code email for the given `flow`.
     ///
-    /// `token_id` is the pasteable code (also the Valence token record id).
+    /// `token_id` is the 6-digit code to show the user. It is a secret, so the queued delivery
+    /// intent gets a random id instead of the code.
     ///
     /// # Errors
     ///
@@ -102,7 +107,7 @@ pub mod ssr {
             };
             enqueue_email(EmailDeliveryIntent {
                 intent_kind: intent_kind.into(),
-                intent_id: token_id.into(),
+                intent_id: uuid::Uuid::new_v4().to_string(),
                 envelope,
             })
             .await

@@ -68,6 +68,7 @@ fn provider_label(provider: OAuthProvider) -> &'static str {
     match provider {
         OAuthProvider::Google => "Google",
         OAuthProvider::GitHub => "GitHub",
+        OAuthProvider::Microsoft => "Microsoft",
     }
 }
 

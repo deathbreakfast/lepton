@@ -1,4 +1,4 @@
-//! OAuth login / signup / link (`oauth-google` / `oauth-github` + mock provider).
+//! OAuth login / signup / link (`oauth-google` / `oauth-github` / `oauth-microsoft` + mock provider).
 //!
 //! **Mock provider** (`OAuthClientConfig::use_mock_provider`): in-process code exchange when
 //! `mock_oidc_issuer_url` is unset; HTTP against a lab mock OIDC issuer when set
@@ -110,6 +110,8 @@ mod error;
 mod github;
 #[cfg(all(feature = "ssr", feature = "oauth-google"))]
 mod google;
+#[cfg(all(feature = "ssr", feature = "oauth-microsoft"))]
+mod microsoft;
 #[cfg(feature = "ssr")]
 mod mock;
 #[cfg(feature = "ssr")]

@@ -9,8 +9,8 @@ use valence::{RecordId, Valence};
 
 use super::error::StepUpError;
 use super::scope::StepUpScope;
-use super::throttle::{is_locked, record_failure};
 use super::window::{self, store_window};
+use crate::attempt_throttle::{is_locked, record_failure};
 use crate::factor::verify_totp_against_sealed;
 use crate::ssr_support::{extract_auth_user, higgs_ctx};
 use crate::totp::seal::{needs_reseal, seal_totp_secret, unseal_totp_secret};

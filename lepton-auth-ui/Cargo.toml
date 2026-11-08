@@ -30,6 +30,8 @@ default = []
 oauth-google = ["lepton-auth/oauth-google"]
 # Gates Continue with GitHub / the “or” divider in OAuthProviderButtons.
 oauth-github = ["lepton-auth/oauth-github"]
+# Gates Continue with Microsoft / the “or” divider in OAuthProviderButtons.
+oauth-microsoft = ["lepton-auth/oauth-microsoft"]
 hydrate = [
     "orbital-core-components/hydrate",
     "orbital-motion/hydrate",

@@ -58,12 +58,14 @@ boson-valence-identity = { workspace = true, optional = true }
 default = []
 oauth-google = ["lepton-auth/oauth-google", "lepton-auth-ui/oauth-google"]
 oauth-github = ["lepton-auth/oauth-github", "lepton-auth-ui/oauth-github"]
+oauth-microsoft = ["lepton-auth/oauth-microsoft", "lepton-auth-ui/oauth-microsoft"]
 hydrate = [
     "leptos/hydrate",
     "lepton-auth/hydrate",
     "lepton-auth-ui/hydrate",
     "oauth-google",
     "oauth-github",
+    "oauth-microsoft",
     "orbital-primitives/hydrate",
     "orbital-theme/hydrate",
     "dep:console_error_panic_hook",
@@ -107,6 +109,7 @@ ssr = [
     "lepton-auth/totp",
     "oauth-google",
     "oauth-github",
+    "oauth-microsoft",
     "lepton-auth/webauthn",
     "lepton-auth-ui/ssr",
     "lepton-host-adapter/ssr",

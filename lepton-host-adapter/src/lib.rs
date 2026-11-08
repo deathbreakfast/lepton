@@ -91,6 +91,10 @@
 //! - [`lepton_identity`](../lepton_identity/index.html) — password hash and ownership helpers
 //! - [`lepton_auth`](../lepton_auth/index.html) — server functions and delivery
 
+// Nightly rustdoc (2026-11) reports a redundant explicit link with no source
+// span from docs it renders into this crate, so it can't be fixed at the link.
+#![allow(rustdoc::redundant_explicit_links)]
+
 /// Token lifecycle Valence models and identity table types used by SSR hosts
 /// (see the [crate-level walkthrough](self)).
 #[cfg(feature = "ssr")]
@@ -106,6 +110,10 @@ mod schemas;
 /// axum-login backend + session user/credential types bridging to `lepton-identity`.
 #[cfg(feature = "ssr")]
 pub mod auth;
+
+/// Bearer-token middleware that identifies a service user from `Authorization: Bearer`.
+#[cfg(feature = "ssr")]
+pub mod bearer;
 
 /// Middleware mirroring the axum-login session into `higgs_identity::SessionSnapshot`.
 #[cfg(feature = "ssr")]
@@ -130,6 +138,10 @@ pub use axum_login::AuthSession;
 #[cfg(feature = "ssr")]
 #[doc(inline)]
 pub use photon_auth::{extract_user_key, PhotonAuth};
+
+#[cfg(feature = "ssr")]
+#[doc(inline)]
+pub use bearer::{bearer_middleware, ServiceUserCaller};
 
 #[cfg(feature = "ssr")]
 #[doc(inline)]

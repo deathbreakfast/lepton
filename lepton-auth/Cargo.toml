@@ -41,7 +41,6 @@ lepton-spectra-telemetry = { workspace = true, optional = true }
 lepton-host-adapter = { workspace = true, optional = true }
 lepton-identity = { workspace = true, optional = true }
 photon = { workspace = true, optional = true }
-photon-leptos = { workspace = true, optional = true, default-features = false }
 totp-rs = { workspace = true, optional = true }
 qrcode = { version = "0.14", default-features = false, features = ["svg"], optional = true }
 chacha20poly1305 = { workspace = true, optional = true }
@@ -70,12 +69,9 @@ web-sys = { workspace = true, optional = true, features = [
 workspace = true
 
 [[test]]
-name = "auth_boundaries"
+name = "auth"
+path = "tests/auth/main.rs"
 required-features = ["ssr"]
-
-[[test]]
-name = "verification_tokens"
-required-features = ["ssr", "test-utils", "phone"]
 
 [[example]]
 name = "password_and_token"
@@ -118,87 +114,7 @@ name = "auth_oauth_mock"
 required-features = ["ssr", "oauth-github"]
 
 [[test]]
-name = "oauth_link_settings"
-required-features = ["ssr"]
-
-[[test]]
-name = "oauth_pkce_state"
-required-features = ["ssr", "oauth-google"]
-
-[[test]]
-name = "webauthn_devices"
-required-features = ["ssr", "webauthn"]
-
-[[test]]
-name = "account_primary_email"
-required-features = ["ssr"]
-
-[[test]]
-name = "account_email_owner_privacy"
-required-features = ["ssr"]
-
-[[test]]
-name = "contact_validators"
-required-features = ["ssr"]
-
-[[test]]
-name = "password_hash_privacy"
-required-features = ["ssr"]
-
-[[test]]
-name = "change_password"
-required-features = ["ssr"]
-
-[[test]]
-name = "account_wipe"
-required-features = ["ssr", "totp"]
-
-[[test]]
-name = "totp_recovery"
-required-features = ["ssr", "totp"]
-
-[[test]]
-name = "totp_seal_enroll"
-required-features = ["ssr", "totp"]
-
-[[test]]
-name = "step_up_verify"
-required-features = ["ssr", "totp"]
-
-[[test]]
-name = "step_up_session_binding"
-required-features = ["ssr"]
-
-[[test]]
-name = "step_up_modal_coverage_inventory"
-required-features = ["ssr"]
-
-[[test]]
-name = "confirm_account_status"
-required-features = ["ssr", "phone"]
-
-[[test]]
-name = "service_users_lifecycle"
-required-features = ["ssr"]
-
-[[test]]
-name = "service_users_privacy"
-required-features = ["ssr"]
-
-[[test]]
 name = "service_users_gate_unwired"
-required-features = ["ssr"]
-
-[[test]]
-name = "service_users_owner_delete"
-required-features = ["ssr"]
-
-[[test]]
-name = "service_users_quota"
-required-features = ["ssr"]
-
-[[test]]
-name = "service_users_resolver"
 required-features = ["ssr"]
 
 [[test]]
@@ -206,12 +122,16 @@ name = "service_users_host_limit"
 required-features = ["ssr"]
 
 [[test]]
-name = "service_users_events"
-required-features = ["ssr", "test-utils"]
-
-[[test]]
 name = "membership_primary_clear"
 required-features = ["ssr", "test-utils", "phone"]
+
+[[test]]
+name = "delivery_secret_redaction"
+required-features = ["ssr"]
+
+[[test]]
+name = "totp_key_rotation"
+required-features = ["ssr", "totp"]
 
 [features]
 default = []
@@ -221,9 +141,7 @@ hydrate = [
     "dep:wasm-bindgen",
     "dep:wasm-bindgen-futures",
     "dep:js-sys",
-    "dep:photon-leptos",
     "dep:higgs-macros",
-    "photon-leptos/hydrate",
 ]
 # Enables publish-capture helpers for validating Photon hooks in integration tests.
 test-utils = ["lepton-identity?/test-utils"]
@@ -247,14 +165,12 @@ ssr = [
     "dep:lepton-host-adapter",
     "dep:lepton-identity",
     "dep:photon",
-    "dep:photon-leptos",
     "dep:tracing",
     "dep:futures",
     "dep:reqwest",
     "lepton-host-adapter/ssr",
     "higgs/ssr",
     "photon/runtime",
-    "photon-leptos/ssr",
 ]
 # Verification / reset mail delivery (not email-as-login).
 email = ["dep:lepton-smtp"]
@@ -271,6 +187,7 @@ webauthn = ["dep:webauthn-rs", "dep:uuid"]
 # `OAuthClientConfig::use_mock_provider`.
 oauth-google = []
 oauth-github = []
+oauth-microsoft = []
 # Durable Boson delivery + DeliveryAttempt log (requires host Boson + DeliveryRuntime).
 boson-delivery = [
     "dep:boson-core",
@@ -281,16 +198,14 @@ boson-delivery = [
     "dep:uuid",
 ]
 # All Ship channels + OAuth flags + WebAuthn.
-full = ["email", "phone", "totp", "oauth-google", "oauth-github", "webauthn"]
+# Live Twilio drivers (SendGrid email, Verify and Messages SMS) for settings-built services.
+twilio = ["lepton-smtp?/twilio", "lepton-sms?/twilio"]
+full = ["email", "phone", "totp", "oauth-google", "oauth-github", "oauth-microsoft", "webauthn", "twilio"]
 # Emit auth funnel Spectra counters / failure events via lepton-spectra-telemetry.
 spectra = ["dep:lepton-spectra-telemetry"]
 
-[[test]]
-name = "delivery_attempt"
-required-features = ["ssr", "boson-delivery", "email"]
-
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "io-util"] }
 wiremock = "0.6"
 serde_json = { workspace = true }
 webauthn-authenticator-rs = { version = "0.5.5", default-features = false, features = ["softpasskey"] }

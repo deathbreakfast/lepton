@@ -26,7 +26,10 @@ Specs: `auth.spec.ts`, `confirm_account.spec.ts`, `oauth.spec.ts`,
 `devices.spec.ts` (Account Settings Security devices + Chromium virtual authenticator),
 `totp_enroll.spec.ts` (Authenticator enroll via DOM secret + `otplib`, no TOTP sidecar),
 `signin_mfa.spec.ts`, `account_wipe.spec.ts`,
-`step_up_modal.spec.ts` (per-op re-auth modal on `/user/step-up-demo`).
+`step_up_modal.spec.ts` (per-op re-auth modal on `/user/step-up-demo`),
+`delivery_settings.spec.ts` (`/lab/delivery`: email and text-message settings saved on a
+page take effect on the next send with no restart; a user without access is denied).
+The lab keeps settings in memory and sends texts to the SMS sink instead of Twilio.
 
 ## Run
 

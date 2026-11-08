@@ -188,6 +188,7 @@ pub const fn oauth_provider_label(provider: crate::oauth::OAuthProvider) -> OAut
     match provider {
         crate::oauth::OAuthProvider::Google => OAuthProviderLabel::Google,
         crate::oauth::OAuthProvider::GitHub => OAuthProviderLabel::Github,
+        crate::oauth::OAuthProvider::Microsoft => OAuthProviderLabel::Microsoft,
     }
 }
 

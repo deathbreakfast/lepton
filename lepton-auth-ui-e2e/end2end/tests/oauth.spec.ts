@@ -9,6 +9,7 @@ test.describe("pw-oauth", () => {
     const root = authDialog(page);
     await expect(root.getByTestId("oauth-continue-google")).toBeVisible();
     await expect(root.getByTestId("oauth-continue-github")).toBeVisible();
+    await expect(root.getByTestId("oauth-continue-microsoft")).toBeVisible();
 
     await page.goto("/auth/signin");
     await expect(page.getByTestId("signin-container")).toBeVisible({
@@ -17,6 +18,7 @@ test.describe("pw-oauth", () => {
     const signin = authDialog(page);
     await expect(signin.getByTestId("oauth-continue-google")).toBeVisible();
     await expect(signin.getByTestId("oauth-continue-github")).toBeVisible();
+    await expect(signin.getByTestId("oauth-continue-microsoft")).toBeVisible();
   });
 
   test("pw-oauth-signup-happy", async ({ page }) => {
@@ -41,6 +43,8 @@ test.describe("pw-oauth", () => {
       .getByRole("button")
       .click();
     await expect(page).toHaveURL(/\/welcome(?:\?|$)/, { timeout: 60_000 });
+    // Let the post-callback navigation settle; leaving early aborts it.
+    await expect(page.getByTestId("welcome-authenticated")).toBeVisible();
 
     // Sign out, then sign in again with the same mock identity.
     await page.goto("/auth/logout");

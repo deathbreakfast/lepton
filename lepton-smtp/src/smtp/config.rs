@@ -258,9 +258,7 @@ impl SmtpConfigBuilder {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static EMAIL_ENV_LOCK: Mutex<()> = Mutex::new(());
+    use crate::driver::EMAIL_ENV_LOCK;
 
     #[test]
     fn smtp_config_builder_happy_path() {

@@ -6,7 +6,10 @@ use valence::{RecordId, StringPredicate, Valence};
 
 use super::{FactorChallengeError, FactorChallengeService};
 use crate::contacts::{account_for_user, add_account_email, ContactError};
-use crate::token_helpers::{issue_email_verification_token, try_consume_email_verification_token};
+use crate::token_helpers::{
+    consume_email_verification_token, email_verification_challenge_id,
+    issue_email_verification_token, TokenLifecycleError,
+};
 
 fn bare_id(record: &RecordId) -> String {
     valence::extract_id_from_record(record).unwrap_or_else(|_| record.id().to_string())
@@ -49,16 +52,17 @@ pub(super) async fn issue(
             .map_err(|_: ContactError| FactorChallengeError::Token)?
     };
     let email_id = email.id().cloned().ok_or(FactorChallengeError::Token)?;
-    let token_id = issue_email_verification_token(valence, user, email_id)
+    let challenge_id = email_verification_challenge_id(&user);
+    let otp_code = issue_email_verification_token(valence, user, email_id)
         .await
         .map_err(|_| FactorChallengeError::Token)?;
-    let envelope = lepton_smtp::verification_email_envelope(&address, &token_id, email_flow);
+    let envelope = lepton_smtp::verification_email_envelope(&address, &otp_code, email_flow);
     #[cfg(feature = "boson-delivery")]
     {
         use crate::delivery::{enqueue_email, EmailDeliveryIntent};
         enqueue_email(EmailDeliveryIntent {
             intent_kind: "email_otp".into(),
-            intent_id: token_id.clone(),
+            intent_id: challenge_id.clone(),
             envelope,
         })
         .await
@@ -76,14 +80,20 @@ pub(super) async fn issue(
     {
         let _ = svc;
     }
-    Ok(token_id)
+    Ok(challenge_id)
 }
 
 pub(super) async fn verify(
-    token_id: &str,
+    user: &RecordId,
+    otp_code: &str,
     valence: &Valence,
 ) -> Result<bool, FactorChallengeError> {
-    try_consume_email_verification_token(token_id, valence)
+    match consume_email_verification_token(valence, user, otp_code)
         .await
-        .map_err(|_| FactorChallengeError::Token)
+        .map_err(|_| FactorChallengeError::Token)?
+    {
+        Ok(_) => Ok(true),
+        Err(TokenLifecycleError::Locked) => Err(FactorChallengeError::RateLimited),
+        Err(_) => Ok(false),
+    }
 }

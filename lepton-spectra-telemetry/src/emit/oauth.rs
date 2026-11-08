@@ -11,6 +11,8 @@ pub enum OAuthProviderLabel {
     Google,
     /// GitHub.
     Github,
+    /// Microsoft.
+    Microsoft,
     /// Mock provider.
     Mock,
     /// Unknown / unbounded.
@@ -24,6 +26,7 @@ impl OAuthProviderLabel {
         match self {
             Self::Google => "google",
             Self::Github => "github",
+            Self::Microsoft => "microsoft",
             Self::Mock => "mock",
             Self::Unknown => "unknown",
         }
@@ -73,7 +76,7 @@ impl OAuthStage {
     }
 }
 
-const OAUTH_PROVIDERS: &[&str] = &["google", "github", "mock"];
+const OAUTH_PROVIDERS: &[&str] = &["google", "github", "microsoft", "mock"];
 
 /// Map a provider string to an allowlisted label (or `unknown`).
 #[must_use]

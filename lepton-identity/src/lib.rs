@@ -142,22 +142,27 @@
 //! assert_eq!(ServiceUserId::from_actor(&Actor::User { user_id: "alice".into() }), None);
 //! ```
 //!
-//! ## Authentication is the host's job (preview)
+//! ## Authenticating a service user
 //!
-//! Lepton stores who a service user is, who owns it, and whether it is `active` or
-//! `suspended`. It does not issue, store, or check credentials for a service user. The host
-//! decides what a service user presents when it calls in, and does this on each request:
+//! A service user calls in with a personal access token its owner creates with
+//! `lepton_auth::service_users::create_service_user_token`. The token looks like
+//! `lpt_<token id>_<64 hex characters>` and is shown once; Lepton keeps only a SHA-256 hash of
+//! the secret in the `service_user_token` table. Owners list and revoke tokens, each service
+//! user can hold a few live ones, and every token expires within a year.
 //!
-//! 1. Verify the credential with the host's own mechanism, which yields a service user id.
-//! 2. Call [`service_users::active_service_user_owner`] with that id and a Valence handle.
-//!    `None` means the service user is unknown, suspended, deleted, or not a registered
-//!    service user at all (a built-in name, say), so the host refuses the call.
-//! 3. Open Valence as [`service_users::ServiceUserId::actor`] and run the request.
+//! On each request the host does this, or mounts `lepton_host_adapter::bearer_middleware`, which does:
 //!
-//! Suspending a service user with `lepton_auth::service_users::suspend_service_user` records
-//! the status. The host's step 2 is what stops a suspended service user from acting, so a
-//! host that skips it keeps accepting one. This part of the API is a preview and may change
-//! as hosts report what they need.
+//! 1. Read the `Authorization: Bearer` value and call [`service_users::verify_bearer_token`]
+//!    with a Valence handle. It checks the token's shape, hash, revoked and expiry times, and
+//!    then [`service_users::active_service_user_owner`], so a suspended or deleted service user
+//!    (or one whose owner was erased) is refused. `None` covers every failure alike.
+//! 2. Open Valence as [`service_users::VerifiedServiceUser::actor`] and run the request.
+//!
+//! Suspending a service user with `lepton_auth::service_users::suspend_service_user` stops its
+//! tokens at the next request; resuming restores them. Revoking a token stops that token only.
+//! Hosts that authenticate service users some other way can still call
+//! [`service_users::active_service_user_owner`] directly. This part of the API is a preview and
+//! may change as hosts report what they need.
 //!
 //! ## Model overview
 //!
@@ -168,6 +173,23 @@
 //!   founding User + Owner membership.
 //! - `AccountEmail` / `AccountPhone` — contacts owned by `Account` (unique `address` /
 //!   `e164`, per-row `verified_at`).
+//!
+//! ### Protected fields (system-only to write)
+//!
+//! The owner can edit their own `User` and `Account` rows, except these fields, which only
+//! System writes. `update.always_allow` holds `SYSTEM_ONLY`, and
+//! [`protected_fields::USER_PROTECTED_FIELDS`] / [`protected_fields::ACCOUNT_PROTECTED_FIELDS`]
+//! sit in `update.block`, so an owner save that changes one is refused.
+//!
+//! | Table | System-only to write |
+//! |-------|----------------------|
+//! | `User` | `status`, `user_type`, `confirmed_at`, `id_verified_at`, `password_hash` |
+//! | `Account` | `plan`, `status` |
+//!
+//! `User.password_hash` is also system-only to read, so a session `User` holds `None` there.
+//! Check a typed password against it with [`protected_fields::stored_password_hash`], which
+//! reads the stored hash without switching actors. Validating tests: `lepton-auth`
+//! `protected_fields` and `password_hash_privacy`.
 //!
 //! ### `AccountEmail` read privacy
 //!
@@ -284,6 +306,8 @@ pub mod embedded_surreal;
 pub mod generated;
 /// Signup-time row ownership assignment for identity models.
 pub mod ownership;
+pub mod privacy_policies;
+pub mod protected_fields;
 pub mod service_users;
 /// Valence mutation side effects for identity models.
 pub mod side_effects;

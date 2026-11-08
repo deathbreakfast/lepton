@@ -1,3 +1,7 @@
 oauth_link_settings.spec.ts › pw-oauth link settings › pw-oauth-link-google-happy
 oauth_link_settings.spec.ts › pw-oauth link settings › pw-oauth-link-account-taken-sad
 oauth_link_settings.spec.ts › pw-oauth link settings › pw-oauth-unlink-last-method-sad
+service_users_admin.spec.ts › pw-service-users-admin all service users page › all_service_users_requires_auth_sad
+service_users_admin.spec.ts › pw-service-users-admin all service users page › all_service_users_forbidden_for_non_admin_sad
+service_users_admin.spec.ts › pw-service-users-admin all service users page › all_service_users_lists_every_owner_happy
+service_users_admin.spec.ts › pw-service-users-admin all service users page › all_service_users_handle_filter_happy

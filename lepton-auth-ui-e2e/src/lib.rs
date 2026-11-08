@@ -9,6 +9,7 @@
 
 pub mod app;
 pub mod connected_accounts_section;
+pub mod delivery_section;
 pub mod devices_section;
 pub mod page_shell;
 pub mod step_up_demo;
@@ -18,7 +19,11 @@ pub mod wipe_section;
 #[cfg(feature = "ssr")]
 pub mod boot;
 #[cfg(feature = "ssr")]
+pub mod delivery_lab;
+#[cfg(feature = "ssr")]
 pub mod seed;
+#[cfg(feature = "ssr")]
+pub mod service_user_gate;
 
 pub use app::{shell, App};
 
