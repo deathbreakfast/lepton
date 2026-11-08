@@ -66,8 +66,8 @@ export async function signInAs(
 
 /**
  * Fill the sign-in form and submit it. A submit made before the page hydrates
- * is dropped (and can clear the fields), so refill and retry until the
- * password error or a navigation shows the submit was handled.
+ * is dropped (and can clear the fields), so refill and retry until the URL
+ * changes, which shows the submit was handled.
  */
 export async function submitSignin(
   page: import("@playwright/test").Page,
