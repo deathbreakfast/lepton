@@ -59,17 +59,36 @@ export async function signInAs(
   });
   const root = authDialog(page);
   await expect(root).toBeVisible({ timeout: 60_000 });
-  await root
-    .getByTestId("signin-email")
-    .locator('input[name="email"]')
-    .fill(email);
-  await root
-    .getByTestId("signin-password")
-    .locator('input[name="password"]')
-    .fill(password);
-  await root.getByTestId("signin-submit").getByRole("button").click();
+  await submitSignin(page, email, password);
   await expect(page).not.toHaveURL(/\/auth\/signin/, { timeout: 60_000 });
   await dismissAuthOverlay(page);
+}
+
+/**
+ * Fill the sign-in form and submit it. A submit made before the page hydrates
+ * is dropped (and can clear the fields), so refill and retry until the
+ * password error or a navigation shows the submit was handled.
+ */
+export async function submitSignin(
+  page: import("@playwright/test").Page,
+  email: string,
+  password: string,
+): Promise<void> {
+  const root = authDialog(page);
+  const start = page.url();
+  await expect(async () => {
+    if (page.url() !== start) return;
+    await root
+      .getByTestId("signin-email")
+      .locator('input[name="email"]')
+      .fill(email);
+    await root
+      .getByTestId("signin-password")
+      .locator('input[name="password"]')
+      .fill(password);
+    await root.getByTestId("signin-submit").getByRole("button").click();
+    await page.waitForURL((url) => url.href !== start, { timeout: 8_000 });
+  }).toPass({ timeout: 60_000 });
 }
 
 export async function signupNewUser(
