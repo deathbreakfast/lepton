@@ -5,6 +5,7 @@ import {
   authDialog,
   resetDialog,
   clickTestId,
+  submitSignin,
 } from "./fixtures";
 
 test.describe("pw-auth route pages", () => {
@@ -285,15 +286,7 @@ test.describe("pw-auth dialog", () => {
     await clickTestId(page, "user-menu-signin");
     const root = authDialog(page);
     await expect(root).toBeVisible();
-    await root
-      .getByTestId("signin-email")
-      .locator('input[name="email"]')
-      .fill(email);
-    await root
-      .getByTestId("signin-password")
-      .locator('input[name="password"]')
-      .fill("CorrectHorseBattery1!");
-    await root.getByTestId("signin-submit").getByRole("button").click();
+    await submitSignin(page, email, "CorrectHorseBattery1!");
     await expect(page).toHaveURL(/\/welcome/, { timeout: 60_000 });
   });
 

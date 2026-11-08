@@ -16,6 +16,7 @@ export {
   seedTestData,
   signInAs,
   signupNewUser,
+  submitSignin,
   waitMailpitCode,
   waitSmsOtp,
   type SeedResult,

@@ -17,4 +17,5 @@ export {
   seedAndSignIn,
   signInAs,
   signupNewUser,
+  submitSignin,
 } from "./auth";
