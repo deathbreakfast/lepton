@@ -1,6 +1,11 @@
 [advisories]
 # RUSTSEC-2023-0071 (rsa): Marvin Attack timing sidechannel, no fixed upgrade
-# available upstream.
+# available upstream. Only cargo audit (which reads the whole lockfile) still
+# sees it; cargo deny no longer reaches it, so deny.toml has no ignore.
 # RUSTSEC-2024-0436 (paste) / RUSTSEC-2026-0173 (proc-macro-error2): both
 # unmaintained, transitive via leptos (either_of / leptos_macro).
-ignore = ["RUSTSEC-2023-0071", "RUSTSEC-2024-0436", "RUSTSEC-2026-0173"]
+# RUSTSEC-2026-0543 (chrono): unmaintained, no fixed release; temporary until
+# the stack moves off chrono (security:RUSTSEC-2026-0543).
+# RUSTSEC-2026-0459 (libsqlite3-sys via sqlx): no fixed release; temporary
+# (security:RUSTSEC-2026-0459).
+ignore = ["RUSTSEC-2023-0071", "RUSTSEC-2024-0436", "RUSTSEC-2026-0173", "RUSTSEC-2026-0543", "RUSTSEC-2026-0459"]
