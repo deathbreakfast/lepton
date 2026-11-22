@@ -67,9 +67,9 @@ impl EraseAccountHook for FailHook {
 }
 
 fn setup() {
+    static HOOKS: Once = Once::new();
     install_test_gate();
     valence::deletion::register_noop_deletion_dispatcher_for_tests();
-    static HOOKS: Once = Once::new();
     HOOKS.call_once(|| {
         register_erase_account_hook(Arc::new(ObserveHook));
         register_erase_account_hook(Arc::new(FailHook));

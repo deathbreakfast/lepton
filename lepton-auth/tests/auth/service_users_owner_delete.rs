@@ -70,11 +70,7 @@ async fn owner_erasure_cascades_service_user_rows() {
 }
 
 /// **Test:** an account owned by `members[0]` with every entry in `members` as a member, created through System fixtures.
-pub(crate) async fn seed_account_with_members(
-    sys: &Valence,
-    name: &str,
-    members: &[&str],
-) -> RecordId {
+pub async fn seed_account_with_members(sys: &Valence, name: &str, members: &[&str]) -> RecordId {
     let now = Utc::now();
     let owner = RecordId::new("user", members[0]);
     let account = Account::new(
