@@ -19,20 +19,23 @@ pub enum SigninClientOutcome {
     },
 }
 
-/// Post-login landing: confirm funnel when email is unverified; else sanitized referer.
+/// Post-login landing: the confirm funnel (keeping the referer) when the email is unverified;
+/// else the sanitized referer.
 #[cfg(feature = "ssr")]
 fn post_login_path(email_verified: bool, referer: Option<String>) -> String {
-    use crate::routes::{auth_redirect_path, sanitize_referer_path};
+    use crate::routes::{
+        auth_redirect_path, confirm_account_path_with_referer, sanitize_referer_path,
+    };
 
-    let redirect_to = if email_verified {
-        let path = sanitize_referer_path(referer);
-        if path == "/" {
-            "/welcome".to_string()
-        } else {
-            path
-        }
+    let path = sanitize_referer_path(referer);
+    if !email_verified {
+        // Already sanitized; a second pass would decode the encoded `referer=` value.
+        return confirm_account_path_with_referer(&path);
+    }
+    let redirect_to = if path == "/" {
+        "/welcome".to_string()
     } else {
-        crate::paths::USER_CONFIRM_ACCOUNT.to_string()
+        path
     };
     auth_redirect_path(redirect_to)
 }
@@ -332,5 +335,33 @@ pub async fn finish_mfa_webauthn(
                 "unexpected needs_mfa after webauthn".into(),
             )),
         }
+    }
+}
+
+#[cfg(all(test, feature = "ssr"))]
+mod tests {
+    use super::post_login_path;
+
+    #[test]
+    fn unverified_keeps_referer_on_confirm_path_happy() {
+        assert_eq!(
+            post_login_path(false, Some("/counter/high-scores".into())),
+            "/user/confirm-account?referer=%2Fcounter%2Fhigh-scores"
+        );
+    }
+
+    #[test]
+    fn unverified_without_safe_referer_uses_plain_confirm_path_sad() {
+        assert_eq!(post_login_path(false, None), "/user/confirm-account");
+        assert_eq!(
+            post_login_path(false, Some("https://evil.example/x".into())),
+            "/user/confirm-account"
+        );
+    }
+
+    #[test]
+    fn verified_lands_on_referer_or_welcome_happy() {
+        assert_eq!(post_login_path(true, Some("/counter".into())), "/counter");
+        assert_eq!(post_login_path(true, None), "/welcome");
     }
 }

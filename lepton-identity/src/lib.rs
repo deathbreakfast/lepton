@@ -292,6 +292,7 @@
 //! - [`generated`] — Valence identity models
 //! - [`auth::hash_password`] — Argon2 PHC helper
 //! - [`ownership`] / [`side_effects`] — signup ownership and mutation hooks
+//! - [`profiles`] — the default display name and the email display name backfill
 //! - [`config`] — host settings such as the service user limit per owner
 //! - [`service_users`] — service user ids, handles, the service user gate, and the
 //!   `service_user_account` table's privacy rules
@@ -307,6 +308,7 @@ pub mod generated;
 /// Signup-time row ownership assignment for identity models.
 pub mod ownership;
 pub mod privacy_policies;
+pub mod profiles;
 pub mod protected_fields;
 pub mod service_users;
 /// Valence mutation side effects for identity models.
