@@ -301,25 +301,10 @@ const KNOWN_USER_CHILD_TABLES: &[&str] = &[
     "user",
 ];
 
-/// Cascade-delete a user and user-owned children (memberships, devices, …).
-async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), IdentityDeleteError> {
-    use lepton_host_adapter::generated::{
-        AuthDevice, AuthDeviceCeremony, LinkedIdentity, TotpFactor, TotpRecoveryCode,
-    };
-
-    let user_thing = RecordId::new("user", uid);
-    let memberships = AccountMembership::query(valence, valence::use_!(r"When **account erasure** finishes cleanup, we **remove Account Membership** so leftover rows do not remain after the operation. Only the cleanup path for **account erasure** uses this step; it is not shown as a standalone end-user page by itself."))
-        .where_user(RecordPredicate::Equals(user_thing.clone()))
-        .await
-        .map_err(|_| IdentityDeleteError::Store)?;
-    for m in memberships {
-        if let Some(id) = m.id() {
-            physical_delete(valence, "account_membership", &bare_id(id)).await?;
-        }
-    }
-
-    // Discover remaining children via DAG and apply each node's action. Known tables'
-    // cascades use the reverse-FK deletes below with `?`.
+/// Discover the user's remaining children via the deletion DAG and apply each node's
+/// action. Known tables' cascades are left to the reverse-FK deletes in
+/// [`delete_user_unchecked`].
+async fn apply_user_dag(valence: &Valence, uid: &str) -> Result<(), IdentityDeleteError> {
     let dag = DeletionDag::compute("user", uid, valence)
         .await
         .map_err(|_| IdentityDeleteError::Store)?;
@@ -350,6 +335,27 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
         // Best-effort for unknown/optional children (tokens, profile, …).
         let _ = physical_delete(valence, &node.table, &node.record_id).await;
     }
+    Ok(())
+}
+
+/// Cascade-delete a user and user-owned children (memberships, devices, …).
+async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), IdentityDeleteError> {
+    use lepton_host_adapter::generated::{
+        AuthDevice, AuthDeviceCeremony, LinkedIdentity, TotpFactor, TotpRecoveryCode,
+    };
+
+    let user_thing = RecordId::new("user", uid);
+    let memberships = AccountMembership::query(valence, valence::use_!(r"When **account erasure** finishes cleanup, we **remove Account Membership** so leftover rows do not remain after the operation. Only the cleanup path for **account erasure** uses this step; it is not shown as a standalone end-user page by itself."))
+        .where_user(RecordPredicate::Equals(user_thing.clone()))
+        .await
+        .map_err(|_| IdentityDeleteError::Store)?;
+    for m in memberships {
+        if let Some(id) = m.id() {
+            physical_delete(valence, "account_membership", &bare_id(id)).await?;
+        }
+    }
+
+    apply_user_dag(valence, uid).await?;
 
     // Known user-owned tables via reverse FK (reliable ids; fail on store error).
     // Account phones are account-owned (erased with the account), not deleted here.
