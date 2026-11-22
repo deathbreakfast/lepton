@@ -28,15 +28,25 @@ const SERVICE_USER_TABLE: &str = "service_user_account";
 /// [`SERVICE_USER_ACTIVE`]: super::SERVICE_USER_ACTIVE
 pub async fn active_service_user_owner(raw: &str, v: &Valence) -> Option<Actor> {
     let id = ServiceUserId::parse(raw).ok()?;
-    let backend = v.backend_for_table(SERVICE_USER_TABLE).ok()?;
-    let row = valence::get_record(
-        backend.as_ref(),
-        SERVICE_USER_TABLE,
-        id.as_str(),
+    owner_of_active(
+        &id,
+        v,
         valence::use_!(r"When a **service user** acts, we **read its owner and status** to check that it is still active and to find the person it acts for. Nothing is shown to anyone; a suspended or deleted service user gets no access."),
     )
     .await
-    .ok()??;
+}
+
+/// Reads `id`'s stored row under `purpose` and returns its owner while it is active and
+/// not pending deletion.
+async fn owner_of_active(
+    id: &ServiceUserId,
+    v: &Valence,
+    purpose: valence::DataUsePurpose,
+) -> Option<Actor> {
+    let backend = v.backend_for_table(SERVICE_USER_TABLE).ok()?;
+    let row = valence::get_record(backend.as_ref(), SERVICE_USER_TABLE, id.as_str(), purpose)
+        .await
+        .ok()??;
     OwnershipService::pending_deletion_gate(SERVICE_USER_TABLE, id.as_str(), v)
         .await
         .ok()?;
@@ -67,7 +77,12 @@ pub async fn active_service_user_owner(raw: &str, v: &Valence) -> Option<Actor> 
 /// ```
 pub async fn session_service_user_owner(v: &Valence) -> Option<Actor> {
     let id = ServiceUserId::from_actor(v.actor())?;
-    active_service_user_owner(id.as_str(), v).await
+    owner_of_active(
+        &id,
+        v,
+        valence::use_!(r"When a **service user** asks who owns it, we **read its owner and status** and **tell the service user who its owner is**, so it can act for that person, for example by making them the lead of a team it creates. It learns only its own owner, and a suspended or deleted service user learns nothing."),
+    )
+    .await
 }
 
 /// The owning user of a stored service user row whose status is `active`.
