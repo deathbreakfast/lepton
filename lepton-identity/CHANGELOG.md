@@ -6,6 +6,15 @@ All notable changes to `lepton-identity` are recorded here.
 
 ### Added
 
+- `UserProfile` contact fields (schema version 0.2.0): optional `contact_email`,
+  `contact_phone` and `chat_handle`, each with a `<field>_share` setting (`owner` or
+  `signed_in`). Values are owner-only unless shared; the `CONTACT_EMAIL_SHARED`,
+  `CONTACT_PHONE_SHARED` and `CHAT_HANDLE_SHARED` rules let signed-in users read a shared
+  value. Share settings are owner-only. `UserProfile::new` takes the six new optional
+  arguments after `active_photo`.
+- `service_users::session_service_user_owner` returns the owner of the service user the
+  session acts as, so a service user can find its owner without reading any
+  `service_user_account` row.
 - `ServiceUserActivity` model (`service_user_activity` table): an append-only history of
   each service user's lifecycle changes and token events, readable by the owner and by
   manage-any users. Rules `SERVICE_USER_ACTIVITY_WRITE` and

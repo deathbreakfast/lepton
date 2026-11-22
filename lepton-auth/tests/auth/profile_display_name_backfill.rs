@@ -44,6 +44,12 @@ async fn seed_profile(valence: &valence::Valence, display_name: &str) -> (String
         now,
         now,
         None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .expect("profile");
     let profile = UserProfile::create(profile, valence, valence::use_!(r"**Test:** the display name backfill suite seeds a **profile** with a chosen display name."))

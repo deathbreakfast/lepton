@@ -28,6 +28,10 @@
 //! | Any service user, registered or built-in | nothing | nothing | nothing | nothing |
 //! | System | all | nothing | all | all |
 //!
+//! A registered service user can still learn who owns it: [`session_service_user_owner`]
+//! returns the owner of the service user the session acts as, and nothing about any other
+//! service user.
+//!
 //! Nobody can change a service user's owner, creator, or handle after creation
 //! ([`SERVICE_USER_IDENTITY_IMMUTABLE`]).
 //!
@@ -82,7 +86,7 @@ pub use gate::{
 };
 pub use handle::{ServiceUserHandle, ServiceUserHandleError, MAX_HANDLE_LEN, MIN_HANDLE_LEN};
 pub use id::{is_managed_service_name, InvalidServiceUserId, ServiceUserId, SERVICE_USER_PREFIX};
-pub use resolve::active_service_user_owner;
+pub use resolve::{active_service_user_owner, session_service_user_owner};
 pub(crate) use rules::ref_id;
 pub use rules::{
     ServiceUserActiveRule, ServiceUserActivityAppendOnlyRule, ServiceUserActivityWriteRule,

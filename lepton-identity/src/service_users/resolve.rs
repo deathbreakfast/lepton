@@ -43,6 +43,33 @@ pub async fn active_service_user_owner(raw: &str, v: &Valence) -> Option<Actor> 
     owner_from_active_row(&row)
 }
 
+/// The owner of the registered service user this session acts as.
+///
+/// Reads the service user from `v`'s actor (`Actor::ServiceUser { service_name: "svc:<id>" }`)
+/// and answers as [`active_service_user_owner`] does: `Some(Actor::User { .. })` while the
+/// service user is active, `None` when it is suspended, deleted, or unknown, and `None` for
+/// every other kind of actor (users, System, anonymous, built-in service users such as `cron`).
+///
+/// It takes no id, so a session only ever learns its own owner. It reads nothing else:
+/// the `service_user_account` read policy still refuses service user actors, so a service user
+/// cannot load its own row or any other service user's row through the Model API.
+///
+/// ```no_run
+/// # async fn demo(v: &valence::Valence) {
+/// use lepton_identity::service_users::session_service_user_owner;
+///
+/// if let Some(owner) = session_service_user_owner(v).await {
+///     let owner_id = owner.user_id();
+///     // e.g. make the owner the lead of a team the service user creates.
+/// #   let _ = owner_id;
+/// }
+/// # }
+/// ```
+pub async fn session_service_user_owner(v: &Valence) -> Option<Actor> {
+    let id = ServiceUserId::from_actor(v.actor())?;
+    active_service_user_owner(id.as_str(), v).await
+}
+
 /// The owning user of a stored service user row whose status is `active`.
 fn owner_from_active_row(row: &Value) -> Option<Actor> {
     if row.get("status").and_then(Value::as_str) != Some("active") {

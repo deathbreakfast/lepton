@@ -10,7 +10,9 @@
 use valence::privacy_policies::common::{AUTHENTICATED, PUBLIC_READ, SYSTEM_ONLY};
 use valence::privacy_policies::owner::{OWNER_BY_ID, OWNER_BY_USER_FIELD};
 
-use crate::privacy_policies::OWNER_BY_UPLOADED_BY;
+use crate::privacy_policies::{
+    CHAT_HANDLE_SHARED, CONTACT_EMAIL_SHARED, CONTACT_PHONE_SHARED, OWNER_BY_UPLOADED_BY,
+};
 use crate::protected_fields::{ACCOUNT_PROTECTED_FIELDS, USER_PROTECTED_FIELDS};
 use crate::service_users::{
     SERVICE_USER_ACTIVITY_APPEND_ONLY, SERVICE_USER_ACTIVITY_WRITE, SERVICE_USER_CREATE_GATE,

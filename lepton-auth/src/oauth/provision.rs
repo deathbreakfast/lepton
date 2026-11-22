@@ -137,8 +137,21 @@ pub async fn create_oauth_user(
         }
     }
 
-    let profile = UserProfile::new(user_id.clone(), legal_name, display_name, now, now, None)
-        .map_err(|_| OAuthError::Store)?;
+    let profile = UserProfile::new(
+        user_id.clone(),
+        legal_name,
+        display_name,
+        now,
+        now,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    .map_err(|_| OAuthError::Store)?;
     let created_profile = UserProfile::create(profile, valence, valence::use_!(r"When **OAuth account linking** needs to persist work, we **save User Profile** so the next step in that feature can continue with the latest values. People and services allowed for **OAuth account linking** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .map_err(|_| OAuthError::Store)?;
