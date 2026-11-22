@@ -25,6 +25,7 @@ mod contact_validators;
 mod delivery_attempt;
 mod device_owner_privacy;
 mod email_change_account_primary;
+mod erase_account_actions;
 mod forbidden_deps;
 mod oauth_link_settings;
 #[cfg(feature = "oauth-microsoft")]
