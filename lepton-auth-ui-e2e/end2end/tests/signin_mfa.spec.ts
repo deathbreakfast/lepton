@@ -202,10 +202,15 @@ test.describe("pw-signin-mfa", () => {
     await expect(page).toHaveURL(/\/welcome/, { timeout: 60_000 });
 
     await page.goto("/user/account-settings");
+    await expect(page.getByTestId("account-settings-container")).toBeVisible({
+      timeout: 60_000,
+    });
     await expect(page.getByTestId("devices-add-passkey")).toBeVisible({
       timeout: 60_000,
     });
-    await page.getByTestId("devices-passkey-label").locator("input").fill("Reject passkey");
+    const labelInput = page.getByTestId("devices-passkey-label").locator("input");
+    await labelInput.fill("Reject passkey");
+    await expect(labelInput).toHaveValue("Reject passkey");
     await clickTestId(page, "devices-add-passkey");
     await expect(page.getByTestId("devices-row")).toContainText(/Reject passkey/i, {
       timeout: 60_000,
