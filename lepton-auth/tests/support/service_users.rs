@@ -2,15 +2,17 @@
 
 #![allow(dead_code, clippy::expect_used, clippy::unwrap_used)]
 
-use std::sync::{Arc, Once};
+use std::sync::{Arc, LazyLock, Once};
 
 use async_trait::async_trait;
 use chrono::Utc;
+use lepton_auth::scopes::{register_api_scopes, ScopeInfo};
 use lepton_auth::service_users::{create_service_user, NewServiceUser};
 use lepton_host_adapter::generated::{ServiceUserAccount, User, UserStatus, UserUserType};
 use lepton_identity::service_users::{
     install_service_user_gate, ServiceUserGate, ServiceUserGateError, ServiceUserId,
 };
+use lepton_identity::tokens::ApiScope;
 use valence::{Model, Valence};
 
 use crate::support::user_valence;
@@ -58,6 +60,36 @@ pub fn install_test_gate() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
         install_service_user_gate(Arc::new(PrefixGate)).expect("first gate install in this binary");
+    });
+}
+
+/// A scope from a known-good string.
+pub fn scope(raw: &str) -> ApiScope {
+    ApiScope::parse(raw).expect("scope")
+}
+
+/// The scopes [`install_test_scopes`] registers: FamBam's four.
+pub static TEST_SCOPES: LazyLock<Vec<ApiScope>> = LazyLock::new(|| {
+    ["magnon:read", "magnon:write", "spectra:read", "files:read"]
+        .into_iter()
+        .map(scope)
+        .collect()
+});
+
+/// Just `magnon:read`, the scope most tests mint with.
+pub static MAGNON_READ: LazyLock<Vec<ApiScope>> = LazyLock::new(|| vec![scope("magnon:read")]);
+
+/// Register [`TEST_SCOPES`] once per test binary.
+pub fn install_test_scopes() {
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        register_api_scopes(
+            TEST_SCOPES
+                .iter()
+                .map(|s| ScopeInfo::new(s.clone(), s.as_str()))
+                .collect(),
+        )
+        .expect("first scope registration in this binary");
     });
 }
 

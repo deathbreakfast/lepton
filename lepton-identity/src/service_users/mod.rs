@@ -76,6 +76,8 @@ mod resolve;
 mod rules;
 mod token;
 
+/// The token check covers both kinds; it lives in [`crate::tokens`].
+pub use crate::tokens::{verify_bearer_token, TokenPrincipal, VerifiedToken};
 pub use gate::{
     install_service_user_gate, installed_service_user_gate, ServiceUserGate,
     ServiceUserGateAlreadyInstalled, ServiceUserGateError,
@@ -91,7 +93,6 @@ pub use rules::{
     SERVICE_USER_CREATE_GATE, SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
 };
 pub use token::{
-    hash_token_secret, verify_bearer_token, ServiceUserToken, ServiceUserTokenCreateRule,
-    ServiceUserTokenImmutableRule, ServiceUserTokenParseError, VerifiedServiceUser,
-    SERVICE_USER_TOKEN_CREATE, SERVICE_USER_TOKEN_IMMUTABLE, TOKEN_PREFIX,
+    ServiceUserTokenCreateRule, ServiceUserTokenImmutableRule, ServiceUserTokenTouchRule,
+    SERVICE_USER_TOKEN_CREATE, SERVICE_USER_TOKEN_IMMUTABLE, SERVICE_USER_TOKEN_TOUCH,
 };

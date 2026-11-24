@@ -6,6 +6,15 @@ All notable changes to `lepton-identity` are recorded here.
 
 ### Added
 
+- `tokens` module: one token model for people and service users. `PersonalToken` model
+  (`personal_token` table, owner-only, deleted with its person) with the
+  `PERSONAL_TOKEN_IMMUTABLE` rule. `ApiScope` (`api:action`) and `TokenLifetime` (30 or 90
+  days). `tokens::verify_bearer_token` returns a `VerifiedToken`: who the token acts as
+  (`TokenPrincipal::Person` or `TokenPrincipal::ServiceUser`) and its scopes.
+  `tokens::record_token_use` writes `last_used_at` as the token's own actor.
+- `service_user_token` gains `scopes`, `kind` (`manual` or `device`), `device_id` and
+  `last_used_at` (schema version 0.2.0), and the `SERVICE_USER_TOKEN_TOUCH` rule, which lets
+  a service user record its own token's last use and change nothing else.
 - `ServiceUserActivity` model (`service_user_activity` table): an append-only history of
   each service user's lifecycle changes and token events, readable by the owner and by
   manage-any users. Rules `SERVICE_USER_ACTIVITY_WRITE` and
@@ -29,6 +38,13 @@ All notable changes to `lepton-identity` are recorded here.
 
 ### Changed
 
+- Lepton tokens now start with `lptk_` (`tokens::LeptonToken`). The bearer check accepts
+  nothing else, so `lpt_` service user tokens stop verifying; mint new ones.
+  `service_users::ServiceUserToken`, `ServiceUserTokenParseError`, `VerifiedServiceUser`,
+  `TOKEN_PREFIX` and `hash_token_secret` moved to or were replaced by the `tokens` module;
+  `service_users::verify_bearer_token` re-exports the new check.
+- `SERVICE_USER_TOKEN_IMMUTABLE` also blocks changes to `scopes`, `kind`, `device_id` and
+  `created_at`, and now compares stored timestamps correctly.
 - `ProfilePhoto` update and delete now match the session user against `uploaded_by`
   through `OWNER_BY_UPLOADED_BY`. The old rule read a `user` field the table
   doesn't have, so owners were refused. The schema version is 0.2.0.

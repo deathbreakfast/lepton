@@ -66,6 +66,17 @@ pub enum ServiceUserError {
     /// Storage failed.
     #[error("reason_class=store: service user store operation failed")]
     Store,
+    /// The host registered no API scopes, so no token can be minted. A host configuration
+    /// problem; see [`register_api_scopes`](crate::scopes::register_api_scopes).
+    #[error("reason_class=not_configured: no API scopes registered")]
+    ScopesNotRegistered,
+    /// Minting a token needs a recent step-up, and there is none. `reason_class` is the
+    /// step-up reason, such as `step_up_required` or `totp_enrollment_required`.
+    #[error("reason_class=step_up: step-up needed ({reason_class})")]
+    StepUp {
+        /// The step-up failure's reason class.
+        reason_class: &'static str,
+    },
     /// Service user storage is not wired up for this host: the
     /// `service_user_account` table has no backend. A host configuration problem,
     /// not a transient store failure.
@@ -80,7 +91,7 @@ impl ServiceUserError {
         match self {
             Self::NotAUser => "actor",
             Self::CreateNotPermitted => "permission",
-            Self::GateNotInstalled => "not_configured",
+            Self::GateNotInstalled | Self::ScopesNotRegistered => "not_configured",
             Self::Gate(_) => "gate",
             Self::InvalidHandle(_) => "handle",
             Self::QuotaReached { .. } => "quota",
@@ -90,7 +101,24 @@ impl ServiceUserError {
             Self::InvalidTransition { .. } => "transition",
             Self::Forbidden => "forbidden",
             Self::Store => "store",
+            Self::StepUp { .. } => "step_up",
             Self::Misconfigured => "config",
+        }
+    }
+}
+
+#[cfg(feature = "totp")]
+impl ServiceUserError {
+    /// Map a failed step-up check: no signed-in session is [`Self::NotAUser`], a session store
+    /// failure is [`Self::Store`], and everything else is [`Self::StepUp`].
+    pub(crate) const fn from_step_up(e: &crate::step_up::StepUpError) -> Self {
+        use crate::step_up::StepUpError;
+        match e {
+            StepUpError::AuthRequired => Self::NotAUser,
+            StepUpError::Store => Self::Store,
+            other => Self::StepUp {
+                reason_class: other.reason_class(),
+            },
         }
     }
 }

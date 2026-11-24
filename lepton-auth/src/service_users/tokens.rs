@@ -1,35 +1,43 @@
-//! Create, list, and revoke personal access tokens for a service user.
+//! Create, list, and revoke access tokens for a service user.
 
-use chrono::{DateTime, Duration, Utc};
-use lepton_host_adapter::generated::ServiceUserToken as TokenRow;
-use lepton_identity::service_users::{ServiceUserId, ServiceUserToken};
+use chrono::Utc;
+use lepton_host_adapter::generated::{ServiceUserToken as TokenRow, ServiceUserTokenKind};
+use lepton_identity::service_users::ServiceUserId;
+use lepton_identity::tokens::{scopes_to_json, ApiScope, LeptonToken, TokenLifetime};
 use tokio::sync::Mutex;
 use valence::{Actor, Model, RecordId, Valence};
 
 use super::activity::{record_service_user_token_activity, ServiceUserTokenEvent};
 use super::api::get_service_user;
 use super::ServiceUserError;
+use crate::scopes::{check_scopes, ScopeError};
 
 /// Live (unrevoked, unexpired) tokens one service user can have at once.
 pub const MAX_TOKENS_PER_SERVICE_USER: usize = 10;
 
-/// Longest a token can live from the moment it is created, in days.
-pub const MAX_TOKEN_LIFETIME_DAYS: i64 = 365;
-
 const MAX_LABEL: usize = 80;
+
+const MAX_DEVICE_ID: usize = 128;
 
 /// Serializes the count-then-insert in [`create_service_user_token`] so concurrent creates
 /// cannot both pass the limit.
 static CREATE_LOCK: Mutex<()> = Mutex::const_new(());
 
 /// Settings for a new token. See [`create_service_user_token`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct NewServiceUserToken<'a> {
     /// What the token is for, such as `ci` (1-80 characters).
     pub label: &'a str,
-    /// When the token stops working. Must be in the future and within
-    /// [`MAX_TOKEN_LIFETIME_DAYS`] of now.
-    pub expires_at: DateTime<Utc>,
+    /// The APIs the token may call. At least one, each registered by the host
+    /// ([`register_api_scopes`](crate::scopes::register_api_scopes)).
+    pub scopes: &'a [ApiScope],
+    /// How long the token lasts: 30 or 90 days.
+    pub lifetime: TokenLifetime,
+    /// Made by hand on the service user's page, or issued to a device.
+    pub kind: ServiceUserTokenKind,
+    /// The device a [`ServiceUserTokenKind::Device`] token is issued to, when there is a device
+    /// record (up to 128 characters). Must be `None` for a hand-made token.
+    pub device_id: Option<&'a str>,
 }
 
 /// A token just created: the stored row plus the one-time plaintext.
@@ -59,7 +67,7 @@ fn caller_bare(valence: &Valence) -> Result<String, ServiceUserError> {
     }
 }
 
-fn is_live(row: &TokenRow, now: DateTime<Utc>) -> bool {
+fn is_live(row: &TokenRow, now: chrono::DateTime<Utc>) -> bool {
     row.revoked_at().is_none() && *row.expires_at() > now
 }
 
@@ -87,21 +95,59 @@ fn log(op: &'static str, result: Result<(), &ServiceUserError>, service_user: &S
     }
 }
 
-/// Create an access token for a service user the caller owns.
+/// Create an access token for a service user the caller owns, after a recent step-up.
 ///
-/// Pass the request Valence (`ctx.valence()`). Callers who can only see a service user
+/// Call it from a server function with the request Valence (`ctx.valence()`). It first
+/// checks the session's step-up window
+/// ([`require_recent_verification`](crate::step_up::require_recent_verification)); open one
+/// with lepton-auth-ui's step-up flow before calling. Callers who can only see a service user
 /// (manage-any) cannot create tokens for it.
 ///
 /// # Errors
 ///
+/// - [`ServiceUserError::StepUp`] when the session has no recent step-up.
 /// - [`ServiceUserError::NotAUser`] when the caller is not a signed-in user.
 /// - [`ServiceUserError::NotFound`] when the service user does not exist or the caller cannot
 ///   see it.
-/// - [`ServiceUserError::InvalidProfile`] for a bad label (`label`) or expiry (`expires_at`).
+/// - [`ServiceUserError::InvalidProfile`] for a bad `label`, `scopes`, or `device_id`.
+/// - [`ServiceUserError::ScopesNotRegistered`] when the host registered no scopes.
 /// - [`ServiceUserError::QuotaReached`] at [`MAX_TOKENS_PER_SERVICE_USER`] live tokens.
 /// - [`ServiceUserError::Forbidden`] when the caller sees the service user but does not own it.
 /// - [`ServiceUserError::Store`] on a storage failure.
+#[cfg(feature = "totp")]
 pub async fn create_service_user_token(
+    valence: &Valence,
+    id: &ServiceUserId,
+    input: NewServiceUserToken<'_>,
+) -> Result<CreatedServiceUserToken, ServiceUserError> {
+    use crate::step_up::{require_recent_verification, StepUpScope};
+
+    if let Err(e) = require_recent_verification(StepUpScope::SensitiveMutation).await {
+        let err = ServiceUserError::from_step_up(&e);
+        log("token_create", Err(&err), id);
+        return Err(err);
+    }
+    mint_service_user_token(valence, id, input).await
+}
+
+/// **Test only.** [`create_service_user_token`] without the step-up check, for suites that
+/// run without an HTTP session.
+///
+/// # Errors
+///
+/// As [`create_service_user_token`], except [`ServiceUserError::StepUp`].
+#[cfg(feature = "test-utils")]
+pub async fn create_service_user_token_without_step_up(
+    valence: &Valence,
+    id: &ServiceUserId,
+    input: NewServiceUserToken<'_>,
+) -> Result<CreatedServiceUserToken, ServiceUserError> {
+    mint_service_user_token(valence, id, input).await
+}
+
+/// Mint a token once the caller has passed step-up.
+#[cfg_attr(not(any(feature = "totp", feature = "test-utils")), allow(dead_code))]
+async fn mint_service_user_token(
     valence: &Valence,
     id: &ServiceUserId,
     input: NewServiceUserToken<'_>,
@@ -120,6 +166,30 @@ pub async fn create_service_user_token(
     result
 }
 
+fn checked_scopes(requested: &[ApiScope]) -> Result<Vec<ApiScope>, ServiceUserError> {
+    check_scopes(requested).map_err(|e| match e {
+        ScopeError::NotRegistered => ServiceUserError::ScopesNotRegistered,
+        ScopeError::Empty | ScopeError::Unknown(_) => {
+            ServiceUserError::InvalidProfile { field: "scopes" }
+        }
+    })
+}
+
+fn checked_device_id<'a>(
+    kind: &ServiceUserTokenKind,
+    device_id: Option<&'a str>,
+) -> Result<Option<&'a str>, ServiceUserError> {
+    let bad = ServiceUserError::InvalidProfile { field: "device_id" };
+    match (kind, device_id.map(str::trim)) {
+        (_, None) => Ok(None),
+        (ServiceUserTokenKind::Manual, Some(_)) => Err(bad),
+        (ServiceUserTokenKind::Device, Some(d)) if d.is_empty() || d.len() > MAX_DEVICE_ID => {
+            Err(bad)
+        }
+        (ServiceUserTokenKind::Device, Some(d)) => Ok(Some(d)),
+    }
+}
+
 async fn create_inner(
     valence: &Valence,
     id: &ServiceUserId,
@@ -130,12 +200,9 @@ async fn create_inner(
     if label.is_empty() || label.chars().count() > MAX_LABEL {
         return Err(ServiceUserError::InvalidProfile { field: "label" });
     }
+    let scopes = checked_scopes(input.scopes)?;
+    let device_id = checked_device_id(&input.kind, input.device_id)?;
     let now = Utc::now();
-    if input.expires_at <= now || input.expires_at > now + Duration::days(MAX_TOKEN_LIFETIME_DAYS) {
-        return Err(ServiceUserError::InvalidProfile {
-            field: "expires_at",
-        });
-    }
     let service_user = get_service_user(valence, id).await?;
 
     let _guard = CREATE_LOCK.lock().await;
@@ -150,13 +217,17 @@ async fn create_inner(
         });
     }
 
-    let token = ServiceUserToken::generate();
+    let token = LeptonToken::generate();
     let row = TokenRow::new(
         Some(RecordId::new("user", &owner)),
         Some(RecordId::new("service_user_account", id.as_str())),
         label.to_string(),
         token.hash(),
-        input.expires_at,
+        Some(scopes_to_json(&scopes)),
+        Some(input.kind),
+        device_id.map(str::to_string),
+        input.lifetime.expires_at(now),
+        None,
         None,
         now,
     )
@@ -165,7 +236,7 @@ async fn create_inner(
         token.id(),
         row,
         valence,
-        valence::use_!(r"When you **create an access token for a service user**, we **save its label, expiry, and a one-way hash of the secret**, and **show you the token once**. You see the label and expiry on the service user's page; the secret itself is never stored."),
+        valence::use_!(r"When you **create an access token for a service user**, we **save its label, the APIs it may call, its expiry, and a one-way hash of the secret**, and **show you the token once**. You see the label, APIs and expiry on the service user's page; the secret itself is never stored."),
     )
     .await
     .map_err(|e| write_error(&e))?;
@@ -198,14 +269,15 @@ async fn list_rows(
     TokenRow::get_from_service_user(
         service_user,
         valence,
-        valence::use_!(r"On a **service user's page**, we **list its access tokens** with their label, expiry, and whether they are revoked, so the owner can see and revoke them. The secret is never included."),
+        valence::use_!(r"On a **service user's page**, we **list its access tokens** with their label, the APIs they may call, expiry, last use, and whether they are revoked, so the owner can see and revoke them. The secret is never included."),
     )
     .await
     .map_err(|_| ServiceUserError::Store)
 }
 
-/// Tokens of a service user the caller may see, oldest first. Metadata only: the secret and
-/// its hash are not part of any view the caller is meant to show.
+/// Tokens of a service user the caller may see, oldest first, with their scopes, kind, last
+/// use and status. Metadata only: the secret and its hash are not part of any view the caller
+/// is meant to show.
 ///
 /// # Errors
 ///

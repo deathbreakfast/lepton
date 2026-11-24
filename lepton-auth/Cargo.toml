@@ -114,6 +114,14 @@ name = "auth_oauth_mock"
 required-features = ["ssr", "oauth-github"]
 
 [[test]]
+name = "service_user_tokens"
+required-features = ["ssr", "test-utils"]
+
+[[test]]
+name = "personal_tokens"
+required-features = ["ssr", "test-utils"]
+
+[[test]]
 name = "service_users_gate_unwired"
 required-features = ["ssr"]
 
