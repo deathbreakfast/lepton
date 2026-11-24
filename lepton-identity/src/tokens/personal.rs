@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 use valence::{ActorContext, PolicyEvaluator, PrivacyOperation, Result, Valence};
 
-use super::fields_changed;
+use super::{fields_changed, revoke_undone};
 use crate::service_users::ref_id;
 
 pub(super) const PERSONAL_TOKEN_TABLE: &str = "personal_token";
@@ -15,8 +15,10 @@ pub(super) const PERSONAL_TOKEN_TABLE: &str = "personal_token";
 const PERSONAL_TOKEN_IMMUTABLE_FIELDS: &[&str] =
     &["user", "token_hash", "scopes", "expires_at", "created_at"];
 
-/// `update` `always_block` rule: blocks any change to a personal token's owner, secret hash,
-/// scopes, or expiry. Revoking sets `revoked_at`; each use sets `last_used_at`.
+/// `update` `always_block` rule: a personal token's owner, hash, scopes and expiry never change.
+///
+/// Nor does `revoked_at` once it is set, so a revoke can't be undone. Revoking sets
+/// `revoked_at`; each use sets `last_used_at`.
 pub const PERSONAL_TOKEN_IMMUTABLE: PersonalTokenImmutableRule = PersonalTokenImmutableRule;
 
 /// See [`PERSONAL_TOKEN_IMMUTABLE`].
@@ -30,7 +32,7 @@ impl PolicyEvaluator for PersonalTokenImmutableRule {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Blocks any update that changes a personal token's owner, secret hash, scopes, or expiry")
+        Some("Blocks any update that changes a personal token's owner, secret hash, scopes, or expiry, or undoes its revoke")
     }
 
     async fn evaluate(
@@ -57,11 +59,10 @@ impl PolicyEvaluator for PersonalTokenImmutableRule {
         let Some(stored) = stored else {
             return Ok(true);
         };
-        Ok(fields_changed(
-            PERSONAL_TOKEN_IMMUTABLE_FIELDS,
-            record,
-            &stored,
-        ))
+        Ok(
+            fields_changed(PERSONAL_TOKEN_IMMUTABLE_FIELDS, record, &stored)
+                || revoke_undone(record, &stored),
+        )
     }
 
     fn as_any(&self) -> &dyn Any {

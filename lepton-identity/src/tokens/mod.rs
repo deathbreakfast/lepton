@@ -82,6 +82,14 @@ pub(crate) fn fields_changed(fields: &[&str], proposed: &Value, stored: &Value) 
         .any(|f| compared(f, proposed.get(*f)) != compared(f, stored.get(*f)))
 }
 
+/// Whether the update clears or moves a revoke that is already stored. Revoking (empty to a
+/// time) is allowed; nobody, the owner included, can bring a revoked token back.
+pub(crate) fn revoke_undone(proposed: &Value, stored: &Value) -> bool {
+    let field = "revoked_at";
+    let before = compared(field, stored.get(field));
+    before != Compared::Absent && compared(field, proposed.get(field)) != before
+}
+
 /// Whether any field other than `allowed` (and the row key) differs between the two rows.
 pub(crate) fn changed_other_than(allowed: &str, proposed: &Value, stored: &Value) -> bool {
     let keys = |row: &Value| {
@@ -119,6 +127,26 @@ mod tests {
             proposed[field] = value;
             assert!(fields_changed(&fields, &proposed, &stored), "{field}");
         }
+    }
+
+    #[test]
+    fn revoke_is_one_way() {
+        let live = json!({"revoked_at": null});
+        let revoked = json!({"revoked_at": 50});
+        assert!(!revoke_undone(&revoked, &live), "revoking is allowed");
+        assert!(
+            !revoke_undone(&revoked, &revoked),
+            "keeping the revoke is allowed"
+        );
+        assert!(revoke_undone(&live, &revoked), "clearing is refused");
+        assert!(
+            revoke_undone(&json!({}), &revoked),
+            "dropping the field is refused"
+        );
+        assert!(
+            revoke_undone(&json!({"revoked_at": 60}), &revoked),
+            "moving is refused"
+        );
     }
 
     #[test]

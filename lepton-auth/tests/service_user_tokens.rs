@@ -288,7 +288,7 @@ async fn service_user_records_its_own_last_use_only() {
     assert!(verified.last_used_at.is_none());
 
     let as_service_user = sys.with_actor(id.actor());
-    record_token_use(&verified, &sys, &as_service_user)
+    record_token_use(&verified, &as_service_user)
         .await
         .expect("service user records its own use");
     let again = verify_bearer_token(&created.token, &sys)
@@ -298,7 +298,7 @@ async fn service_user_records_its_own_last_use_only() {
 
     // Another service user cannot touch this token.
     let as_other = sys.with_actor(other.actor());
-    assert!(record_token_use(&verified, &sys, &as_other).await.is_err());
+    assert!(record_token_use(&verified, &as_other).await.is_err());
 
     // The touch rule allows `last_used_at` only: a service user cannot revoke or relabel.
     let row: TokenRow =
@@ -406,9 +406,18 @@ async fn only_the_owner_manages_tokens_sad() {
     assert!(create_service_user_token(&admin, &id, new_token("x"))
         .await
         .is_err());
-    revoke_service_user_token(&admin, &id, &token_id)
+    let revoked = revoke_service_user_token(&admin, &id, &token_id)
         .await
         .expect("admin revokes");
+    assert!(verify_bearer_token(&created.token, &sys).await.is_none());
+
+    // The owner cannot undo the manage-any user's revoke.
+    let undo = revoked
+        .get_mutable(&alice, valence::use_!(r"**Test:** Attempt by the owner to clear a manage-any user's revoke on a **service user token**, which must be refused. CI and developers running the suite only."))
+        .clear_revoked_at()
+        .commit()
+        .await;
+    assert!(undo.is_err(), "a revoke can't be undone");
     assert!(verify_bearer_token(&created.token, &sys).await.is_none());
 }
 

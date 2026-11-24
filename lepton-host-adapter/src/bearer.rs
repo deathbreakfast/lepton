@@ -124,9 +124,9 @@ fn build(factory: &dyn HiggsValenceFactory, actor: &Actor) -> Option<Valence> {
 ///
 /// Mount with `middleware::from_fn_with_state(higgs.valence_factory().clone(), bearer_middleware)`.
 /// The token lookup runs before any identity exists, so it uses the factory's System-level
-/// handle, the same narrow exception [`Backend`](crate::Backend) makes for sign-in. That
-/// handle also reads the row when recording the token's last use; the write itself, and
-/// everything downstream, runs as the token's own actor.
+/// handle, the same narrow exception [`Backend`](crate::Backend) makes for sign-in, for that
+/// one lookup only. Recording the token's last use, and everything downstream, runs as the
+/// token's own actor.
 pub async fn bearer_middleware(
     State(factory): State<Arc<dyn HiggsValenceFactory>>,
     mut req: Request,
@@ -157,7 +157,7 @@ pub async fn bearer_middleware(
         .last_used_at
         .is_none_or(|at| Utc::now() - at >= TOUCH_EVERY)
     {
-        if let Err(e) = record_token_use(&verified, &lookup, &caller).await {
+        if let Err(e) = record_token_use(&verified, &caller).await {
             tracing::warn!(target: "lepton.token", error = %e, "bearer: last use not recorded");
         }
     }

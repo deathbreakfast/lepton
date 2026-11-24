@@ -217,6 +217,15 @@ async fn revoked_token_refused_sad() {
         .await
         .expect("revoke again");
     assert_eq!(again.revoked_at(), Some(&first));
+
+    // Nobody brings it back, the person included.
+    let undo = again
+        .get_mutable(&alice, valence::use_!(r"**Test:** Attempt to clear the revoke on a **personal token**, which must be refused. CI and developers running the suite only."))
+        .clear_revoked_at()
+        .commit()
+        .await;
+    assert!(undo.is_err(), "a revoke can't be undone");
+    assert!(verify_bearer_token(&created.token, &sys).await.is_none());
 }
 
 #[tokio::test]
@@ -346,7 +355,7 @@ async fn last_use_is_recorded_as_the_person() {
         .await
         .expect("verify");
     assert!(verified.last_used_at.is_none());
-    record_token_use(&verified, &sys, &alice)
+    record_token_use(&verified, &alice)
         .await
         .expect("record use");
     let listed = list_personal_tokens(&alice).await.expect("list");
@@ -354,7 +363,7 @@ async fn last_use_is_recorded_as_the_person() {
 
     // Someone else cannot write it.
     let bob = person(&sys, "pt-touch-bob").await;
-    assert!(record_token_use(&verified, &sys, &bob).await.is_err());
+    assert!(record_token_use(&verified, &bob).await.is_err());
 }
 
 #[tokio::test]

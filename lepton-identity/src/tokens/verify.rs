@@ -44,7 +44,7 @@ impl TokenPrincipal {
 }
 
 /// A token that verified: who it acts as and which APIs it may call.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct VerifiedToken {
     /// Who the token acts as.
     pub principal: TokenPrincipal,
@@ -54,6 +54,20 @@ pub struct VerifiedToken {
     pub scopes: Vec<ApiScope>,
     /// When the token was last used before this request, if ever.
     pub last_used_at: Option<DateTime<Utc>>,
+    /// The stored row the check read, kept for [`record_token_use`] so recording a use needs
+    /// no second read through the lookup handle.
+    row: Value,
+}
+
+impl std::fmt::Debug for VerifiedToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VerifiedToken")
+            .field("principal", &self.principal)
+            .field("token_id", &self.token_id)
+            .field("scopes", &self.scopes)
+            .field("last_used_at", &self.last_used_at)
+            .finish_non_exhaustive()
+    }
 }
 
 impl VerifiedToken {
@@ -97,7 +111,7 @@ fn parse_time(value: &Value) -> Option<DateTime<Utc>> {
 /// token from a revoked one.
 ///
 /// The lookup happens before anyone is identified, so `v` is the host's System-level handle
-/// for the lookup only. Run the request itself on a Valence for
+/// for this lookup only; [`record_token_use`] reuses the row it read. Run the request itself on a Valence for
 /// [`TokenPrincipal::actor`].
 pub async fn verify_bearer_token(raw: &str, v: &Valence) -> Option<VerifiedToken> {
     let token = LeptonToken::parse(raw).ok()?;
@@ -142,6 +156,7 @@ fn verified(token: &LeptonToken, row: &Value, principal: TokenPrincipal) -> Veri
         token_id: token.id().to_string(),
         scopes: scopes_from_json(row.get("scopes")),
         last_used_at: row.get("last_used_at").and_then(parse_time),
+        row: row.clone(),
     }
 }
 
@@ -205,41 +220,25 @@ async fn verify_service_user(
 
 /// Record that `token` was just used, writing `last_used_at` as the token's own actor.
 ///
-/// `lookup` is the handle [`verify_bearer_token`] used: it reads the stored row, which a
-/// service user may not read for itself. The write goes through `caller`, a Valence for
+/// It reuses the row [`verify_bearer_token`] read, so nothing past the lookup before identity
+/// touches the System handle. The write goes through `caller`, a Valence for
 /// [`TokenPrincipal::actor`]. A person updates their own token; a service user passes
 /// [`SERVICE_USER_TOKEN_TOUCH`](crate::service_users::SERVICE_USER_TOKEN_TOUCH), which lets it
 /// change `last_used_at` and nothing else.
 ///
 /// # Errors
 ///
-/// A store or privacy error from the read or the write. Callers treat this as best effort.
-pub async fn record_token_use(
-    token: &VerifiedToken,
-    lookup: &Valence,
-    caller: &Valence,
-) -> valence::Result<()> {
+/// A store or privacy error from the write. Callers treat this as best effort.
+pub async fn record_token_use(token: &VerifiedToken, caller: &Valence) -> valence::Result<()> {
     use crate::generated::{PersonalToken, ServiceUserToken};
 
-    let table = token.table();
-    let backend = lookup.backend_for_table(table)?;
-    let Some(row) = valence::get_record(
-        backend.as_ref(),
-        table,
-        &token.token_id,
-        valence::use_!(r"When an **access token** is used, we **read its stored row** so we can record **when it was last used**. Its owner sees that time in the token list."),
-    )
-    .await?
-    else {
-        return Ok(());
-    };
     let now = Utc::now();
     let purpose = valence::use_!(
         r"When an **access token** is used, we **save the time** as its **last used** time. Its owner sees it in the token list, to spot tokens nobody uses any more."
     );
     match token.principal {
         TokenPrincipal::Person(_) => {
-            let model: PersonalToken = serde_json::from_value(row)?;
+            let model: PersonalToken = serde_json::from_value(token.row.clone())?;
             model
                 .get_mutable(caller, purpose)
                 .set_last_used_at(now)?
@@ -247,7 +246,7 @@ pub async fn record_token_use(
                 .await?;
         }
         TokenPrincipal::ServiceUser { .. } => {
-            let model: ServiceUserToken = serde_json::from_value(row)?;
+            let model: ServiceUserToken = serde_json::from_value(token.row.clone())?;
             model
                 .get_mutable(caller, purpose)
                 .set_last_used_at(now)?
@@ -287,6 +286,7 @@ mod tests {
             token_id: "t".into(),
             scopes: vec![ApiScope::parse("magnon:read").expect("scope")],
             last_used_at: None,
+            row: Value::Null,
         };
         assert_eq!(token.principal.actor(), id.actor());
         assert_eq!(token.table(), "service_user_token");

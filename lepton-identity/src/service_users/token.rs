@@ -11,7 +11,7 @@ use valence::{ActorContext, PolicyEvaluator, PrivacyOperation, Result, Valence};
 
 use super::id::ServiceUserId;
 use super::rules::{ref_id, user_actor, SERVICE_USER_TABLE};
-use crate::tokens::{changed_other_than, fields_changed};
+use crate::tokens::{changed_other_than, fields_changed, revoke_undone};
 use valence::privacy_policies::owner::check_owner_by_field;
 
 const TOKEN_TABLE: &str = "service_user_token";
@@ -34,8 +34,11 @@ const TOKEN_IMMUTABLE_FIELDS: &[&str] = &[
 /// user they do not own.
 pub const SERVICE_USER_TOKEN_CREATE: ServiceUserTokenCreateRule = ServiceUserTokenCreateRule;
 
-/// `update` `always_block` rule: blocks any change to the owner, service user, secret hash,
-/// scopes, kind, device, or expiry. Revoking sets `revoked_at`; each use sets `last_used_at`.
+/// `update` `always_block` rule: a token's owner, service user, hash, scopes, kind, device and
+/// expiry never change.
+///
+/// Nor does `revoked_at` once it is set, so nobody (the owner included) can undo a manage-any
+/// user's revoke. Revoking sets `revoked_at`; each use sets `last_used_at`.
 pub const SERVICE_USER_TOKEN_IMMUTABLE: ServiceUserTokenImmutableRule =
     ServiceUserTokenImmutableRule;
 
@@ -109,7 +112,7 @@ impl PolicyEvaluator for ServiceUserTokenImmutableRule {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("Blocks any update that changes a token's owner, service user, secret hash, scopes, kind, device, or expiry")
+        Some("Blocks any update that changes a token's owner, service user, secret hash, scopes, kind, device, or expiry, or undoes its revoke")
     }
 
     async fn evaluate(
@@ -136,7 +139,8 @@ impl PolicyEvaluator for ServiceUserTokenImmutableRule {
         let Some(stored) = stored else {
             return Ok(true);
         };
-        Ok(fields_changed(TOKEN_IMMUTABLE_FIELDS, record, &stored))
+        Ok(fields_changed(TOKEN_IMMUTABLE_FIELDS, record, &stored)
+            || revoke_undone(record, &stored))
     }
 
     fn as_any(&self) -> &dyn Any {
