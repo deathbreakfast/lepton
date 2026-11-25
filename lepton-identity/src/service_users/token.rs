@@ -162,14 +162,10 @@ impl VerifiedServiceUser {
     }
 }
 
-/// A stored timestamp: Unix seconds (how backends hold `DateTime`) or RFC 3339 text.
+/// A stored timestamp, decoded the way Valence decodes `DateTime` fields: Unix milliseconds,
+/// legacy Unix seconds, or RFC 3339 text.
 fn parse_time(value: &Value) -> Option<DateTime<Utc>> {
-    if let Some(secs) = value.as_i64() {
-        return DateTime::from_timestamp(secs, 0);
-    }
-    DateTime::parse_from_rfc3339(value.as_str()?)
-        .ok()
-        .map(|t| t.with_timezone(&Utc))
+    valence::datetime_unix::deserialize(value).ok()
 }
 
 /// Check a bearer token and name the service user it acts as.
@@ -371,6 +367,11 @@ mod tests {
     fn parse_time_accepts_stored_shapes() {
         use serde_json::json;
         assert!(parse_time(&json!(1_793_670_014)).is_some());
+        // Valence writes milliseconds; a seconds reading would land tens of millennia out.
+        assert_eq!(
+            parse_time(&json!(1_793_670_014_000_i64)),
+            parse_time(&json!(1_793_670_014))
+        );
         assert!(parse_time(&json!("2026-11-02T00:00:00Z")).is_some());
         assert!(parse_time(&json!(null)).is_none());
         assert!(parse_time(&json!("soon")).is_none());

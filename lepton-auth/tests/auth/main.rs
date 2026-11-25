@@ -33,6 +33,7 @@ mod oauth_microsoft_signup;
 mod oauth_pkce_state;
 mod oauth_signup_collision;
 mod password_hash_privacy;
+mod profile_display_name_backfill;
 mod protected_fields;
 mod service_users_concurrency;
 #[cfg(feature = "test-utils")]
@@ -50,6 +51,7 @@ mod step_up_verify;
 mod totp_recovery;
 #[cfg(feature = "totp")]
 mod totp_seal_enroll;
+mod user_status_visibility;
 #[cfg(all(feature = "test-utils", feature = "phone"))]
 mod verification_tokens;
 #[cfg(feature = "webauthn")]

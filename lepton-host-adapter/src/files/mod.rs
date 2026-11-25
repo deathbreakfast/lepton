@@ -299,7 +299,7 @@ async fn load_or_create_session_profile(
     user: &User,
 ) -> Result<UserProfile, HttpErr> {
     let user_thing = user.id.clone();
-    let profile = UserProfile::query(session_v, valence::use_!(r"When you **upload a profile photo**, we **load your account profile** first so we know which profile the new photo belongs to. If you have never opened your profile before, we create one next from your account email."))
+    let profile = UserProfile::query(session_v, valence::use_!(r"When you **upload a profile photo**, we **load your account profile** first so we know which profile the new photo belongs to. If you have never opened your profile before, we create one next."))
         .where_user(RecordPredicate::Equals(user_thing.clone()))
         .first()
         .await
@@ -314,16 +314,23 @@ async fn load_or_create_session_profile(
         return Ok(p);
     }
 
-    let email = user.email.clone();
+    // display_name is public, so it gets a neutral default; legal_name is owner-only.
     let now = Utc::now();
-    let new_profile =
-        UserProfile::new(user_thing, email.clone(), email, now, now, None).map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to build profile".to_string(),
-            )
-        })?;
-    UserProfile::create(new_profile, session_v, valence::use_!(r"When you **upload a profile photo** and have never opened your **account profile** before, we **create a profile** from your account email so the photo has somewhere to attach. Only you use this profile record afterward."))
+    let new_profile = UserProfile::new(
+        user_thing,
+        user.email.clone(),
+        lepton_identity::profiles::DEFAULT_DISPLAY_NAME.to_string(),
+        now,
+        now,
+        None,
+    )
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to build profile".to_string(),
+        )
+    })?;
+    UserProfile::create(new_profile, session_v, valence::use_!(r"When you **upload a profile photo** and have never opened your **account profile** before, we **create a profile** with your account email as its private legal name and a neutral public display name, so the photo has somewhere to attach. You can change both names afterward."))
         .await
         .map_err(|_| {
             (

@@ -12,23 +12,33 @@ use orbital_core_components::{
 
 use super::oauth_provider_buttons::OAuthProviderButtons;
 
+/// Current path plus query. The router's `search` has no leading `?`.
 fn location_path_with_search(pathname: &str, search: &str) -> String {
     let mut path = pathname.to_owned();
     if !search.is_empty() {
+        if !search.starts_with('?') {
+            path.push('?');
+        }
         path.push_str(search);
     }
     path
 }
 
-/// Run success callback, then navigate only when the target differs from the current URL.
+/// Run the success callback, then hand `redirect_to` to `on_redirect` when the host set one.
+/// Otherwise navigate, but only when the target differs from the current URL.
 fn finish_signed_in_navigate(
     on_success: Option<Callback<()>>,
+    on_redirect: Option<Callback<String>>,
     navigate: impl Fn(&str, NavigateOptions),
     current_path: &str,
     redirect_to: &str,
 ) {
     if let Some(cb) = on_success {
         cb.run(());
+    }
+    if let Some(cb) = on_redirect {
+        cb.run(redirect_to.to_owned());
+        return;
     }
     // Stay put when already on the post-auth target (in-place gate modal).
     if current_path != redirect_to {
@@ -38,12 +48,17 @@ fn finish_signed_in_navigate(
 
 /// Sign-in form: submits [`lepton_auth::actions::signin::Signin`], optional MFA step,
 /// and offers a link/callback to switch to sign-up or request a password reset.
+///
+/// After sign-in it navigates to the outcome's `redirect_to`. Pass `on_redirect` to choose the
+/// landing page yourself: it receives `redirect_to` (after `on_success`) and the form
+/// skips its own navigation.
 #[component]
 #[allow(clippy::too_many_lines)] // password + MFA + passkey + OAuth layout in one component
 pub fn SigninContent(
     referer: Signal<String>,
     #[prop(default = None)] on_success: Option<Callback<()>>,
     #[prop(default = None)] on_switch_signup: Option<Callback<()>>,
+    #[prop(default = None)] on_redirect: Option<Callback<String>>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -62,7 +77,13 @@ pub fn SigninContent(
                     &location.pathname.get_untracked(),
                     &location.search.get_untracked(),
                 );
-                finish_signed_in_navigate(on_success, navigate.clone(), &current, &redirect_to);
+                finish_signed_in_navigate(
+                    on_success,
+                    on_redirect,
+                    navigate.clone(),
+                    &current,
+                    &redirect_to,
+                );
             }
             Some(Ok(SigninClientOutcome::NeedsMfa { has_webauthn: wa })) => {
                 has_webauthn.set(wa);
@@ -84,7 +105,13 @@ pub fn SigninContent(
                     &location.pathname.get_untracked(),
                     &location.search.get_untracked(),
                 );
-                finish_signed_in_navigate(on_success, navigate.clone(), &current, &redirect_to);
+                finish_signed_in_navigate(
+                    on_success,
+                    on_redirect,
+                    navigate.clone(),
+                    &current,
+                    &redirect_to,
+                );
             }
             Some(Ok(SigninClientOutcome::NeedsMfa { .. })) | None => {}
             Some(Err(e)) => {
@@ -101,7 +128,13 @@ pub fn SigninContent(
                     &location.pathname.get_untracked(),
                     &location.search.get_untracked(),
                 );
-                finish_signed_in_navigate(on_success, navigate.clone(), &current, &path);
+                finish_signed_in_navigate(
+                    on_success,
+                    on_redirect,
+                    navigate.clone(),
+                    &current,
+                    &path,
+                );
             }
         }
     });
@@ -271,5 +304,56 @@ async fn run_mfa_webauthn() -> Result<String, String> {
     match outcome {
         SigninClientOutcome::Completed { redirect_to } => Ok(redirect_to),
         SigninClientOutcome::NeedsMfa { .. } => Err("Unexpected MFA state after passkey".into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+
+    use std::sync::{Arc, Mutex};
+
+    use super::*;
+
+    #[test]
+    fn location_path_with_search_adds_question_mark_happy() {
+        assert_eq!(location_path_with_search("/a", "x=1"), "/a?x=1");
+        assert_eq!(location_path_with_search("/a", "?x=1"), "/a?x=1");
+    }
+
+    #[test]
+    fn location_path_with_search_empty_search_sad() {
+        assert_eq!(location_path_with_search("/a", ""), "/a");
+    }
+
+    #[test]
+    fn on_redirect_receives_target_and_skips_navigation_happy() {
+        Owner::new().with(|| {
+            let got = Arc::new(Mutex::new(None::<String>));
+            let navigated = Arc::new(Mutex::new(false));
+            let sink = Arc::clone(&got);
+            let on_redirect = Callback::new(move |to: String| *sink.lock().unwrap() = Some(to));
+            let flag = Arc::clone(&navigated);
+            finish_signed_in_navigate(
+                None,
+                Some(on_redirect),
+                move |_, _| *flag.lock().unwrap() = true,
+                "/auth/signin",
+                "/welcome",
+            );
+            assert_eq!(got.lock().unwrap().as_deref(), Some("/welcome"));
+            assert!(!*navigated.lock().unwrap());
+        });
+    }
+
+    #[test]
+    fn without_on_redirect_navigates_only_when_target_differs_sad() {
+        let to = Arc::new(Mutex::new(Vec::<String>::new()));
+        let sink = Arc::clone(&to);
+        let navigate = move |path: &str, _| sink.lock().unwrap().push(path.to_owned());
+        finish_signed_in_navigate(None, None, navigate.clone(), "/a?x=1", "/a?x=1");
+        assert!(to.lock().unwrap().is_empty(), "already on the target");
+        finish_signed_in_navigate(None, None, navigate, "/auth/signin", "/welcome");
+        assert_eq!(*to.lock().unwrap(), vec!["/welcome".to_owned()]);
     }
 }

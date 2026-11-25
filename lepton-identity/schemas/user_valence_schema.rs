@@ -72,7 +72,9 @@ valence_schema! {
                 r#type: FieldType::Enum(&["active", "disabled", "pending_verification"]),
                 required: false,
                 policies: {
-                    read: { allow: [OWNER_BY_ID] },
+                    // Any signed-in user can tell whether another user is active, so
+                    // people lists can leave out disabled and unverified accounts.
+                    read: { allow: [AUTHENTICATED] },
                 },
             },
             primary_email: {

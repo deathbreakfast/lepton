@@ -54,16 +54,26 @@ pub(super) async fn first_free(
     let candidates: Vec<ServiceUserHandle> = std::iter::once(handle.clone())
         .chain(handle.suggestions())
         .collect();
-    let keys: Vec<serde_json::Value> = candidates
+    // One `handle_key = $kN` term per candidate, joined with OR: document backends'
+    // row filters read `=` and `OR` but not `IN`.
+    let params: Vec<(String, serde_json::Value)> = candidates
         .iter()
-        .map(|c| serde_json::Value::String(c.key()))
+        .enumerate()
+        .map(|(i, c)| (format!("k{i}"), serde_json::Value::String(c.key())))
+        .collect();
+    let terms: Vec<String> = params
+        .iter()
+        .map(|(name, _)| format!("handle_key = ${name}"))
         .collect();
     let backend = valence
         .backend_for_table("service_user_account")
         .map_err(|_| ServiceUserError::Misconfigured)?;
     let compiled = CompiledQuery::new(
-        "SELECT handle_key FROM service_user_account WHERE handle_key IN $keys".to_string(),
-        vec![("keys".to_string(), serde_json::Value::Array(keys))],
+        format!(
+            "SELECT handle_key FROM service_user_account WHERE {}",
+            terms.join(" OR ")
+        ),
+        params,
     );
     let rows = backend
         .execute_compiled_query(&compiled)

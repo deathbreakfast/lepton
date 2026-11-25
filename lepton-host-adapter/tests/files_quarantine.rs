@@ -31,8 +31,9 @@ use lepton_host_adapter::files::{
 use lepton_host_adapter::{AuthSession, Backend, User};
 use lepton_identity::generated::{
     Account, AccountEmail, AccountPlan, AccountStatus, FileFileStatus, ProfilePhoto,
-    User as IdentityUser, UserStatus, UserUserType,
+    User as IdentityUser, UserProfile, UserStatus, UserUserType,
 };
+use lepton_identity::profiles::DEFAULT_DISPLAY_NAME;
 use meson::{FileFileStatus as MesonFileStatus, ScanVerdict};
 use tokio::sync::{Mutex, MutexGuard};
 use tower::ServiceExt;
@@ -482,6 +483,57 @@ async fn missing_quarantine_store_rejects_upload_sad() {
                 .next()
                 .is_none()
     );
+}
+
+async fn session_profile(h: &Harness) -> Option<UserProfile> {
+    UserProfile::query(&h.system, valence::use_!(r"**Test:** the profile photo quarantine suite **loads the test user's profile** to check the names the upload gave it."))
+        .where_user(RecordPredicate::Equals(h.user.id.clone()))
+        .first()
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn first_upload_creates_profile_without_email_display_name_happy() {
+    let _g = global_lock().await;
+    std::env::remove_var("MESON_VIRUS_SCAN");
+    let h = harness("profile-seed").await;
+    assert!(session_profile(&h).await.is_none());
+
+    let (status, json) = upload(&h, Some(&h.cookie)).await;
+    assert_eq!(status, StatusCode::OK, "{json}");
+
+    let profile = session_profile(&h).await.expect("upload creates a profile");
+    assert_eq!(profile.display_name(), DEFAULT_DISPLAY_NAME);
+    assert!(
+        !profile.display_name().contains('@'),
+        "the public display name must not carry the email"
+    );
+    assert_eq!(profile.legal_name().map(String::as_str), Some(EMAIL));
+}
+
+#[tokio::test]
+async fn upload_keeps_existing_display_name_sad() {
+    let _g = global_lock().await;
+    std::env::remove_var("MESON_VIRUS_SCAN");
+    let h = harness("profile-existing").await;
+    let now = Utc::now();
+    let profile = UserProfile::new(
+        h.user.id.clone(),
+        "Pat Example".to_string(),
+        "Pat".to_string(),
+        now,
+        now,
+        None,
+    )
+    .unwrap();
+    UserProfile::create(profile, &h.system, valence::use_!(r"**Test:** the profile photo quarantine suite seeds a **profile** the user already named, so the upload must reuse it."))
+        .await
+        .unwrap();
+
+    let (status, json) = upload(&h, Some(&h.cookie)).await;
+    assert_eq!(status, StatusCode::OK, "{json}");
+    assert_eq!(session_profile(&h).await.unwrap().display_name(), "Pat");
 }
 
 #[tokio::test]

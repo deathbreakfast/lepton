@@ -152,3 +152,27 @@ async fn stored_password_hash_refuses_other_users_sad() {
         .expect("system");
     assert_eq!(from_system.as_deref(), Some(alice.phc.as_str()));
 }
+
+#[tokio::test]
+async fn password_hash_kept_on_owner_bare_update_happy_path() {
+    let sys = system_valence("password_hash_bare_update").await;
+    let alice = seed_user_with_password(&sys, "AlicePassword1!").await;
+    let alice_v = user_valence(&sys, &alice.bare);
+
+    // A bare update (no get_mutable) of the owner's own read, where the hash is hidden
+    // and so unset in the payload.
+    let own = User::get(&alice.bare, &alice_v, valence::use_!(r"**Test:** the password hash privacy suite **loads the owner's own user row**, with the hash hidden, to send it back as a bare update."))
+        .await
+        .expect("get own row")
+        .expect("alice row");
+    assert!(own.password_hash().is_none());
+    User::update(&alice.bare, own, &alice_v, valence::use_!(r"**Test:** the password hash privacy suite runs a **bare user update** as the owner to check that the stored password hash survives."))
+        .await
+        .expect("owner bare update");
+
+    let stored = User::get(&alice.bare, &sys, valence::use_!(r"**Test:** Fixture **User** load for `tests` so the suite can arrange and assert persistence behavior. CI and developers running the suite only."))
+        .await
+        .expect("get")
+        .expect("alice row");
+    assert_eq!(stored.password_hash(), Some(&alice.phc));
+}
