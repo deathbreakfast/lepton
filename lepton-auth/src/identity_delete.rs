@@ -70,6 +70,9 @@ pub enum IdentityDeleteError {
     /// Membership row missing.
     #[error("reason_class=membership: membership not found")]
     MembershipMissing,
+    /// A product erase hook failed; the user was not deleted.
+    #[error("reason_class=erase_hook: product erase hook failed")]
+    EraseHook,
     /// Persistence / Valence failure (opaque).
     #[error("reason_class=store: identity delete store operation failed")]
     Store,
@@ -89,6 +92,7 @@ impl IdentityDeleteError {
             Self::UserMissing => "user",
             Self::ContactMissing => "contact",
             Self::MembershipMissing => "membership",
+            Self::EraseHook => "erase_hook",
             Self::Store => "store",
         }
     }
@@ -200,10 +204,17 @@ const KNOWN_USER_CHILD_TABLES: &[&str] = &[
 ];
 
 /// Cascade-delete a user and user-owned children (memberships, devices, …).
+///
+/// Registered [`crate::erase_hooks`] run first, so a product's data goes before any
+/// of the user's rows do.
 async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), IdentityDeleteError> {
     use lepton_host_adapter::generated::{
         AuthDevice, AuthDeviceCeremony, LinkedIdentity, TotpFactor, TotpRecoveryCode,
     };
+
+    crate::erase_hooks::run_user_erase_hooks(uid, valence)
+        .await
+        .map_err(|_| IdentityDeleteError::EraseHook)?;
 
     let user_thing = RecordId::new("user", uid);
     let memberships = AccountMembership::query(valence, valence::use_!(r"When **account erasure** finishes cleanup, we **remove Account Membership** so leftover rows do not remain after the operation. Only the cleanup path for **account erasure** uses this step; it is not shown as a standalone end-user page by itself."))

@@ -262,6 +262,8 @@
 //! Service users, registered or built-in, and anonymous callers get
 //! [`service_users::ServiceUserError::NotAUser`], so a service user never manages itself.
 //! Deleting the owner's user through [`identity_delete`] deletes their service users.
+//! Products that keep their own data for a user register an [`erase_hooks`] step that runs
+//! before that delete.
 //!
 //! Suspending records the status only. The host refuses a suspended service user when it
 //! authenticates one ([Authentication is the host's
@@ -339,6 +341,8 @@ pub mod delivery_settings;
 pub mod devices;
 #[cfg(feature = "email")]
 pub mod email_delivery;
+#[cfg(feature = "ssr")]
+pub mod erase_hooks;
 pub mod events;
 pub mod factor;
 #[cfg(feature = "ssr")]
