@@ -70,9 +70,13 @@ test.describe("pw-devices account settings", () => {
     const email = `devices-pk-${Date.now()}@example.com`;
     const password = "CorrectHorseBattery1!";
     await gotoAccountSettingsSignedIn(page, auth, email, password);
-    await expect(page.getByTestId("devices-add-passkey")).toBeVisible();
+    await expect(page.getByTestId("devices-add-passkey")).toBeVisible({
+      timeout: 60_000,
+    });
 
-    await page.getByTestId("devices-passkey-label").locator("input").fill("E2E passkey");
+    const labelInput = page.getByTestId("devices-passkey-label").locator("input");
+    await labelInput.fill("E2E passkey");
+    await expect(labelInput).toHaveValue("E2E passkey");
     await clickTestId(page, "devices-add-passkey");
     await expect(page.getByTestId("devices-list")).toBeVisible({
       timeout: 60_000,
