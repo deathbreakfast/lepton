@@ -3,8 +3,8 @@
 //! Lepton deletes the user rows it owns and nothing else. A product that keeps
 //! data a plain user delete can't remove (rows behind `Restrict` edges, files,
 //! scheduled jobs) registers a [`UserEraseHook`]. [`crate::identity_delete`]
-//! runs every registered hook for a user before it deletes anything of theirs,
-//! on both [`erase_account`](crate::identity_delete::erase_account) and
+//! runs every registered hook for a user before it deletes the user row and the
+//! user-owned children (devices, factors, linked identities), on both [`erase_account`](crate::identity_delete::erase_account) and
 //! [`delete_user`](crate::identity_delete::delete_user).
 //!
 //! ## Register a product erase step
@@ -27,7 +27,7 @@
 //!         finance::erase::erase_user_owned_workspace(user_id, valence)
 //!             .await
 //!             .map(|_| ())
-//!             .map_err(|e| lepton_auth::erase_hooks::UserEraseHookError::new(e.to_string()))
+//!             .map_err(|_| lepton_auth::erase_hooks::UserEraseHookError::new("finance erase failed"))
 //!     }
 //! }
 //!
@@ -42,6 +42,11 @@
 //! - Hooks run in registration order and stop at the first failure. The user
 //!   delete is then skipped and the caller gets
 //!   [`IdentityDeleteError::EraseHook`](crate::identity_delete::IdentityDeleteError::EraseHook).
+//! - [`erase_account`](crate::identity_delete::erase_account) deletes the account,
+//!   its contacts and memberships first, then deletes each member user, so the
+//!   hooks run after those rows are gone. When a hook fails there, no account is
+//!   left: retry with [`delete_user`](crate::identity_delete::delete_user) for
+//!   each member user.
 //! - A hook can run more than once for the same user (a retry after a partial
 //!   failure, or a user with no product data), so it has to be idempotent.
 //! - Registering a second hook with the same [`name`](UserEraseHook::name)
@@ -69,6 +74,9 @@ pub trait UserEraseHook: Send + Sync {
 }
 
 /// A [`UserEraseHook`] failed. The message is logged, never returned to callers.
+///
+/// Keep the message free of PII and secrets (user ids, emails, tokens): write a
+/// fixed description of what failed, not an upstream error's `to_string()`.
 #[derive(Debug, Error)]
 #[error("{0}")]
 pub struct UserEraseHookError(String);
