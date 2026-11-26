@@ -378,6 +378,12 @@ pub mod ssr {
             Utc::now(),
             Utc::now(),
             None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )
         .map_err(|e| ServerFnError::new(format!("Failed to create user profile: {e}")))?;
 

@@ -28,19 +28,61 @@ const SERVICE_USER_TABLE: &str = "service_user_account";
 /// [`SERVICE_USER_ACTIVE`]: super::SERVICE_USER_ACTIVE
 pub async fn active_service_user_owner(raw: &str, v: &Valence) -> Option<Actor> {
     let id = ServiceUserId::parse(raw).ok()?;
-    let backend = v.backend_for_table(SERVICE_USER_TABLE).ok()?;
-    let row = valence::get_record(
-        backend.as_ref(),
-        SERVICE_USER_TABLE,
-        id.as_str(),
+    owner_of_active(
+        &id,
+        v,
         valence::use_!(r"When a **service user** acts, we **read its owner and status** to check that it is still active and to find the person it acts for. Nothing is shown to anyone; a suspended or deleted service user gets no access."),
     )
     .await
-    .ok()??;
+}
+
+/// Reads `id`'s stored row under `purpose` and returns its owner while it is active and
+/// not pending deletion.
+async fn owner_of_active(
+    id: &ServiceUserId,
+    v: &Valence,
+    purpose: valence::DataUsePurpose,
+) -> Option<Actor> {
+    let backend = v.backend_for_table(SERVICE_USER_TABLE).ok()?;
+    let row = valence::get_record(backend.as_ref(), SERVICE_USER_TABLE, id.as_str(), purpose)
+        .await
+        .ok()??;
     OwnershipService::pending_deletion_gate(SERVICE_USER_TABLE, id.as_str(), v)
         .await
         .ok()?;
     owner_from_active_row(&row)
+}
+
+/// The owner of the registered service user this session acts as.
+///
+/// Reads the service user from `v`'s actor (`Actor::ServiceUser { service_name: "svc:<id>" }`)
+/// and answers as [`active_service_user_owner`] does: `Some(Actor::User { .. })` while the
+/// service user is active, `None` when it is suspended, deleted, or unknown, and `None` for
+/// every other kind of actor (users, System, anonymous, built-in service users such as `cron`).
+///
+/// It takes no id, so a session only ever learns its own owner. It reads nothing else:
+/// the `service_user_account` read policy still refuses service user actors, so a service user
+/// cannot load its own row or any other service user's row through the Model API.
+///
+/// ```no_run
+/// # async fn demo(v: &valence::Valence) {
+/// use lepton_identity::service_users::session_service_user_owner;
+///
+/// if let Some(owner) = session_service_user_owner(v).await {
+///     let owner_id = owner.user_id();
+///     // e.g. make the owner the lead of a team the service user creates.
+/// #   let _ = owner_id;
+/// }
+/// # }
+/// ```
+pub async fn session_service_user_owner(v: &Valence) -> Option<Actor> {
+    let id = ServiceUserId::from_actor(v.actor())?;
+    owner_of_active(
+        &id,
+        v,
+        valence::use_!(r"When a **service user** asks who owns it, we **read its owner and status** and **tell the service user who its owner is**, so it can act for that person, for example by making them the lead of a team it creates. It learns only its own owner, and a suspended or deleted service user learns nothing."),
+    )
+    .await
 }
 
 /// The owning user of a stored service user row whose status is `active`.

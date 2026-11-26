@@ -525,6 +525,12 @@ async fn upload_keeps_existing_display_name_sad() {
         now,
         now,
         None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .unwrap();
     UserProfile::create(profile, &h.system, valence::use_!(r"**Test:** the profile photo quarantine suite seeds a **profile** the user already named, so the upload must reuse it."))

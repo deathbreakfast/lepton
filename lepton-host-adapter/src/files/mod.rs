@@ -323,6 +323,12 @@ async fn load_or_create_session_profile(
         now,
         now,
         None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .map_err(|_| {
         (

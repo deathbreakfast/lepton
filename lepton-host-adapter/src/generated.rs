@@ -25,7 +25,8 @@ pub use lepton_identity::generated::{
     ProfilePhotoReference, ServiceUserAccount, ServiceUserAccountOwnerKind,
     ServiceUserAccountQuery, ServiceUserAccountReference, ServiceUserAccountStatus,
     ServiceUserActivity, ServiceUserActivityKind, ServiceUserActivityReference, ServiceUserToken,
-    User, UserAppearance, UserAppearanceReference, UserProfile, UserProfileReference, UserQuery,
+    User, UserAppearance, UserAppearanceReference, UserProfile, UserProfileChatHandleShare,
+    UserProfileContactEmailShare, UserProfileContactPhoneShare, UserProfileReference, UserQuery,
     UserReference, UserStatus, UserUserType,
 };
 

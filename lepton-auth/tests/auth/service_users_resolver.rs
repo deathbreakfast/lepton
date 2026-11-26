@@ -1,4 +1,5 @@
-//! `active_service_user_owner` and `SERVICE_USER_ACTIVE` against stored service users.
+//! `active_service_user_owner`, `session_service_user_owner`, and `SERVICE_USER_ACTIVE`
+//! against stored service users.
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
@@ -7,11 +8,14 @@ use crate::support;
 use crate::service_users_support;
 
 use lepton_auth::service_users::{delete_service_user, resume_service_user, suspend_service_user};
-use lepton_identity::service_users::{active_service_user_owner, SERVICE_USER_ACTIVE};
+use lepton_host_adapter::generated::ServiceUserAccount;
+use lepton_identity::service_users::{
+    active_service_user_owner, session_service_user_owner, SERVICE_USER_ACTIVE,
+};
 use serde_json::json;
 use service_users_support::{install_test_gate, seed_service_user, stored_service_user};
 use support::system_valence;
-use valence::{Actor, JsonActorContext, PolicyEvaluator, PrivacyOperation, Valence};
+use valence::{Actor, JsonActorContext, Model, PolicyEvaluator, PrivacyOperation, Valence};
 
 fn setup() {
     install_test_gate();
@@ -172,4 +176,70 @@ async fn service_user_active_rule_nothing_else_sad() {
     // A suspended service user loses the owner's reach.
     suspend_service_user(&alice, &id).await.expect("suspend");
     assert!(!rule_admits(&sys, &id.actor(), &alices_row).await);
+}
+
+#[tokio::test]
+async fn session_service_user_owner_own_owner_happy() {
+    setup();
+    let sys = system_valence("service_users_session_owner").await;
+    let (_, alices, _) = seed_service_user(&sys, "maker-alice", "alices").await;
+    let (_, bobs, _) = seed_service_user(&sys, "maker-bob", "bobs").await;
+
+    assert_eq!(
+        session_service_user_owner(&sys.with_actor(alices.actor())).await,
+        Some(owner("maker-alice"))
+    );
+    assert_eq!(
+        session_service_user_owner(&sys.with_actor(bobs.actor())).await,
+        Some(owner("maker-bob"))
+    );
+}
+
+#[tokio::test]
+async fn session_service_user_owner_reads_no_service_user_rows_sad() {
+    setup();
+    let sys = system_valence("service_users_session_owner_rows").await;
+    let (_, alices, _) = seed_service_user(&sys, "maker-alice", "alices").await;
+    let (_, bobs, _) = seed_service_user(&sys, "maker-bob", "bobs").await;
+    let as_alices = sys.with_actor(alices.actor());
+
+    // Learning its owner grants no read of any service user row, its own included.
+    for target in [&bobs, &alices] {
+        let read = ServiceUserAccount::get(target.as_str(), &as_alices, valence::use_!(r"**Test:** Fixture **service user** load for `service_users` tests so the suite can assert a service user session cannot read service user rows. CI and developers running the suite only.")).await;
+        assert!(matches!(read, Ok(None) | Err(_)), "{}", target.as_str());
+    }
+}
+
+#[tokio::test]
+async fn session_service_user_owner_other_actors_sad() {
+    setup();
+    let sys = system_valence("service_users_session_owner_others").await;
+    let (alice, id, _) = seed_service_user(&sys, "maker-alice", "paused").await;
+
+    for actor in [
+        owner("maker-alice"),
+        Actor::ServiceUser {
+            service_name: "cron".into(),
+        },
+        Actor::ServiceUser {
+            service_name: id.as_str().to_string(),
+        },
+        Actor::Anonymous,
+        Actor::System {
+            operation: "resolver".into(),
+        },
+    ] {
+        assert_eq!(
+            session_service_user_owner(&sys.with_actor(actor.clone())).await,
+            None,
+            "{actor:?}"
+        );
+    }
+
+    suspend_service_user(&alice, &id).await.expect("suspend");
+    assert_eq!(
+        session_service_user_owner(&sys.with_actor(id.actor())).await,
+        None,
+        "suspended"
+    );
 }
