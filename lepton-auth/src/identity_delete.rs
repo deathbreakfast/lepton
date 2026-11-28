@@ -8,12 +8,17 @@
 //! departing user's login matched (same contract as
 //! [`lepton_identity::side_effects::ClearAccountPrimaryOnMembershipDelete`] on
 //! `Model::delete`).
+//!
+//! Products register an [`EraseAccountHook`] with [`register_erase_account_hook`] to clean
+//! up their own rows for each member user before [`erase_account`] deletes anything.
+
+use std::sync::{Arc, OnceLock, RwLock};
 
 use lepton_host_adapter::generated::{
     Account, AccountEmail, AccountMembership, AccountPhone, User,
 };
 use thiserror::Error;
-use valence::deletion::dag::DeletionDag;
+use valence::deletion::dag::{DeletionAction, DeletionDag};
 use valence::{Model, RecordId, RecordPredicate, Valence};
 
 fn bare_id(record: &RecordId) -> String {
@@ -73,6 +78,9 @@ pub enum IdentityDeleteError {
     /// Persistence / Valence failure (opaque).
     #[error("reason_class=store: identity delete store operation failed")]
     Store,
+    /// A registered [`EraseAccountHook`] failed; nothing was erased.
+    #[error("reason_class=hook: erase account hook failed")]
+    Hook,
 }
 
 impl IdentityDeleteError {
@@ -90,8 +98,97 @@ impl IdentityDeleteError {
             Self::ContactMissing => "contact",
             Self::MembershipMissing => "membership",
             Self::Store => "store",
+            Self::Hook => "hook",
         }
     }
+}
+
+/// Product cleanup that runs inside [`erase_account`], once per member user.
+///
+/// Hooks run after the member list is read and before any row is deleted, so the user row
+/// (display name, email) is still there to look up. They receive the same `Valence` that
+/// [`erase_account`] was called with, which is the System handle the erase already
+/// requires; a hook must not build its own elevated handle.
+///
+/// Returning an error stops the erase with nothing deleted, as
+/// [`IdentityDeleteError::Hook`], so the caller can retry.
+///
+/// ```ignore
+/// struct ScrubNotifications;
+///
+/// #[async_trait::async_trait]
+/// impl EraseAccountHook for ScrubNotifications {
+///     fn name(&self) -> &'static str {
+///         "polaron.scrub_notifications"
+///     }
+///
+///     async fn before_user_erase(
+///         &self,
+///         valence: &Valence,
+///         user: &RecordId,
+///     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+///         redact_actor_name(valence, user).await?;
+///         Ok(())
+///     }
+/// }
+///
+/// register_erase_account_hook(Arc::new(ScrubNotifications));
+/// ```
+#[async_trait::async_trait]
+pub trait EraseAccountHook: Send + Sync {
+    /// Stable name for logs when the hook fails.
+    fn name(&self) -> &'static str;
+
+    /// Clean up product rows for `user` before Lepton erases them.
+    ///
+    /// # Errors
+    ///
+    /// Any error aborts the erase before anything is deleted.
+    async fn before_user_erase(
+        &self,
+        valence: &Valence,
+        user: &RecordId,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+}
+
+fn erase_account_hooks() -> &'static RwLock<Vec<Arc<dyn EraseAccountHook>>> {
+    static HOOKS: OnceLock<RwLock<Vec<Arc<dyn EraseAccountHook>>>> = OnceLock::new();
+    HOOKS.get_or_init(|| RwLock::new(Vec::new()))
+}
+
+/// Register a hook that [`erase_account`] runs for every member user. Hooks run in
+/// registration order and stay registered for the life of the process.
+pub fn register_erase_account_hook(hook: Arc<dyn EraseAccountHook>) {
+    erase_account_hooks()
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .push(hook);
+}
+
+async fn run_erase_account_hooks(
+    valence: &Valence,
+    users: &[RecordId],
+) -> Result<(), IdentityDeleteError> {
+    let hooks: Vec<Arc<dyn EraseAccountHook>> = erase_account_hooks()
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone();
+    for user in users {
+        for hook in &hooks {
+            if let Err(e) = hook.before_user_erase(valence, user).await {
+                tracing::warn!(
+                    operation = "erase_account",
+                    outcome = "error",
+                    reason_class = "hook",
+                    hook = hook.name(),
+                    error = %e,
+                    "lepton_auth.identity_delete.erase_account"
+                );
+                return Err(IdentityDeleteError::Hook);
+            }
+        }
+    }
+    Ok(())
 }
 
 const fn map_restrict(dag: &DeletionDag) -> IdentityDeleteError {
@@ -105,16 +202,18 @@ const fn map_restrict(dag: &DeletionDag) -> IdentityDeleteError {
 /// Erase an account (GDPR / legal-identity wipe): cascade emails + memberships, then users.
 ///
 /// 1. Snapshot member user ids and account emails.
-/// 2. Delete emails + memberships + Account (primary Restrict skipped under parent wipe).
-/// 3. Delete each member `User` (phones, devices, OAuth links, TOTP factors, recovery codes).
+/// 2. Run each registered [`EraseAccountHook`] for every member user.
+/// 3. Delete emails + memberships + Account (primary Restrict skipped under parent wipe).
+/// 4. Delete each member `User` (phones, devices, OAuth links, TOTP factors, recovery codes).
 ///
 /// Callers must use a Valence capable of Account / contact CUD (`SYSTEM_ONLY` today).
 /// Product wipe gates Owner + password (+ TOTP when enrolled) before elevating.
 ///
 /// # Errors
 ///
-/// [`IdentityDeleteError::AccountMissing`] when the account row is absent; [`IdentityDeleteError::Store`]
-/// / [`IdentityDeleteError::Restrict`] on persistence or remaining Restrict edges.
+/// [`IdentityDeleteError::AccountMissing`] when the account row is absent; [`IdentityDeleteError::Hook`]
+/// when a hook fails (nothing deleted); [`IdentityDeleteError::Store`] /
+/// [`IdentityDeleteError::Restrict`] on persistence or remaining Restrict edges.
 pub async fn erase_account(
     valence: &Valence,
     account: &RecordId,
@@ -152,6 +251,8 @@ pub async fn erase_account(
         .map_err(|_| IdentityDeleteError::Store)?;
     let phone_bares: Vec<String> = phones.iter().filter_map(|p| p.id().map(bare_id)).collect();
 
+    run_erase_account_hooks(valence, &member_ids).await?;
+
     for email_bare in email_bares {
         physical_delete(valence, "account_email", &email_bare).await?;
     }
@@ -187,7 +288,8 @@ pub async fn erase_account(
     Ok(())
 }
 
-/// Tables deleted via explicit reverse-FK queries below (errors are not swallowed).
+/// Tables whose `CascadeDelete` nodes are deleted via explicit reverse-FK queries below
+/// (errors are not swallowed). `SetNull` and `RemoveEdge` nodes are applied in every table.
 const KNOWN_USER_CHILD_TABLES: &[&str] = &[
     "account_membership",
     "auth_device",
@@ -198,6 +300,43 @@ const KNOWN_USER_CHILD_TABLES: &[&str] = &[
     "totp_recovery_code",
     "user",
 ];
+
+/// Discover the user's remaining children via the deletion DAG and apply each node's
+/// action. Known tables' cascades are left to the reverse-FK deletes in
+/// [`delete_user_unchecked`].
+async fn apply_user_dag(valence: &Valence, uid: &str) -> Result<(), IdentityDeleteError> {
+    let dag = DeletionDag::compute("user", uid, valence)
+        .await
+        .map_err(|_| IdentityDeleteError::Store)?;
+    if !dag.restrict_violations.is_empty() {
+        return Err(map_restrict(&dag));
+    }
+    for node in &dag.nodes {
+        if node.action != DeletionAction::CascadeDelete {
+            // Rows that only reference the user survive with the FK cleared (or edge removed).
+            valence::apply_deletion_node(node, valence)
+                .await
+                .map_err(|e| {
+                    tracing::warn!(
+                        operation = "erase_account",
+                        outcome = "error",
+                        reason_class = "store",
+                        table = %node.table,
+                        error = %e,
+                        "lepton_auth.identity_delete.apply_node"
+                    );
+                    IdentityDeleteError::Store
+                })?;
+            continue;
+        }
+        if KNOWN_USER_CHILD_TABLES.contains(&node.table.as_str()) {
+            continue;
+        }
+        // Best-effort for unknown/optional children (tokens, profile, …).
+        let _ = physical_delete(valence, &node.table, &node.record_id).await;
+    }
+    Ok(())
+}
 
 /// Cascade-delete a user and user-owned children (memberships, devices, …).
 async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), IdentityDeleteError> {
@@ -216,20 +355,7 @@ async fn delete_user_unchecked(valence: &Valence, uid: &str) -> Result<(), Ident
         }
     }
 
-    // Discover remaining children via DAG; known tables use reverse-FK deletes with `?`.
-    let dag = DeletionDag::compute("user", uid, valence)
-        .await
-        .map_err(|_| IdentityDeleteError::Store)?;
-    if !dag.restrict_violations.is_empty() {
-        return Err(map_restrict(&dag));
-    }
-    for node in &dag.nodes {
-        if KNOWN_USER_CHILD_TABLES.contains(&node.table.as_str()) {
-            continue;
-        }
-        // Best-effort for unknown/optional children (tokens, profile, …).
-        let _ = physical_delete(valence, &node.table, &node.record_id).await;
-    }
+    apply_user_dag(valence, uid).await?;
 
     // Known user-owned tables via reverse FK (reliable ids; fail on store error).
     // Account phones are account-owned (erased with the account), not deleted here.
