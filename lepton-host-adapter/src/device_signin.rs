@@ -2,21 +2,22 @@
 //!
 //! A device that can't show a browser signs in like this:
 //!
-//! 1. It posts to [`DEVICE_CODE_PATH`] (`/auth/device/code`) with its `client_id`, a
-//!    `device_name` and the `scope` it wants, and gets a `device_code`, a `user_code` such as
-//!    `WDJB-MJHT`, the page to open, and how often to poll.
+//! 1. It posts to [`DEVICE_CODE_PATH`](crate::device_signin::DEVICE_CODE_PATH)
+//!    (`/auth/device/code`) with its `client_id`, a `device_name` and the `scope` it wants, and
+//!    gets a `device_code`, a `user_code` such as `WDJB-MJHT`, the page to open, and how often
+//!    to poll.
 //! 2. The person opens the page, types the user code, picks one of their own service users and
 //!    approves (`lepton_auth::device_signin::approve_device`).
-//! 3. The device posts to [`DEVICE_TOKEN_PATH`] (`/auth/device/token`) with
-//!    `grant_type=urn:ietf:params:oauth:grant-type:device_code` and its `device_code` every
-//!    `interval` seconds. Until the person approves it gets the RFC 8628 errors
-//!    (`authorization_pending`, `slow_down`, `expired_token`, `access_denied`); then it gets a
-//!    service user token, once.
+//! 3. The device posts to [`DEVICE_TOKEN_PATH`](crate::device_signin::DEVICE_TOKEN_PATH)
+//!    (`/auth/device/token`) with `grant_type=urn:ietf:params:oauth:grant-type:device_code` and
+//!    its `device_code` every `interval` seconds. Until the person approves it gets the RFC 8628
+//!    errors (`authorization_pending`, `slow_down`, `expired_token`, `access_denied`); then it
+//!    gets a service user token, once.
 //!
 //! Both routes accept a form body (the RFC's encoding) or JSON, and answer in JSON. The work
-//! itself is done by a [`DeviceSigninFlow`]; `lepton_auth::device_signin::LeptonDeviceFlow`
-//! is Lepton's. lepton-auth depends on this crate, so the routes take the flow as a trait
-//! object instead of calling it directly.
+//! itself is done by a [`DeviceSigninFlow`](crate::device_signin::DeviceSigninFlow);
+//! `lepton_auth::device_signin::LeptonDeviceFlow` is Lepton's. lepton-auth depends on this
+//! crate, so the routes take the flow as a trait object instead of calling it directly.
 //!
 //! ```no_run
 //! use std::sync::Arc;
