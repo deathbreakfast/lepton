@@ -56,14 +56,19 @@
 //!
 //! # Access tokens
 //!
-//! A service user calls in with a personal access token its owner creates with
-//! [`create_service_user_token`]. The plaintext token comes back once; Lepton keeps a hash.
-//! [`list_service_user_tokens`] shows labels and times, [`revoke_service_user_token`] stops a
-//! token at once, and the host (or `lepton_host_adapter::bearer_middleware`) checks a presented
-//! token with [`verify_bearer_token`](lepton_identity::service_users::verify_bearer_token).
-//! Only the owner creates tokens; users the gate grants manage-any can list and revoke. A
-//! service user can hold [`MAX_TOKENS_PER_SERVICE_USER`] live tokens, each valid for at most
-//! [`MAX_TOKEN_LIFETIME_DAYS`] days. Deleting a service user or its owner deletes its tokens.
+//! A service user calls in with an access token its owner creates with
+//! `create_service_user_token` (with the `totp` feature, since it needs a recent step-up).
+//! Each token carries the API scopes it may call, from the scopes the host registered
+//! ([`crate::scopes`]), and lasts 30 or 90 days. It is made by hand or issued to a device.
+//! The plaintext token comes back once; Lepton keeps a hash. [`list_service_user_tokens`]
+//! shows labels, scopes and times, [`revoke_service_user_token`] stops a token at once, and
+//! the host (or `lepton_host_adapter::bearer_middleware`) checks a presented token with
+//! [`verify_bearer_token`](lepton_identity::tokens::verify_bearer_token). Only the owner
+//! creates tokens; users the gate grants manage-any can list and revoke. A service user can
+//! hold [`MAX_TOKENS_PER_SERVICE_USER`] live tokens. Deleting a service user or its owner
+//! deletes its tokens. A token's scopes only say which APIs it may call; what the service
+//! user may do comes from its Gauge groups. Personal tokens, which act as a person, are in
+//! [`crate::tokens`].
 //!
 //! # Deletion
 //!
@@ -90,8 +95,11 @@ pub use api::{
     update_service_user, NewServiceUser, ServiceUserProfileUpdate, MAX_SERVICE_USERS_PER_OWNER,
 };
 pub use error::ServiceUserError;
+#[cfg(feature = "totp")]
+pub use tokens::create_service_user_token;
+#[cfg(feature = "test-utils")]
+pub use tokens::create_service_user_token_without_step_up;
 pub use tokens::{
-    create_service_user_token, list_service_user_tokens, revoke_service_user_token,
-    CreatedServiceUserToken, NewServiceUserToken, MAX_TOKENS_PER_SERVICE_USER,
-    MAX_TOKEN_LIFETIME_DAYS,
+    list_service_user_tokens, revoke_service_user_token, CreatedServiceUserToken,
+    NewServiceUserToken, MAX_TOKENS_PER_SERVICE_USER,
 };

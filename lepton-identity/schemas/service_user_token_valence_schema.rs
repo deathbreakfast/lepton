@@ -3,23 +3,24 @@ use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
 use crate::service_users::{
     SERVICE_USER_MANAGE_ANY, SERVICE_USER_TOKEN_CREATE, SERVICE_USER_TOKEN_IMMUTABLE,
+    SERVICE_USER_TOKEN_TOUCH,
 };
 
 valence_schema! {
     ServiceUserToken {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "service_user_token",
-        version: "0.1.0",
+        version: "0.2.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
-        description: "Personal access token for a service user; stores only a hash of the secret",
+        description: "Access token for a service user, with API scopes; stores only a hash of the secret",
 
         privacy: {
             gdpr_compliant: true,
         },
 
         // The owner of the service user manages its tokens; users the host's gate grants
-        // manage-any can read and revoke. Service user actors match none of these rules, so a
-        // token can never mint or revoke tokens.
+        // manage-any can read and revoke. A service user may only record its own token's last
+        // use (SERVICE_USER_TOKEN_TOUCH), so a token can never mint or revoke tokens.
         policies: {
             read: {
                 always_allow: [],
@@ -35,7 +36,7 @@ valence_schema! {
             },
             update: {
                 always_allow: [],
-                allow: [OWNER_BY_USER_FIELD, SERVICE_USER_MANAGE_ANY],
+                allow: [OWNER_BY_USER_FIELD, SERVICE_USER_MANAGE_ANY, SERVICE_USER_TOKEN_TOUCH],
                 block: [],
                 always_block: [SERVICE_USER_TOKEN_IMMUTABLE],
             },
@@ -74,9 +75,30 @@ valence_schema! {
                 required: true,
                 validations: [Validator::NonEmpty, Validator::MaxLength(64)],
             },
+            // The APIs the token may call: a JSON array of `api:action` strings.
+            scopes: {
+                r#type: FieldType::Json,
+                required: false,
+            },
+            // How the token was made: by hand on the service user's page, or issued to a device.
+            // Rows from before kinds existed have none and read as `manual`.
+            kind: {
+                r#type: FieldType::Enum(&["manual", "device"]),
+                required: false,
+            },
+            // The device a `device` token was issued to (device records arrive with device sign-in).
+            device_id: {
+                r#type: FieldType::String,
+                required: false,
+                validations: [Validator::MaxLength(128)],
+            },
             expires_at: {
                 r#type: FieldType::DateTime,
                 required: true,
+            },
+            last_used_at: {
+                r#type: FieldType::DateTime,
+                required: false,
             },
             revoked_at: {
                 r#type: FieldType::DateTime,

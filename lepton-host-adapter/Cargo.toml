@@ -87,3 +87,7 @@ required-features = ["ssr"]
 [[test]]
 name = "files_quarantine"
 required-features = ["ssr"]
+
+[[test]]
+name = "bearer_scopes"
+required-features = ["ssr"]

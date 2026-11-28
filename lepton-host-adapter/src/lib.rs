@@ -111,7 +111,7 @@ mod schemas;
 #[cfg(feature = "ssr")]
 pub mod auth;
 
-/// Bearer-token middleware that identifies a service user from `Authorization: Bearer`.
+/// Bearer-token middleware for Lepton tokens (`Authorization: Bearer lptk_...`) and the per-route scope check.
 #[cfg(feature = "ssr")]
 pub mod bearer;
 
@@ -141,7 +141,7 @@ pub use photon_auth::{extract_user_key, PhotonAuth};
 
 #[cfg(feature = "ssr")]
 #[doc(inline)]
-pub use bearer::{bearer_middleware, ServiceUserCaller};
+pub use bearer::{bearer_middleware, require_scope, BearerCaller, BearerValence};
 
 #[cfg(feature = "ssr")]
 #[doc(inline)]

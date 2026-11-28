@@ -142,21 +142,27 @@
 //! assert_eq!(ServiceUserId::from_actor(&Actor::User { user_id: "alice".into() }), None);
 //! ```
 //!
-//! ## Authenticating a service user
+//! ## Authenticating with a token
 //!
-//! A service user calls in with a personal access token its owner creates with
-//! `lepton_auth::service_users::create_service_user_token`. The token looks like
-//! `lpt_<token id>_<64 hex characters>` and is shown once; Lepton keeps only a SHA-256 hash of
-//! the secret in the `service_user_token` table. Owners list and revoke tokens, each service
-//! user can hold a few live ones, and every token expires within a year.
+//! People and service users call a host's APIs with Lepton tokens ([`tokens`]). A personal
+//! token acts as its person; a service user token acts as its service user. Both look like
+//! `lptk_<token id>_<64 hex characters>`, are shown once, and carry the API scopes they may
+//! call and an expiry 30 or 90 days out. Lepton keeps only a SHA-256 hash of the secret, in
+//! the `personal_token` or `service_user_token` table. Tokens are minted with
+//! `lepton_auth::tokens::create_personal_token` and
+//! `lepton_auth::service_users::create_service_user_token`, both after a step-up.
 //!
 //! On each request the host does this, or mounts `lepton_host_adapter::bearer_middleware`, which does:
 //!
-//! 1. Read the `Authorization: Bearer` value and call [`service_users::verify_bearer_token`]
-//!    with a Valence handle. It checks the token's shape, hash, revoked and expiry times, and
-//!    then [`service_users::active_service_user_owner`], so a suspended or deleted service user
-//!    (or one whose owner was erased) is refused. `None` covers every failure alike.
-//! 2. Open Valence as [`service_users::VerifiedServiceUser::actor`] and run the request.
+//! 1. Read the `Authorization: Bearer` value and call [`tokens::verify_bearer_token`] with a
+//!    Valence handle. It checks the token's shape, hash, revoked and expiry times, and who it
+//!    acts as: the person must be active, and a service user must pass
+//!    [`service_users::active_service_user_owner`], so a suspended or deleted service user (or
+//!    one whose owner was erased) is refused. `None` covers every failure alike.
+//! 2. Refuse the request when the token lacks the scope for the API it calls
+//!    ([`tokens::VerifiedToken::has_scope`]; `lepton_host_adapter::require_scope` per route).
+//! 3. Open Valence as [`tokens::TokenPrincipal::actor`] and run the request, so the person's or
+//!    service user's own permissions decide what it may do.
 //!
 //! Suspending a service user with `lepton_auth::service_users::suspend_service_user` stops its
 //! tokens at the next request; resuming restores them. Revoking a token stops that token only.
@@ -295,6 +301,8 @@
 //! - [`config`] — host settings such as the service user limit per owner
 //! - [`service_users`] — service user ids, handles, the service user gate, and the
 //!   `service_user_account` table's privacy rules
+//! - [`tokens`] — personal and service user tokens: the `lptk_` format, scopes, lifetimes,
+//!   and the bearer check
 //! - [`lepton_host_adapter`](../lepton_host_adapter/index.html) — axum-login session bridge
 
 pub mod auth;
@@ -311,5 +319,6 @@ pub mod protected_fields;
 pub mod service_users;
 /// Valence mutation side effects for identity models.
 pub mod side_effects;
+pub mod tokens;
 
 mod schemas;

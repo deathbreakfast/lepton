@@ -349,6 +349,8 @@ pub mod oauth;
 pub mod paths;
 /// Redirect/referer path parsing and sanitization for post-auth navigation.
 pub mod routes;
+#[cfg(feature = "ssr")]
+pub mod scopes;
 pub mod security;
 #[cfg(feature = "ssr")]
 pub mod service_users;
@@ -371,6 +373,8 @@ pub mod token_helpers;
 /// Client-side one-time token URL helpers (fragment-first; legacy query strip).
 #[cfg(feature = "hydrate")]
 pub mod token_url;
+#[cfg(feature = "ssr")]
+pub mod tokens;
 #[cfg(all(feature = "ssr", feature = "totp"))]
 pub mod totp;
 #[cfg(feature = "ssr")]
