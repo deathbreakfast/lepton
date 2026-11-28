@@ -44,8 +44,14 @@ const DEVICE_TOUCH_FIELDS: &[&str] = &["token", "status", "last_seen_at", "signe
 
 /// `read` rule: a signed-in person reads a pending, unexpired device request.
 ///
-/// The approval page looks a request up by the user code the person typed, so anyone signed in
-/// may read pending requests. Once decided, only the approver reads it (`OWNER_BY_USER_FIELD`).
+/// The approval page looks a request up by the user code the person typed. A rule can't see
+/// whether the caller holds that code, so this one is broader than that: anyone signed in may
+/// read any open request, including the device's address and user agent. **Every caller must
+/// query `device_authorization` by exact user code** (as
+/// `lepton_auth::device_signin::lookup_device_request` does, behind its wrong-code lockout).
+/// Never list or search the table on a person's Valence. Once decided, only the approver reads
+/// a request (`OWNER_BY_USER_FIELD`), and requests are deleted once used, denied or 10 minutes
+/// old.
 pub const DEVICE_AUTH_PENDING_READ: DeviceAuthPendingReadRule = DeviceAuthPendingReadRule;
 
 /// `update` rule: a signed-in person approves or denies a pending, unexpired request once,

@@ -45,7 +45,10 @@ pub use approve::{
     Unavailable,
 };
 pub use error::DeviceSigninError;
-pub use flow::{LeptonDeviceFlow, DEFAULT_POLL_INTERVAL_SECS, DEVICE_CODE_TTL_SECS};
+pub use flow::{
+    LeptonDeviceFlow, DEFAULT_POLL_INTERVAL_SECS, DEVICE_CODE_TTL_SECS, MAX_OPEN_REQUESTS,
+    MAX_OPEN_REQUESTS_PER_ADDRESS,
+};
 #[cfg(feature = "totp")]
 pub use manage::move_device;
 #[cfg(feature = "test-utils")]

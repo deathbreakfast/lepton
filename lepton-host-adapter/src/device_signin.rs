@@ -117,6 +117,8 @@ pub enum DeviceStartError {
     InvalidRequest,
     /// A scope the host doesn't offer (`invalid_scope`).
     InvalidScope,
+    /// The address, or the site, has too many open requests; answered `429` with `slow_down`.
+    TooManyRequests,
     /// Storage or host configuration failed (`server_error`).
     ServerError,
 }
@@ -128,6 +130,7 @@ impl DeviceStartError {
         match self {
             Self::InvalidRequest => "invalid_request",
             Self::InvalidScope => "invalid_scope",
+            Self::TooManyRequests => "slow_down",
             Self::ServerError => "server_error",
         }
     }
@@ -299,6 +302,10 @@ fn error(code: &'static str) -> Response {
     } else {
         StatusCode::BAD_REQUEST
     };
+    error_with(status, code)
+}
+
+fn error_with(status: StatusCode, code: &'static str) -> Response {
     no_store((status, Json(ErrorResponse { error: code })).into_response())
 }
 
@@ -379,6 +386,10 @@ async fn start_handler(
                 interval: grant.interval,
             })
             .into_response(),
+        ),
+        Err(DeviceStartError::TooManyRequests) => error_with(
+            StatusCode::TOO_MANY_REQUESTS,
+            DeviceStartError::TooManyRequests.as_str(),
         ),
         Err(e) => error(e.as_str()),
     }

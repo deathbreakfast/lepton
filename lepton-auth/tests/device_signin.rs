@@ -728,3 +728,50 @@ async fn a_service_user_cannot_approve_or_mint_extra_tokens_sad() {
         .expect_err("no second token for a signed-in device");
     assert_eq!(acts_as(&sys, &forged.expose()).await, None);
 }
+
+#[tokio::test]
+async fn open_requests_per_address_are_capped_sad() {
+    setup();
+    let sys = system_valence("device_cap").await;
+    let flow = flow();
+    let from = |address: &str| DeviceStartRequest {
+        client: "uf".into(),
+        device_name: "flood".into(),
+        scopes: vec![],
+        asked_from: Some(address.into()),
+        user_agent: None,
+    };
+    for _ in 0..lepton_auth::device_signin::MAX_OPEN_REQUESTS_PER_ADDRESS {
+        flow.start(&sys, from("198.51.100.7")).await.expect("start");
+    }
+    assert_eq!(
+        flow.start(&sys, from("198.51.100.7")).await.unwrap_err(),
+        DeviceStartError::TooManyRequests
+    );
+    flow.start(&sys, from("198.51.100.8"))
+        .await
+        .expect("another address still starts");
+}
+
+#[tokio::test]
+async fn expired_requests_are_purged_on_start_happy() {
+    setup();
+    let sys = system_valence("device_purge").await;
+    let flow = flow();
+    let old = start(&flow, &sys).await;
+    let row = DeviceAuthorization::get(&device_id(&old), &sys, valence::use_!(r"**Test:** Fixture read of a **device sign-in request** so the suite can age it past its expiry. CI and developers running the suite only."))
+        .await
+        .expect("read")
+        .expect("row");
+    row.get_mutable(&sys, valence::use_!(r"**Test:** Fixture write that ages a **device sign-in request** past its expiry. CI and developers running the suite only."))
+        .set_expires_at(Utc::now() - chrono::Duration::seconds(1))
+        .expect("set")
+        .commit()
+        .await
+        .expect("age the request");
+    start(&flow, &sys).await;
+    let gone = DeviceAuthorization::get(&device_id(&old), &sys, valence::use_!(r"**Test:** Fixture read of a **device sign-in request** to assert the next start deleted it. CI and developers running the suite only."))
+        .await
+        .expect("read");
+    assert!(gone.is_none(), "the next start deletes expired requests");
+}

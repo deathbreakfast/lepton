@@ -16,7 +16,7 @@ use lepton_identity::device_signin::DeviceCode;
 use lepton_identity::service_users::{active_service_user_owner, ServiceUserId};
 use lepton_identity::tokens::{scopes_from_json, scopes_to_json, ApiScope};
 use tokio::sync::Mutex;
-use valence::{Actor, Model, StringPredicate, Valence};
+use valence::{Actor, DateTimePredicate, Model, StringPredicate, Valence};
 
 use super::emit::{emit, DeviceSigninOperation};
 use crate::scopes::{check_scopes, ScopeError};
@@ -31,6 +31,16 @@ pub const DEFAULT_POLL_INTERVAL_SECS: u64 = 5;
 const MAX_NAME: usize = 80;
 const MAX_ORIGIN: usize = 255;
 const USER_CODE_TRIES: usize = 5;
+
+/// Open requests one address may have at once. Starting needs no sign-in, so this keeps one
+/// caller from filling the table.
+pub const MAX_OPEN_REQUESTS_PER_ADDRESS: u32 = 10;
+
+/// Open requests the whole site may have at once.
+pub const MAX_OPEN_REQUESTS: u32 = 1000;
+
+/// Expired requests deleted per start.
+const PURGE_BATCH: u32 = 100;
 
 /// Serializes collecting a token, so two polls of one device can't both mint one.
 static ISSUE_LOCK: Mutex<()> = Mutex::const_new(());
@@ -77,7 +87,9 @@ impl LeptonDeviceFlow {
     /// # Errors
     ///
     /// [`DeviceStartError::InvalidRequest`] for an empty or over-long client or device name,
-    /// [`DeviceStartError::InvalidScope`] for an unregistered scope, and
+    /// [`DeviceStartError::InvalidScope`] for an unregistered scope,
+    /// [`DeviceStartError::TooManyRequests`] when the address already has
+    /// [`MAX_OPEN_REQUESTS_PER_ADDRESS`] open requests or the site [`MAX_OPEN_REQUESTS`], and
     /// [`DeviceStartError::ServerError`] when no scopes are registered or storage fails.
     pub async fn start(
         &self,
@@ -236,7 +248,9 @@ async fn start_inner(
     let client = bounded(&request.client, MAX_NAME).ok_or(DeviceStartError::InvalidRequest)?;
     let name = bounded(&request.device_name, MAX_NAME).ok_or(DeviceStartError::InvalidRequest)?;
     let scopes = requested_scopes(&request.scopes)?;
+    let asked_from = cut(request.asked_from, MAX_ORIGIN);
     purge_expired(lookup).await;
+    ensure_room(lookup, asked_from.as_deref()).await?;
 
     let code = DeviceCode::generate();
     let user_code = free_user_code(lookup).await?;
@@ -246,7 +260,7 @@ async fn start_inner(
         user_code.clone(),
         name,
         client,
-        cut(request.asked_from, MAX_ORIGIN),
+        asked_from,
         cut(request.user_agent, MAX_ORIGIN),
         Some(scopes_to_json(&scopes)),
         DeviceAuthorizationStatus::Pending,
@@ -291,19 +305,51 @@ async fn free_user_code(lookup: &Valence) -> Result<String, DeviceStartError> {
     Err(DeviceStartError::ServerError)
 }
 
-/// Delete requests past their 10 minutes. Best-effort; never fails the start.
+/// Refuse a start when its address, or the site, already has as many open requests as allowed.
+async fn ensure_room(lookup: &Valence, asked_from: Option<&str>) -> Result<(), DeviceStartError> {
+    let now = Utc::now();
+    if let Some(address) = asked_from {
+        let open = DeviceAuthorization::query(
+            lookup,
+            valence::use_!(r"When a **device asks to sign in**, we **count the open sign-in requests from the same address**, so one caller can't fill the table. Only the count is used."),
+        )
+        .where_asked_from(StringPredicate::Equals(address.to_string()))
+        .where_expires_at(DateTimePredicate::After(now))
+        .limit(MAX_OPEN_REQUESTS_PER_ADDRESS)
+        .await
+        .map_err(|_| DeviceStartError::ServerError)?;
+        if open.len() >= MAX_OPEN_REQUESTS_PER_ADDRESS as usize {
+            return Err(DeviceStartError::TooManyRequests);
+        }
+    }
+    let open = DeviceAuthorization::query(
+        lookup,
+        valence::use_!(r"When a **device asks to sign in**, we **count the site's open sign-in requests**, so the table stays bounded. Only the count is used."),
+    )
+    .where_expires_at(DateTimePredicate::After(now))
+    .limit(MAX_OPEN_REQUESTS)
+    .await
+    .map_err(|_| DeviceStartError::ServerError)?;
+    if open.len() >= MAX_OPEN_REQUESTS as usize {
+        return Err(DeviceStartError::TooManyRequests);
+    }
+    Ok(())
+}
+
+/// Delete up to a batch of requests past their 10 minutes. Best-effort; never fails the start.
 async fn purge_expired(lookup: &Valence) {
     let rows = DeviceAuthorization::query(
         lookup,
         valence::use_!(r"When a **device asks to sign in**, we **look for sign-in requests older than 10 minutes** so they can be deleted. Nothing is shown to anyone."),
     )
+    .where_expires_at(DateTimePredicate::Before(Utc::now()))
+    .limit(PURGE_BATCH)
     .await;
     let Ok(rows) = rows else {
         tracing::warn!(target: "lepton.device_signin", "expired requests not listed");
         return;
     };
-    let now = Utc::now();
-    for row in rows.iter().filter(|r| *r.expires_at() <= now) {
+    for row in &rows {
         if let Some(id) = row.id() {
             remove_request(lookup, id.id()).await;
         }
