@@ -61,11 +61,6 @@ def cmd_lists(a):
     """Write RUN/lane-i/list.txt: committed list i, minus stale lines, plus
     tests no committed list names (dealt round-robin)."""
     expected = [k for k, _, _ in tests_of(a.all)]
-    # --repeat-each lists a test once per repeat, so a key may be expected
-    # more than once; only runs beyond that count are duplicates.
-    want = {}
-    for k in expected:
-        want[k] = want.get(k, 0) + 1
     wanted = set(expected)
     lanes, seen, stale = [], set(), 0
     for i in range(1, a.n + 1):
