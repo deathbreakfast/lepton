@@ -19,6 +19,8 @@ pub use crate::schemas::lepton_auth_failure::{LeptonAuthFailure, LeptonAuthFailu
 pub use crate::schemas::lepton_contact::LeptonContactRecorder;
 /// Recorder for the `lepton_device` counter.
 pub use crate::schemas::lepton_device::LeptonDeviceRecorder;
+/// Recorder for the `lepton_device_signin` counter.
+pub use crate::schemas::lepton_device_signin::LeptonDeviceSigninRecorder;
 /// Recorder for the `lepton_email_send` counter.
 pub use crate::schemas::lepton_email_send::LeptonEmailSendRecorder;
 /// Recorder for the `lepton_identity_delete` counter.

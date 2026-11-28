@@ -56,6 +56,8 @@ jobs:
           cargo test -p lepton-auth --features ssr,full,test-utils
           --test auth
           --test membership_primary_clear
+          --test device_signin
+          --test device_signin_routes
       - name: Clippy Twilio adapters
         run: >
           cargo clippy -p lepton-sms -p lepton-smtp --all-targets

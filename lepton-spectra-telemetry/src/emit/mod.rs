@@ -9,6 +9,7 @@ mod common;
 mod contact;
 mod delivery;
 mod device;
+mod device_signin;
 mod failure;
 mod identity_delete;
 mod oauth;
@@ -31,6 +32,7 @@ pub use delivery::{
     SmsSendOutcome,
 };
 pub use device::{record_device, DeviceKind, DeviceOperation};
+pub use device_signin::{record_device_signin, DeviceSigninOperation};
 pub use failure::log_auth_failure;
 pub use identity_delete::{record_identity_delete, IdentityDeleteOperation};
 pub use oauth::{

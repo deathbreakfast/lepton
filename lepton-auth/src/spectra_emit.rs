@@ -8,15 +8,16 @@
 #![allow(dead_code)]
 
 use lepton_spectra_telemetry::{
-    log_auth_failure, record_account, record_contact, record_device, record_identity_delete,
-    record_oauth, record_password_reset, record_service_user, record_signin, record_signup,
-    record_step_up, record_totp, record_verify, AuthFailureFlow,
+    log_auth_failure, record_account, record_contact, record_device, record_device_signin,
+    record_identity_delete, record_oauth, record_password_reset, record_service_user,
+    record_signin, record_signup, record_step_up, record_totp, record_verify, AuthFailureFlow,
 };
 
 pub use lepton_spectra_telemetry::{
     AccountOperation, AuthFactor, AuthOutcome, ContactOperation, DeviceKind, DeviceOperation,
-    IdentityDeleteOperation, OAuthIntentLabel, OAuthProviderLabel, OAuthStage, PasswordResetStage,
-    ServiceUserOperation, SigninStage, StepUpPath, TotpOperation, VerifyChannel, VerifyStage,
+    DeviceSigninOperation, IdentityDeleteOperation, OAuthIntentLabel, OAuthProviderLabel,
+    OAuthStage, PasswordResetStage, ServiceUserOperation, SigninStage, StepUpPath, TotpOperation,
+    VerifyChannel, VerifyStage,
 };
 
 pub fn signup(ok: bool, error_class: &'static str) {
@@ -210,4 +211,14 @@ pub fn service_user(operation: ServiceUserOperation, error_class: &'static str) 
         AuthOutcome::Failure
     };
     record_service_user(operation, outcome, error_class);
+}
+
+/// Device sign-in counter; `error_class` is `"none"` on success.
+pub fn device_signin(operation: DeviceSigninOperation, error_class: &'static str) {
+    let outcome = if error_class == "none" {
+        AuthOutcome::Success
+    } else {
+        AuthOutcome::Failure
+    };
+    record_device_signin(operation, outcome, error_class);
 }

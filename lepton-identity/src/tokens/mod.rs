@@ -29,7 +29,7 @@
 //! |-------|-----------------|---------------------|
 //! | The person | read, create, revoke their own | read, create, revoke for service users they own |
 //! | Gate's manage-any user | nothing | read and revoke |
-//! | A service user | nothing | record its own token's last use, nothing else |
+//! | A service user | nothing | record its own token's last use; create the device token its owner approved |
 //! | Anyone else | nothing | nothing |
 //!
 //! Nobody can change a token's owner, secret hash, scopes or expiry after it is created.
@@ -49,7 +49,9 @@ pub use personal::{PersonalTokenImmutableRule, PERSONAL_TOKEN_IMMUTABLE};
 pub use scope::{
     scopes_from_json, scopes_to_json, ApiScope, InvalidApiScope, TokenLifetime, MAX_SCOPE_LEN,
 };
+pub(crate) use secret::constant_time_eq;
 pub use secret::{hash_token_secret, LeptonToken, TokenParseError, TOKEN_PREFIX};
+pub(crate) use verify::parse_time;
 pub use verify::{record_token_use, verify_bearer_token, TokenPrincipal, VerifiedToken};
 
 /// Token fields that hold a record link. They compare by bare id, since a proposed row may
@@ -92,13 +94,18 @@ pub(crate) fn revoke_undone(proposed: &Value, stored: &Value) -> bool {
 
 /// Whether any field other than `allowed` (and the row key) differs between the two rows.
 pub(crate) fn changed_other_than(allowed: &str, proposed: &Value, stored: &Value) -> bool {
+    changed_outside(&[allowed], proposed, stored)
+}
+
+/// Whether any field outside `allowed` (and the row key) differs between the two rows.
+pub(crate) fn changed_outside(allowed: &[&str], proposed: &Value, stored: &Value) -> bool {
     let keys = |row: &Value| {
         row.as_object()
             .map_or_default(|o| o.keys().cloned().collect::<Vec<_>>())
     };
     let mut fields = keys(proposed);
     fields.extend(keys(stored));
-    fields.retain(|f| f != allowed && f != "id");
+    fields.retain(|f| !allowed.contains(&f.as_str()) && f != "id");
     let fields: Vec<&str> = fields.iter().map(String::as_str).collect();
     fields_changed(&fields, proposed, stored)
 }

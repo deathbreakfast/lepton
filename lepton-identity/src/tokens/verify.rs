@@ -88,7 +88,7 @@ impl VerifiedToken {
 }
 
 /// A stored timestamp: Unix seconds (how backends hold `DateTime`) or RFC 3339 text.
-fn parse_time(value: &Value) -> Option<DateTime<Utc>> {
+pub fn parse_time(value: &Value) -> Option<DateTime<Utc>> {
     if let Some(secs) = value.as_i64() {
         return DateTime::from_timestamp(secs, 0);
     }

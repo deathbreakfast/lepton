@@ -118,6 +118,14 @@ name = "service_user_tokens"
 required-features = ["ssr", "test-utils"]
 
 [[test]]
+name = "device_signin"
+required-features = ["ssr", "test-utils"]
+
+[[test]]
+name = "device_signin_routes"
+required-features = ["ssr", "test-utils"]
+
+[[test]]
 name = "personal_tokens"
 required-features = ["ssr", "test-utils"]
 
@@ -214,6 +222,7 @@ spectra = ["dep:lepton-spectra-telemetry"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "io-util"] }
+tower = { version = "0.5", features = ["util"] }
 wiremock = "0.6"
 serde_json = { workspace = true }
 webauthn-authenticator-rs = { version = "0.5.5", default-features = false, features = ["softpasskey"] }

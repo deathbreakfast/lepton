@@ -83,7 +83,7 @@ mod api;
 pub(crate) mod erase;
 mod error;
 mod handle_lookup;
-mod tokens;
+pub(crate) mod tokens;
 
 pub use activity::{
     list_service_user_activity, record_service_user_token_activity, ServiceUserTokenEvent,

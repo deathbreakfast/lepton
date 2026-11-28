@@ -1,7 +1,9 @@
 //! Create, list, and revoke access tokens for a service user.
 
 use chrono::Utc;
-use lepton_host_adapter::generated::{ServiceUserToken as TokenRow, ServiceUserTokenKind};
+use lepton_host_adapter::generated::{
+    ServiceUserToken as TokenRow, ServiceUserTokenKind, SignedInDevice, SignedInDeviceStatus,
+};
 use lepton_identity::service_users::ServiceUserId;
 use lepton_identity::tokens::{scopes_to_json, ApiScope, LeptonToken, TokenLifetime};
 use tokio::sync::Mutex;
@@ -20,8 +22,9 @@ const MAX_LABEL: usize = 80;
 const MAX_DEVICE_ID: usize = 128;
 
 /// Serializes the count-then-insert in [`create_service_user_token`] so concurrent creates
-/// cannot both pass the limit.
-static CREATE_LOCK: Mutex<()> = Mutex::const_new(());
+/// cannot both pass the limit. Device approvals and moves take it too, since a device waiting
+/// for its token holds one of the service user's slots.
+pub static CREATE_LOCK: Mutex<()> = Mutex::const_new(());
 
 /// Settings for a new token. See [`create_service_user_token`].
 #[derive(Debug, Clone)]
@@ -206,12 +209,7 @@ async fn create_inner(
     let service_user = get_service_user(valence, id).await?;
 
     let _guard = CREATE_LOCK.lock().await;
-    let live = list_rows(valence, &service_user)
-        .await?
-        .iter()
-        .filter(|r| is_live(r, now))
-        .count();
-    if live >= MAX_TOKENS_PER_SERVICE_USER {
+    if used_token_slots(valence, &service_user).await? >= MAX_TOKENS_PER_SERVICE_USER {
         return Err(ServiceUserError::QuotaReached {
             limit: MAX_TOKENS_PER_SERVICE_USER,
         });
@@ -260,6 +258,84 @@ async fn record_event(
             "service user history entry not saved"
         );
     }
+}
+
+/// Token slots a service user is using: its live tokens plus its devices still waiting to
+/// collect one. Counts toward [`MAX_TOKENS_PER_SERVICE_USER`].
+pub async fn used_token_slots(
+    valence: &Valence,
+    service_user: &lepton_host_adapter::generated::ServiceUserAccount,
+) -> Result<usize, ServiceUserError> {
+    let now = Utc::now();
+    let live = list_rows(valence, service_user)
+        .await?
+        .iter()
+        .filter(|r| is_live(r, now))
+        .count();
+    let id = service_user
+        .id()
+        .map(|rid| rid.id().to_string())
+        .ok_or(ServiceUserError::Store)?;
+    let waiting = SignedInDevice::get_from_service_user_id(
+        &id,
+        valence,
+        valence::use_!(r"Before a token is created or a device is signed in as a **service user**, we **count its devices still waiting to collect a token**, so the service user stays within its token limit. Only the count is used; nothing is shown."),
+    )
+    .await
+    .map_err(|_| ServiceUserError::Store)?
+    .iter()
+    .filter(|d| matches!(d.status(), SignedInDeviceStatus::IssuePending))
+    .count();
+    Ok(live + waiting)
+}
+
+/// Mint the token a device collects, acting as the service user the device signed in as.
+///
+/// `valence` is opened as that service user. The `service_user_token` create rule
+/// `SERVICE_USER_DEVICE_TOKEN_CREATE` allows it only for a device of that service user that is
+/// waiting for a token, with the device's scopes and lifetime. The slot was reserved when the
+/// owner approved or moved the device, so there is no limit check here.
+pub async fn issue_device_token(
+    valence: &Valence,
+    device: &SignedInDevice,
+) -> Result<CreatedServiceUserToken, ServiceUserError> {
+    let device_id = device
+        .id()
+        .map(|rid| rid.id().to_string())
+        .ok_or(ServiceUserError::Store)?;
+    let lifetime = match device.lifetime_days() {
+        30 => TokenLifetime::Days30,
+        90 => TokenLifetime::Days90,
+        _ => return Err(ServiceUserError::InvalidProfile { field: "lifetime" }),
+    };
+    let now = Utc::now();
+    let token = LeptonToken::generate();
+    let row = TokenRow::new(
+        device.user().cloned(),
+        device.service_user().cloned(),
+        device.name().clone(),
+        token.hash(),
+        device.scopes().cloned(),
+        Some(ServiceUserTokenKind::Device),
+        Some(device_id),
+        lifetime.expires_at(now),
+        None,
+        None,
+        now,
+    )
+    .map_err(|_| ServiceUserError::Store)?;
+    let row = TokenRow::upsert(
+        token.id(),
+        row,
+        valence,
+        valence::use_!(r"When a **signed-in device collects its token**, we **save the token's label, the APIs it may call, its expiry, and a one-way hash of the secret**, and **hand the token to the device once**. Its owner sees the token, marked Device, on the service user's page; the secret itself is never stored."),
+    )
+    .await
+    .map_err(|e| write_error(&e))?;
+    Ok(CreatedServiceUserToken {
+        row,
+        token: token.expose(),
+    })
 }
 
 async fn list_rows(

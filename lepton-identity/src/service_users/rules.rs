@@ -88,7 +88,7 @@ pub struct ServiceUserIdentityImmutableRule;
 pub struct ServiceUserActiveRule;
 
 /// The calling user, or `None` for every other kind of actor.
-pub(super) fn user_actor(actor: &dyn ActorContext) -> Option<Actor> {
+pub fn user_actor(actor: &dyn ActorContext) -> Option<Actor> {
     let parsed: Actor = serde_json::from_value(actor.actor_json().clone()).ok()?;
     parsed.is_user().then_some(parsed)
 }
