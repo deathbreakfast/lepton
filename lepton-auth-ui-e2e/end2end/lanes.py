@@ -98,6 +98,11 @@ def read_stages(path):
 
 def cmd_merge(a):
     expected = [k for k, _, _ in tests_of(a.all)]
+    # --repeat-each lists a test once per repeat, so a key may be expected
+    # more than once; only runs beyond that count are duplicates.
+    want = {}
+    for k in expected:
+        want[k] = want.get(k, 0) + 1
     counts, lanes, failed = {}, [], []
     dead = []
     for d in sorted(glob.glob(os.path.join(a.run, "lane-*")),
@@ -126,13 +131,13 @@ def cmd_merge(a):
                     failed.append((int(i), key))
         lanes.append(row)
     missing = [k for k in expected if k not in counts]
-    dups = sorted(k for k, n in counts.items() if n > 1)
+    dups = sorted(k for k, n in counts.items() if n > want.get(k, 1))
     unexpected = sorted(k for k in counts if k not in set(expected))
     stages = read_stages(a.stages)
     ok = (not failed and not missing and not dups and not dead
           and all(r["rc"] == 0 for r in lanes))
     summary = {
-        "ok": ok, "expected": len(expected), "ran": len(counts),
+        "ok": ok, "expected": len(expected), "ran": sum(counts.values()),
         "passed": sum(r["passed"] for r in lanes),
         "failed": [{"lane": i, "title": k} for i, k in failed],
         "missing": missing, "duplicates": dups, "unexpected": unexpected,
@@ -142,7 +147,7 @@ def cmd_merge(a):
     with open(os.path.join(a.run, "summary.json"), "w") as f:
         json.dump(summary, f, indent=2)
     md = [f"# Lane run: {'PASS' if ok else 'FAIL'}", "",
-          f"{len(expected)} expected, {len(counts)} ran, "
+          f"{len(expected)} expected, {summary['ran']} ran, "
           f"{summary['passed']} passed, {len(failed)} failed, "
           f"{len(missing)} missing, {len(dups)} duplicated.", ""]
     if stages:

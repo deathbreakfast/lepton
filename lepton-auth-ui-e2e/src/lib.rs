@@ -34,4 +34,12 @@ pub fn hydrate() {
     console_error_panic_hook::set_once();
     tracing_wasm::set_as_global_default();
     leptos::mount::hydrate_body(App);
+    // Specs wait on `html[data-hydrated]` before they type or click: until
+    // then the SSR buttons have no handlers and hydration can reset inputs.
+    // Spawned so already-resolved resources finish hydrating first.
+    leptos::task::spawn_local(async {
+        if let Some(root) = leptos::prelude::document().document_element() {
+            let _ = root.set_attribute("data-hydrated", "true");
+        }
+    });
 }

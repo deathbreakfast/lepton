@@ -18,6 +18,19 @@ export async function dismissAuthOverlay(
   }
 }
 
+/**
+ * Wait until the WASM bundle has hydrated the current document. Before that,
+ * SSR buttons have no handlers (clicks are dropped) and hydration can reset
+ * inputs, so call this after a `page.goto` and before typing or clicking.
+ */
+export async function waitForHydration(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  await expect(page.locator("html[data-hydrated]")).toHaveCount(1, {
+    timeout: 60_000,
+  });
+}
+
 /** Click an Orbital Button wrapped in a native `data-testid` element. */
 export async function clickTestId(
   page: import("@playwright/test").Page,
@@ -145,6 +158,7 @@ export async function signupNewUser(
   await expect(page.getByTestId("confirm-account-container")).toBeVisible({
     timeout: 60_000,
   });
+  await waitForHydration(page);
   await dismissAuthOverlay(page);
 }
 
@@ -164,17 +178,9 @@ export async function seedAndSignIn(
   await expect(page.getByTestId("signin-container")).toBeVisible({
     timeout: 60_000,
   });
-  const root = authDialog(page);
-  await expect(root).toBeVisible({ timeout: 60_000 });
-  await root
-    .getByTestId("signin-email")
-    .locator('input[name="email"]')
-    .fill(email);
-  await root
-    .getByTestId("signin-password")
-    .locator('input[name="password"]')
-    .fill(password);
-  await root.getByTestId("signin-submit").getByRole("button").click();
+  await expect(authDialog(page)).toBeVisible({ timeout: 60_000 });
+  await waitForHydration(page);
+  await submitSignin(page, email, password);
 }
 
 /** Install a Chromium virtual authenticator for WebAuthn ceremonies. */

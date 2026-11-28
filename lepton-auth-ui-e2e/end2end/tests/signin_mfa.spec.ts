@@ -5,6 +5,7 @@ import {
   authDialog,
   installVirtualAuthenticator,
   clickTestId,
+  waitForHydration,
 } from "./fixtures";
 import { totpCode } from "./helpers/totp";
 import { enrollTotpToEnabled } from "./helpers/totp_settings";
@@ -20,6 +21,7 @@ async function fillPasswordSignIn(
   });
   const root = authDialog(page);
   await expect(root).toBeVisible({ timeout: 60_000 });
+  await waitForHydration(page);
   await root
     .getByTestId("signin-email")
     .locator('input[name="email"]')
@@ -36,6 +38,7 @@ async function logout(page: import("@playwright/test").Page) {
   await expect(page.getByTestId("logout-container")).toBeVisible({
     timeout: 60_000,
   });
+  await waitForHydration(page);
   await authDialog(page)
     .getByTestId("logout-button")
     .getByRole("button")
@@ -164,6 +167,7 @@ test.describe("pw-signin-mfa", () => {
     await expect(page.getByTestId("devices-add-passkey")).toBeVisible({
       timeout: 60_000,
     });
+    await waitForHydration(page);
     const labelInput = page.getByTestId("devices-passkey-label").locator("input");
     await labelInput.fill("E2E MFA passkey");
     await expect(labelInput).toHaveValue("E2E MFA passkey");

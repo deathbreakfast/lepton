@@ -7,8 +7,11 @@
 #   ./run-lanes.sh -g "<title regex>"    targeted: one server, one lane
 #   ./run-lanes.sh --project phone a.spec.ts b.spec.ts
 #   ./run-lanes.sh --serial              one server, every test in order (baseline)
+#   ./run-lanes.sh -g "<title>" --repeat-each 10   flake check: each test 10 times
 #
-# Options: --no-build, --no-install, --out DIR. Env: LANES, LANE_BUDGET
+# Options: --no-build, --no-install, --out DIR, --repeat-each N. Env: LANES,
+# LANES_PORT (base port, default from lanes.conf; set it to run a second
+# lane set beside a live one), LANE_BUDGET
 # (seconds per lane, default 1200), LANES_OUT, CARGO_TARGET_DIR.
 #
 # Output in $LANES_OUT (default lanes-out/<stamp>): lane-<i>/{timing.tsv,
@@ -24,17 +27,18 @@ source "$here/lanes.conf"
 if [ -n "${REPO_ROOT:-}" ]; then root=$(cd "$here/$REPO_ROOT" && pwd); else root=$(git -C "$here" rev-parse --show-toplevel); fi
 [ -d "$root" ] || { echo "run-lanes: can't find the repo root" >&2; exit 2; }
 
-build=1 install=1 serial=0 filter=() pw_project=() files=()
+build=1 install=1 serial=0 filter=() pw_project=() files=() repeat=()
 out=${LANES_OUT:-}
 while [ $# -gt 0 ]; do
   case $1 in
     -g|--grep) filter+=(--grep "$2"); shift 2 ;;
     --project) pw_project+=(--project "$2"); shift 2 ;;
+    --repeat-each) repeat+=(--repeat-each "$2"); shift 2 ;;
     --serial) serial=1; shift ;;
     --no-build) build=0; shift ;;
     --no-install) install=0; shift ;;
     --out) out=$2; shift 2 ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     -*) echo "unknown option $1" >&2; exit 2 ;;
     *) files+=("$1"); shift ;;
   esac
@@ -105,7 +109,7 @@ if [ "$install" = 1 ]; then
 fi
 
 # Every test this run should cover, from Playwright itself.
-npx playwright test --list --reporter=json "${filter[@]}" "${pw_project[@]}" "${files[@]}" \
+npx playwright test --list --reporter=json "${repeat[@]}" "${filter[@]}" "${pw_project[@]}" "${files[@]}" \
   >"$out/all.json" 2>"$out/list.log" || { log "playwright --list failed"; cat "$out/list.log" >&2; exit 1; }
 
 if [ "$serial" = 0 ] && [ "$targeted" = 0 ] && [ -f "lanes/list-$lanes.txt" ] && [ ! -f "lanes/list-$((lanes + 1)).txt" ]; then
@@ -147,7 +151,7 @@ run_lane() {
         PLAYWRIGHT_JSON_OUTPUT_FILE="$o/results.json" \
       timeout --kill-after=30 "$budget" \
       npx playwright test --workers=1 --retries=0 --reporter=list,json --output="$o/test-results" \
-        "${args[@]}" "${filter[@]}" "${pw_project[@]}" "${files[@]}" >"$o/playwright.log" 2>&1
+        "${args[@]}" "${repeat[@]}" "${filter[@]}" "${pw_project[@]}" "${files[@]}" >"$o/playwright.log" 2>&1
     rc=$?
     [ $rc = 124 ] && echo "run-lanes: lane $i passed its ${budget}s budget and was stopped" >>"$o/playwright.log"
   else

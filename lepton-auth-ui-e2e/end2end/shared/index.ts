@@ -18,4 +18,5 @@ export {
   signInAs,
   signupNewUser,
   submitSignin,
+  waitForHydration,
 } from "./auth";
