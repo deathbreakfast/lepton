@@ -336,6 +336,8 @@ pub mod contacts;
 #[cfg(all(feature = "ssr", feature = "boson-delivery"))]
 pub mod delivery;
 pub mod delivery_settings;
+#[cfg(feature = "ssr")]
+pub mod device_signin;
 pub mod devices;
 #[cfg(feature = "email")]
 pub mod email_delivery;

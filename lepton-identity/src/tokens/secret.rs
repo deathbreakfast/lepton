@@ -115,7 +115,7 @@ fn to_hex(bytes: &[u8]) -> String {
     out
 }
 
-pub(super) fn constant_time_eq(a: &str, b: &str) -> bool {
+pub fn constant_time_eq(a: &str, b: &str) -> bool {
     let (a, b) = (a.as_bytes(), b.as_bytes());
     if a.len() != b.len() {
         return false;

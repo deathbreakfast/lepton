@@ -299,6 +299,8 @@
 //! - [`auth::hash_password`] — Argon2 PHC helper
 //! - [`ownership`] / [`side_effects`] — signup ownership and mutation hooks
 //! - [`config`] — host settings such as the service user limit per owner
+//! - [`device_signin`] — device sign-in (RFC 8628): device and user codes, and the
+//!   `device_authorization` and `signed_in_device` tables' privacy rules
 //! - [`service_users`] — service user ids, handles, the service user gate, and the
 //!   `service_user_account` table's privacy rules
 //! - [`tokens`] — personal and service user tokens: the `lptk_` format, scopes, lifetimes,
@@ -307,6 +309,7 @@
 
 pub mod auth;
 pub mod config;
+pub mod device_signin;
 /// Logical database name/storage constants for identity schemas.
 pub mod embedded_surreal;
 /// Build-generated Valence models for identity tables (see the [crate-level

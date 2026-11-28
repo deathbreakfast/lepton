@@ -177,6 +177,17 @@ const ERROR_CLASSES: &[&str] = &[
     "not_found",
     "transition",
     "forbidden",
+    // Device sign-in (`lepton_auth::device_signin::DeviceSigninError::reason_class` and the
+    // RFC 8628 poll errors).
+    "locked",
+    "paused",
+    "quota",
+    "scopes",
+    "access_denied",
+    "invalid_grant",
+    "slow_down",
+    "authorization_pending",
+    "step_up",
 ];
 
 /// Map an `error_class` / `reason_class` token to an allowlisted label (or `unknown`).

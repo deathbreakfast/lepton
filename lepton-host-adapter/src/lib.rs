@@ -115,6 +115,10 @@ pub mod auth;
 #[cfg(feature = "ssr")]
 pub mod bearer;
 
+/// The two HTTP routes of device sign-in (RFC 8628): `/auth/device/code` and `/auth/device/token`.
+#[cfg(feature = "ssr")]
+pub mod device_signin;
+
 /// Middleware mirroring the axum-login session into `higgs_identity::SessionSnapshot`.
 #[cfg(feature = "ssr")]
 pub mod session;

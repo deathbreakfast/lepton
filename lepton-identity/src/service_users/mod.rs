@@ -85,7 +85,7 @@ pub use gate::{
 pub use handle::{ServiceUserHandle, ServiceUserHandleError, MAX_HANDLE_LEN, MIN_HANDLE_LEN};
 pub use id::{is_managed_service_name, InvalidServiceUserId, ServiceUserId, SERVICE_USER_PREFIX};
 pub use resolve::active_service_user_owner;
-pub(crate) use rules::ref_id;
+pub(crate) use rules::{ref_id, user_actor};
 pub use rules::{
     ServiceUserActiveRule, ServiceUserActivityAppendOnlyRule, ServiceUserActivityWriteRule,
     ServiceUserCreateGateRule, ServiceUserIdentityImmutableRule, ServiceUserManageAnyRule,
@@ -93,6 +93,7 @@ pub use rules::{
     SERVICE_USER_CREATE_GATE, SERVICE_USER_IDENTITY_IMMUTABLE, SERVICE_USER_MANAGE_ANY,
 };
 pub use token::{
-    ServiceUserTokenCreateRule, ServiceUserTokenImmutableRule, ServiceUserTokenTouchRule,
-    SERVICE_USER_TOKEN_CREATE, SERVICE_USER_TOKEN_IMMUTABLE, SERVICE_USER_TOKEN_TOUCH,
+    ServiceUserDeviceTokenCreateRule, ServiceUserTokenCreateRule, ServiceUserTokenImmutableRule,
+    ServiceUserTokenTouchRule, SERVICE_USER_DEVICE_TOKEN_CREATE, SERVICE_USER_TOKEN_CREATE,
+    SERVICE_USER_TOKEN_IMMUTABLE, SERVICE_USER_TOKEN_TOUCH,
 };

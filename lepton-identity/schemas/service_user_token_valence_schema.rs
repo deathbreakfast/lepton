@@ -2,15 +2,15 @@ use valence::prelude::*;
 use valence::privacy_policies::owner::OWNER_BY_USER_FIELD;
 
 use crate::service_users::{
-    SERVICE_USER_MANAGE_ANY, SERVICE_USER_TOKEN_CREATE, SERVICE_USER_TOKEN_IMMUTABLE,
-    SERVICE_USER_TOKEN_TOUCH,
+    SERVICE_USER_DEVICE_TOKEN_CREATE, SERVICE_USER_MANAGE_ANY, SERVICE_USER_TOKEN_CREATE,
+    SERVICE_USER_TOKEN_IMMUTABLE, SERVICE_USER_TOKEN_TOUCH,
 };
 
 valence_schema! {
     ServiceUserToken {
         repository: "https://github.com/unified-field-dev/lepton",
         table: "service_user_token",
-        version: "0.2.0",
+        version: "0.3.0",
         database: crate::embedded_surreal::IDENTITY_DEFAULT_STORAGE,
         description: "Access token for a service user, with API scopes; stores only a hash of the secret",
 
@@ -20,7 +20,9 @@ valence_schema! {
 
         // The owner of the service user manages its tokens; users the host's gate grants
         // manage-any can read and revoke. A service user may only record its own token's last
-        // use (SERVICE_USER_TOKEN_TOUCH), so a token can never mint or revoke tokens.
+        // use (SERVICE_USER_TOKEN_TOUCH), so a token can never mint or revoke tokens. The one
+        // exception is a device collecting the token its owner approved: the service user
+        // creates that device token for itself (SERVICE_USER_DEVICE_TOKEN_CREATE).
         policies: {
             read: {
                 always_allow: [],
@@ -30,7 +32,7 @@ valence_schema! {
             },
             create: {
                 always_allow: [],
-                allow: [SERVICE_USER_TOKEN_CREATE],
+                allow: [SERVICE_USER_TOKEN_CREATE, SERVICE_USER_DEVICE_TOKEN_CREATE],
                 block: [],
                 always_block: [],
             },
