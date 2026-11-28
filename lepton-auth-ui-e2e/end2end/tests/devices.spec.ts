@@ -3,6 +3,7 @@ import {
   expect,
   installVirtualAuthenticator,
   clickTestId,
+  waitForHydration,
 } from "./fixtures";
 
 async function gotoAccountSettingsSignedIn(
@@ -25,6 +26,7 @@ async function gotoAccountSettingsSignedIn(
     timeout: 60_000,
   });
   await expect(page.getByTestId("devices-section")).toBeVisible();
+  await waitForHydration(page);
 }
 
 test.describe("pw-devices account settings", () => {
@@ -124,6 +126,7 @@ test.describe("pw-devices account settings", () => {
     await expect(page.getByTestId("devices-row")).toContainText(/Revoke me/i, {
       timeout: 30_000,
     });
+    await expect(page.getByTestId("devices-row")).toContainText(/Trusted/i);
 
     await clickTestId(page, "devices-revoke");
     await expect(page.getByTestId("devices-empty")).toBeVisible({

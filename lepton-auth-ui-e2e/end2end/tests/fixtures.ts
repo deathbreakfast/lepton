@@ -19,6 +19,7 @@ export {
   submitSignin,
   waitMailpitCode,
   waitSmsOtp,
+  waitForHydration,
   type SeedResult,
 } from "../shared";
 

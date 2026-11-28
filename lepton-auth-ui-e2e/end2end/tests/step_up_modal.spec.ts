@@ -4,6 +4,7 @@ import {
   seedTestData,
   authDialog,
   clickTestId,
+  waitForHydration,
 } from "./fixtures";
 import { totpCode } from "./helpers/totp";
 
@@ -23,6 +24,7 @@ async function signInWithPassword(
   });
   const root = authDialog(page);
   await expect(root).toBeVisible({ timeout: 60_000 });
+  await waitForHydration(page);
   await root
     .getByTestId("signin-email")
     .locator('input[name="email"]')
@@ -58,6 +60,7 @@ async function gotoStepUpDemo(
   await expect(page.getByTestId("step-up-demo-container")).toBeVisible({
     timeout: 60_000,
   });
+  await waitForHydration(page);
 }
 
 test.describe("pw-step-up-modal", () => {
